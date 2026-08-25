@@ -150,6 +150,39 @@ describe('registration and cookie session flow', () => {
     expect(tx.pointTransaction.create).toHaveBeenCalledOnce();
   });
 
+  it('allows optional email or phone contact without a registration code', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    process.env.REFRESH_COOKIE_ENABLED = 'true';
+    process.env.COOKIE_SECURE = 'false';
+    process.env.COOKIE_PATH = '/api';
+    app = buildApp();
+    await app.ready();
+
+    const contactUser = { ...user, id: 44n, nickname: '可选联系方式用户', email: 'optional@example.com', phone: null };
+    const tx = {
+      user: { create: vi.fn().mockResolvedValue(contactUser) },
+      pointTransaction: { create: vi.fn().mockResolvedValue({}) },
+    };
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback(tx));
+    vi.spyOn(prisma.authSession, 'create').mockResolvedValue({} as never);
+    vi.spyOn(prisma.auditLog, 'create').mockResolvedValue({} as never);
+
+    const register = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: { nickname: contactUser.nickname, email: contactUser.email, password: 'correct-password' },
+    });
+
+    expect(register.statusCode).toBe(201);
+    expect(register.json().user.email).toBe(contactUser.email);
+    expect(tx.user.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ email: contactUser.email, verifiedEmailAt: null, verifiedPhoneAt: null }),
+    }));
+    expect(tx.pointTransaction.create).toHaveBeenCalledOnce();
+  });
+
   it('keeps the public cookie path broad enough for buddy-box requests', () => {
     const nginx = readFileSync(resolve(process.cwd(), 'deploy', 'nginx-dsxnb-dd.conf'), 'utf8');
     expect(nginx).toContain('proxy_cookie_path /api /dd/api;');

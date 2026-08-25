@@ -207,7 +207,7 @@
     var code = document.getElementById('regCode').value.trim();
     if (!nick || !password || !confirm) { toast('请填写昵称和密码'); return; }
     if (phone && !/^1\d{10}$/.test(phone.replace(/[\s-]/g, ''))) { toast('手机号格式不正确'); return; }
-    if ((email || phone) && !/^\d{6}$/.test(code)) { toast('填写邮箱或手机号后请输入 6 位验证码'); return; }
+    if (code && !/^\d{6}$/.test(code)) { toast('验证码应为 6 位数字'); return; }
     if (password !== confirm) { toast('两次密码不一致'); return; }
     if (!regMbtiType) { toast('请选择 MBTI 类型'); return; }
     if (!regDrawResult) { toast('请先抽取你的初始蛋'); return; }
@@ -215,7 +215,7 @@
     var button = document.getElementById('regSubmitBtn'); setLoading(button, true, '注册并登录');
     try {
       var verificationToken = null;
-      if (email || phone) {
+      if ((email || phone) && code) {
         var verified = await apiClient.verifyCode(channel, target, 'register', code);
         verificationToken = verified.verificationToken;
       }
@@ -223,7 +223,7 @@
       USER = Object.assign({}, USER, result.user, { registered: true, isAdmin: false, points: 10, exp: 0 });
       await hydrateUserState();
       closeRegModal(); login('student'); toast('注册成功，欢迎来到蛋蛋世界');
-    } catch (error) { toast(error.message || '注册失败，请检查验证码'); }
+    } catch (error) { toast(error.message || '注册失败，请检查填写内容'); }
     finally { setLoading(button, false, '注册并登录'); }
   };
 

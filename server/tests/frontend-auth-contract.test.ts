@@ -47,8 +47,8 @@ describe('frontend password reset contract', () => {
 
   it('allows nickname/password registration with optional contact verification', () => {
     expect(client).toContain("if (!nick || !password || !confirm)");
-    expect(client).toContain("if (email || phone)");
-    expect(html).toContain('不填写邮箱和手机号时，可直接用昵称和密码注册。');
+    expect(client).toContain("if ((email || phone) && code)");
+    expect(html).toContain('邮箱和手机号均为可选；填写验证码后才会验证联系方式。');
   });
 });
 

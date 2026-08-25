@@ -584,28 +584,31 @@ export function buildApp(): FastifyInstance {
       : null;
 
     try {
-      const user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const registration = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        let contactVerified = false;
         if (registrationChannel && registrationTarget) {
-          if (!input.verificationToken) throw new VerificationTokenError();
-          const verification = await tx.verificationCode.findFirst({
-            where: {
-              channel: registrationChannel,
-              target: registrationTarget,
-              purpose: 'register',
-              verificationTokenHash: hashVerificationValue(input.verificationToken),
-              verifiedAt: { not: null },
-              consumedAt: null,
-              expiresAt: { gt: new Date() },
-            },
-            orderBy: { createdAt: 'desc' },
-          });
-          if (!verification) throw new VerificationTokenError();
+          if (input.verificationToken) {
+            const verification = await tx.verificationCode.findFirst({
+              where: {
+                channel: registrationChannel,
+                target: registrationTarget,
+                purpose: 'register',
+                verificationTokenHash: hashVerificationValue(input.verificationToken),
+                verifiedAt: { not: null },
+                consumedAt: null,
+                expiresAt: { gt: new Date() },
+              },
+              orderBy: { createdAt: 'desc' },
+            });
+            if (!verification) throw new VerificationTokenError();
 
-          const consumed = await tx.verificationCode.updateMany({
-            where: { id: verification.id, consumedAt: null },
-            data: { consumedAt: new Date() },
-          });
-          if (consumed.count !== 1) throw new VerificationTokenError();
+            const consumed = await tx.verificationCode.updateMany({
+              where: { id: verification.id, consumedAt: null },
+              data: { consumedAt: new Date() },
+            });
+            if (consumed.count !== 1) throw new VerificationTokenError();
+            contactVerified = true;
+          }
         }
 
         const created = await tx.user.create({
@@ -622,8 +625,8 @@ export function buildApp(): FastifyInstance {
             mbtiType: input.mbtiType,
             mbtiGroup: input.mbtiGroup,
             eggCategory,
-            verifiedPhoneAt: input.phone ? new Date() : null,
-            verifiedEmailAt: input.phone ? null : input.email ? new Date() : null,
+            verifiedPhoneAt: contactVerified && input.phone ? new Date() : null,
+            verifiedEmailAt: contactVerified && input.email ? new Date() : null,
             inviteCode: newInviteCode(),
             stats: { create: {} },
             account: { create: {} },
@@ -650,9 +653,10 @@ export function buildApp(): FastifyInstance {
             remark: '新用户注册奖励',
           },
         });
-        return created;
+        return { user: created, contactVerified };
       });
 
+      const user = registration.user;
       const tokens = await issueSession(app, user, request);
       await recordAudit({ actorId: user.id, action: 'auth.register', targetType: 'user', targetId: user.id.toString(), ip: request.ip });
       setRefreshCookie(reply, tokens.refreshToken, config);
