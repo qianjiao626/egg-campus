@@ -5,6 +5,9 @@ import { resolve } from 'node:path';
 const packageRoot = resolve(process.cwd(), '..', 'backend-handoff-package');
 const component = readFileSync(resolve(packageRoot, 'blind-box', 'index.html'), 'utf8');
 const componentCss = readFileSync(resolve(packageRoot, 'blind-box', 'styles.css'), 'utf8');
+const componentApp = readFileSync(resolve(packageRoot, 'blind-box', 'app.js'), 'utf8');
+const componentApi = readFileSync(resolve(packageRoot, 'blind-box', 'buddy-box-api.js'), 'utf8');
+const hostApi = readFileSync(resolve(packageRoot, 'api-client.js'), 'utf8');
 const host = readFileSync(resolve(packageRoot, 'growth-school.html'), 'utf8');
 
 describe('blind-box content-only contract', () => {
@@ -22,6 +25,25 @@ describe('blind-box content-only contract', () => {
     }
     expect(component).toContain('buddy-box-api.js');
     expect(component).toContain('app.js');
+  });
+
+  it('uses the complete sensitive filter and keeps friend actions server-backed', () => {
+    expect(component).toContain('sensitive-filter.js');
+    expect(componentApp).toContain('DandanSensitiveFilter.containsBlockedTerm');
+    expect(componentApp).toContain('data-inbox-action="reject"');
+    expect(componentApi).toContain("/friend-requests/' + encodeURIComponent(id) + '/reject");
+  });
+
+  it('keeps my inquiries private and reachable as a student page', () => {
+    expect(host).toContain('data-page="myinquiries"');
+    expect(host).toContain('id="page-myinquiries"');
+    expect(host).toContain("'myinquiries'");
+    expect(hostApi).toContain("'/api/inquiries/mine'");
+  });
+
+  it('preserves DEMO published task records during real task sync', () => {
+    expect(host).toContain('data-demo="true"');
+    expect(host).toContain("getAttribute('data-demo') !== 'true'");
   });
 
   it('leaves scrolling to the host container', () => {

@@ -1549,6 +1549,7 @@
           <div class="nav-item student-item" data-page="helpplaza"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 22C12 22 20 18 20 11V5L12 2L4 5V11C4 18 12 22 12 22Z" stroke-linejoin="round"/><path d="M9 12L11 14L15 9" stroke-linecap="round" stroke-linejoin="round"/></svg><span>求助中心</span></div>
           <div class="nav-item student-item" data-page="rankhall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2L14.5 8.5L21 9L16 14L17.5 21L12 17.5L6.5 21L8 14L3 9L9.5 8.5L12 2Z" stroke-linejoin="round"/></svg><span>神蛋榜单</span></div>
           <div class="nav-item student-item" data-page="gossip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke-linejoin="round"/></svg><span>八卦吃瓜</span></div>
+          <div class="nav-item student-item" data-page="myinquiries"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v9A2.5 2.5 0 0 1 17.5 17H11l-4.5 4v-4.5H6.5A2.5 2.5 0 0 1 4 14.5z" stroke-linejoin="round"/><path d="M8 8h8M8 12h5" stroke-linecap="round"/></svg><span>我的打听</span></div>
           <div class="nav-item student-item" data-page="myfeedback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v9A2.5 2.5 0 0 1 17.5 17H11l-4.5 4v-4.5h0A2.5 2.5 0 0 1 4 14.5z" stroke-linejoin="round"/><path d="M8 8h8M8 12h5" stroke-linecap="round"/></svg><span>我的反馈</span></div>
           <div class="nav-item student-item" data-page="mytasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 12L11 15L16 10" stroke-linecap="round" stroke-linejoin="round"/></svg><span>我的任务</span></div>
           <div class="nav-item student-item" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.5"/><path d="M4 20C4 16.5 7.6 14.5 12 14.5C16.4 14.5 20 16.5 20 20" stroke-linecap="round"/></svg><span>我的信息</span></div>
@@ -2091,6 +2092,13 @@
           </div>
         </section>
 
+        <!-- ===== STUDENT: 我的打听 ===== -->
+        <section class="page" id="page-myinquiries">
+          <div class="topbar"><span class="crumb">蛋蛋世界 / 我的打听</span><button class="link" onclick="syncGossipInquiries()">刷新</button></div>
+          <div class="title-row"><div class="t"><h2>我的打听</h2><p>这里只显示你本人发布的打听、回复数量和最近回复摘要</p></div><span class="tag tag-pink" id="myInquiryPageCount">0 条</span></div>
+          <div id="myInquiriesPageList" style="display:flex;flex-direction:column;gap:10px"><div style="padding:24px;text-align:center;color:var(--muted);background:var(--card);border-radius:14px;border:1px dashed var(--border)">暂无打听记录</div></div>
+        </section>
+
         <!-- ===== STUDENT: 我的反馈 ===== -->
         <section class="page" id="page-myfeedback">
           <div class="topbar"><span class="crumb">蛋蛋世界 / 我的反馈</span><button class="link" onclick="syncFeedbackTickets()">刷新</button></div>
@@ -2139,7 +2147,7 @@
             <div class="sec-head"><h3>我发布的任务</h3></div>
             <div id="myPublishedListTeach" style="display:flex;flex-direction:column;gap:16px">
               <!-- 教学型任务（发布者视角 - 待确认配对，测试用） -->
-              <div class="card pub-teach" data-task-type="teach" data-task-cost="200" data-skill-cat="生活互助" data-skill-sub="乐器音乐" data-claim-mode="single" data-max-claimers="1" data-claimed="0" data-submitted="0" data-status="已通过" data-deadline="10.15" data-signup-deadline="9.25" data-requirements="1. 零基础友好，自带吉他或用我的&#10;2. 每周1次课，每次1小时&#10;3. 学习基本和弦和弹唱&#10;4. 4周能弹唱3首歌" style="padding:20px;display:flex;flex-direction:column;gap:10px">
+              <div class="card pub-teach" data-demo="true" data-task-type="teach" data-task-cost="200" data-skill-cat="生活互助" data-skill-sub="乐器音乐" data-claim-mode="single" data-max-claimers="1" data-claimed="0" data-submitted="0" data-status="已通过" data-deadline="10.15" data-signup-deadline="9.25" data-requirements="1. 零基础友好，自带吉他或用我的&#10;2. 每周1次课，每次1小时&#10;3. 学习基本和弦和弹唱&#10;4. 4周能弹唱3首歌" style="padding:20px;display:flex;flex-direction:column;gap:10px">
                 <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;gap:6px;align-items:center"><span class="tag tag-orange">待确认配对 · 教学型</span><span class="tag tag-demo">DEMO</span></span><span style="font-size:12px;font-weight:500;color:var(--muted)">报名 3 人</span></div>
                 <div style="font-size:15px;font-weight:600">教你零基础入门吉他</div>
                 <div style="display:flex;align-items:center;justify-content:space-between">
@@ -2161,7 +2169,7 @@
             <div class="sec-head"><h3>我发布的任务</h3></div>
             <div id="myPublishedListTeam" style="display:flex;flex-direction:column;gap:16px">
               <!-- 组队型任务（发布者视角 - 待确认配对，测试用） -->
-              <div class="card pub-team" data-task-type="team" data-task-cost="150" data-skill-cat="学业技术" data-skill-sub="英语提升" data-claim-mode="multiple" data-max-claimers="3" data-claimed="0" data-submitted="0" data-status="已通过" data-deadline="10.30" data-signup-deadline="9.20" data-requirements="1. 有一定英语基础（四六级以上）&#10;2. 每周能参加2次周末练习&#10;3. 愿意开口说，不怕犯错&#10;4. 轮流准备话题，互相点评" style="padding:20px;display:flex;flex-direction:column;gap:10px">
+              <div class="card pub-team" data-demo="true" data-task-type="team" data-task-cost="150" data-skill-cat="学业技术" data-skill-sub="英语提升" data-claim-mode="multiple" data-max-claimers="3" data-claimed="0" data-submitted="0" data-status="已通过" data-deadline="10.30" data-signup-deadline="9.20" data-requirements="1. 有一定英语基础（四六级以上）&#10;2. 每周能参加2次周末练习&#10;3. 愿意开口说，不怕犯错&#10;4. 轮流准备话题，互相点评" style="padding:20px;display:flex;flex-direction:column;gap:10px">
                 <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;gap:6px;align-items:center"><span class="tag tag-orange">待确认配对 · 组队型</span><span class="tag tag-demo">DEMO</span></span><span style="font-size:12px;font-weight:500;color:var(--muted)">报名 3 人</span></div>
                 <div style="font-size:15px;font-weight:600">周末英语角口语练习搭子</div>
                 <div style="display:flex;align-items:center;justify-content:space-between">
@@ -2183,7 +2191,7 @@
             <div class="sec-head"><h3>我发布的任务</h3></div>
             <div id="myPublishedListHelp" style="display:flex;flex-direction:column;gap:16px">
               <!-- 求助型任务（发布者视角 - 待确认配对，测试用） -->
-              <div class="card pub-help" data-task-type="help" data-task-cost="80" data-skill-cat="副业技能" data-skill-sub="电脑维修" data-claim-mode="multiple" data-max-claimers="3" data-claimed="0" data-submitted="0" data-status="已通过" data-deadline="本周日" data-signup-deadline="本周六" data-requirements="1. 电脑开机频繁蓝屏&#10;2. 已重装系统还是一样&#10;3. 怀疑是硬件问题&#10;4. 上门或远程指导均可" style="padding:20px;display:flex;flex-direction:column;gap:10px">
+              <div class="card pub-help" data-demo="true" data-task-type="help" data-task-cost="80" data-skill-cat="副业技能" data-skill-sub="电脑维修" data-claim-mode="multiple" data-max-claimers="3" data-claimed="0" data-submitted="0" data-status="已通过" data-deadline="本周日" data-signup-deadline="本周六" data-requirements="1. 电脑开机频繁蓝屏&#10;2. 已重装系统还是一样&#10;3. 怀疑是硬件问题&#10;4. 上门或远程指导均可" style="padding:20px;display:flex;flex-direction:column;gap:10px">
                 <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;gap:6px;align-items:center"><span class="tag tag-orange">待确认配对 · 求助型</span><span class="tag tag-demo">DEMO</span></span><span style="font-size:12px;font-weight:500;color:var(--muted)">报名 3 人</span></div>
                 <div style="font-size:15px;font-weight:600">帮我修一下电脑蓝屏问题</div>
                 <div style="display:flex;align-items:center;justify-content:space-between">
@@ -5452,7 +5460,7 @@
     /* 隐藏需要登录的导航项 */
     document.querySelectorAll('.student-item').forEach(function(item){
       var page = item.getAttribute('data-page');
-      if(page === 'mytasks' || page === 'myfeedback' || page === 'profile'){
+      if(page === 'mytasks' || page === 'myfeedback' || page === 'myinquiries' || page === 'profile'){
         item.style.display = 'none';
       }
     });
@@ -5610,7 +5618,7 @@
 
   /* ===== Page navigation ===== */
   var ADMIN_PAGES = ['dashboard','taskgroups','newgroup','reviewcenter','submissions','review','users','feedback','states'];
-  var STUDENT_PAGES = ['plaza','teamplaza','helpplaza','rankhall','gossip','myfeedback','mytasks','publish','profile','buddybox'];
+  var STUDENT_PAGES = ['plaza','teamplaza','helpplaza','rankhall','gossip','myinquiries','myfeedback','mytasks','publish','profile','buddybox'];
   function hideAllPages(){
     ADMIN_PAGES.concat(STUDENT_PAGES).forEach(function(id){ document.getElementById('page-' + id).classList.remove('active'); });
   }
@@ -5672,7 +5680,7 @@
         var list = document.getElementById(id);
         if(!list) return;
         Array.prototype.slice.call(list.querySelectorAll('[data-task-id]')).forEach(function(card){ card.remove(); });
-        Array.prototype.slice.call(list.children).forEach(function(card){ if(!card.getAttribute('data-task-id')) card.remove(); });
+        Array.prototype.slice.call(list.children).forEach(function(card){ if(!card.getAttribute('data-task-id') && card.getAttribute('data-demo') !== 'true') card.remove(); });
       });
       (result.tasks || []).filter(function(task){ return String(task.userId) === String(USER.id); }).forEach(renderSyncedPublishedTask);
       filterMyPublishedTasks(currentMyPublishedStatus);
@@ -5680,7 +5688,7 @@
   }
   function go(id){
     if(id === 'profile' && !USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
-    if((id === 'mytasks' || id === 'publish') && !USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
+    if((id === 'mytasks' || id === 'publish' || id === 'myinquiries') && !USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
     hideAllPages(); showPage(id);
     var navId = ADMIN_PAGES.indexOf(id) >= 0 ? 'adminNav' : 'studentNav';
     var activePage = (id === 'newgroup') ? 'taskgroups' : (id === 'review' ? 'submissions' : id);
@@ -5692,6 +5700,7 @@
     if(id === 'feedback' || id === 'myfeedback'){ syncFeedbackTickets(); updateFeedbackBadge(); }
     if(id === 'profile'){ renderChar(); renderCharUnlocked(); }
     if(id === 'gossip'){ renderGossipWall(); renderGossipTopList(); syncGossipInquiries(); }
+    if(id === 'myinquiries') syncGossipInquiries();
     if(id === 'mytasks') syncMyTasks();
   }
   document.querySelectorAll('.nav-item').forEach(function(n){
@@ -8954,8 +8963,7 @@
       renderGossipWall(); renderGossipTopList();
       var mine = Array.isArray(mineResponse.inquiries) ? mineResponse.inquiries : [];
       var count = document.getElementById('myInquiryCount'); if(count) count.textContent = mine.length;
-      var list = document.getElementById('myInquiriesList');
-      if(list) list.innerHTML = mine.length ? mine.map(function(inquiry){
+      var inquiryMarkup = mine.length ? mine.map(function(inquiry){
         var replies = Array.isArray(inquiry.recentReplies) ? inquiry.recentReplies : [];
         var replyCount = Number(inquiry.replyCount || 0);
         var latestReply = replies[0];
@@ -8964,6 +8972,12 @@
           : '暂时没有新回复';
         return '<button class="btn btn-ghost" style="text-align:left" onclick="showGossipDetail(' + Number(inquiry.id) + ')"><b>' + escapeHtml(inquiry.title) + '</b><span style="display:block;color:var(--muted);font-size:12px;margin-top:4px">' + replyCount + ' 条回复 · ' + replySummary + '</span></button>';
       }).join('') : '<div style="padding:18px;text-align:center;color:var(--muted)">暂无打听记录</div>';
+      ['myInquiriesList', 'myInquiriesPageList'].forEach(function(listId){
+        var list = document.getElementById(listId);
+        if(list) list.innerHTML = inquiryMarkup;
+      });
+      var pageCount = document.getElementById('myInquiryPageCount');
+      if(pageCount) pageCount.textContent = mine.length + ' 条';
     } catch(error) { toast(error.message || '打听加载失败，请稍后重试'); }
   }
   function toggleMyInquiries(){

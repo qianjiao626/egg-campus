@@ -128,6 +128,9 @@
     acceptFriend: function (id) {
       return request('/api/buddy-box/friend-requests/' + encodeURIComponent(id) + '/accept', { method: 'POST', body: '{}' });
     },
+    rejectFriend: function (id) {
+      return request('/api/buddy-box/friend-requests/' + encodeURIComponent(id) + '/reject', { method: 'POST', body: '{}' });
+    },
     publishBoard: function (payload) { return writeFeature('board', 'publish', payload); }
   };
 

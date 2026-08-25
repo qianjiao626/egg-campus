@@ -877,7 +877,9 @@ export function buildApp(): FastifyInstance {
       const incoming = relationship.recipientId === userId;
       const previous = relationshipByUser.get(key);
       const rank = (status: string) => status === 'accepted' ? 4 : status === 'pending' ? 3 : status === 'rejected' ? 2 : 1;
-      if (!previous || rank(relationship.status) > rank(previous.status)) {
+      const previousRank = previous ? rank(previous.status) : 0;
+      const currentRank = rank(relationship.status);
+      if (!previous || currentRank > previousRank || (currentRank === previousRank && relationship.updatedAt.getTime() > previous.updatedAt.getTime())) {
         relationshipByUser.set(key, { id: relationship.id, status: relationship.status, updatedAt: relationship.updatedAt, incoming });
       }
     });
@@ -965,8 +967,8 @@ export function buildApp(): FastifyInstance {
     const userId = currentUserId(request);
     const friendship = await prisma.buddyFriendRequest.findFirst({ where: { status: 'accepted', OR: [{ requesterId: userId, recipientId: params.userId }, { requesterId: params.userId, recipientId: userId }] } });
     if (!friendship) return reply.code(403).send({ error: 'FRIEND_REQUIRED', message: '接受好友后才能聊天' });
-    const messages = await prisma.buddyMessage.findMany({ where: { OR: [{ senderId: userId, recipientId: params.userId }, { senderId: params.userId, recipientId: userId }] }, orderBy: { createdAt: 'asc' }, take: 100 });
-    return { messages: messages.map((message) => ({ ...message, id: message.id.toString(), senderId: message.senderId.toString(), recipientId: message.recipientId.toString() })) };
+    const messages = await prisma.buddyMessage.findMany({ where: { OR: [{ senderId: userId, recipientId: params.userId }, { senderId: params.userId, recipientId: userId }] }, orderBy: { createdAt: 'desc' }, take: 100 });
+    return { messages: messages.reverse().map((message) => ({ ...message, id: message.id.toString(), senderId: message.senderId.toString(), recipientId: message.recipientId.toString() })) };
   });
 
   app.post('/api/buddy-box/messages/:id/read', { preHandler: app.authenticate }, async (request, reply) => {

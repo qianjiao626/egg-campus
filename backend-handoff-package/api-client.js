@@ -248,6 +248,17 @@
     if (password !== confirm) { toast('两次密码不一致'); return; }
     if (!regMbtiType) { toast('请选择 MBTI 类型'); return; }
     if (!regDrawResult) { toast('请先抽取你的初始蛋'); return; }
+    var profileTextFields = [
+      ['昵称', nick],
+      ['学校', document.getElementById('regSchool').value.trim()],
+      ['专业', document.getElementById('regMajor').value.trim()],
+      ['城市', document.getElementById('regCity').value.trim()],
+      ['年级', document.getElementById('regGrade').value.trim()]
+    ];
+    for (var fieldIndex = 0; fieldIndex < profileTextFields.length; fieldIndex += 1) {
+      var profileError = apiClient.validateUserText(profileTextFields[fieldIndex][1]);
+      if (profileError) { toast(profileError); return; }
+    }
     var channel = phone ? 'sms' : 'email'; var target = phone || email;
     var button = document.getElementById('regSubmitBtn'); setLoading(button, true, '注册并登录');
     try {

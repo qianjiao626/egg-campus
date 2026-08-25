@@ -90,6 +90,10 @@ function findBlockedTerm(value) {
   return blockedTerms.find(term => text.includes(term));
 }
 function validateUserText(value) {
+  if (window.DandanSensitiveFilter && typeof window.DandanSensitiveFilter.containsBlockedTerm === 'function' && window.DandanSensitiveFilter.containsBlockedTerm(value)) {
+    showToast('内容包含敏感词，请修改后再提交');
+    return false;
+  }
   if (typeof window.validateDandanText === 'function' && !window.validateDandanText(value)) {
     showToast('内容包含敏感词，请修改后再提交');
     return false;
@@ -190,7 +194,13 @@ async function syncBuddyProfiles(action) {
   if (typeof buddyBoxDataAdapter.getRecommendations !== 'function') return;
   try {
     const result = await buddyBoxDataAdapter.getRecommendations(action);
-    if (!Array.isArray(result?.profiles) || !result.profiles.length) return;
+    if (!Array.isArray(result?.profiles)) return;
+    if (!result.profiles.length) {
+      profiles.splice(0, profiles.length);
+      rotation = 0;
+      renderProfiles();
+      return;
+    }
     profiles.splice(0, profiles.length, ...result.profiles.map((profile, index) => ({
        id: String(profile.id), name: profile.name, meta: profile.meta || '蛋蛋校园用户', avatar: ['avatar-lin','avatar-man','avatar-zhou','avatar-yao','avatar-gulu','avatar-youzi'][index % 6], score: '同频推荐', mbtiType: profile.mbtiType || '', bio: profile.bio || '', hobbies: profile.hobbies || [], todayActions: profile.todayActions || [], friendStatus: profile.friendStatus || 'none', friendRequestId: profile.friendRequestId || null, copy: '最近在做：' + (profile.bio || (profile.hobbies || []).join('、') || '暂未填写') + '；今天想做：' + ((profile.todayActions || []).join('、') || '暂未填写'), tags: [profile.mbtiType || '蛋蛋用户'].concat(profile.hobbies || []), reason: '根据 MBTI、最近在做和今天想做的偏好匹配'
     })));
@@ -207,7 +217,7 @@ function renderInbox() {
   if (messageCount) messageCount.textContent = pending;
   $('#quickMessageCount').textContent = pending;
   $('#inboxSummary').textContent = `${unreadMessages} 条未读留言 · ${friendRequests} 个好友申请`;
-  messageList.innerHTML = inbox.length ? inbox.map(item => `<article class="inbox-item" data-inbox="${item.id}">${avatarMarkup(item.avatar)}<div class="inbox-body"><strong>${item.name}${item.unread ? '<i class="unread-dot" aria-label="未读"></i>' : ''}</strong><p>${item.text}</p><div class="inbox-actions">${item.type === 'friend' ? `<button class="accept-friend" data-inbox-action="accept" ${item.accepted ? 'disabled' : ''}>${item.accepted ? '已成为好友' : '同意加好友'}</button>` : ''}<button class="reply-message" data-inbox-action="reply">回复留言</button></div></div></article>`).join('') : '<div class="empty-inbox">暂时没有新消息，去盲盒里认识朋友吧。</div>';
+  messageList.innerHTML = inbox.length ? inbox.map(item => `<article class="inbox-item" data-inbox="${item.id}">${avatarMarkup(item.avatar)}<div class="inbox-body"><strong>${escapeHtml(item.name || '蛋蛋用户')}${item.unread ? '<i class="unread-dot" aria-label="未读"></i>' : ''}</strong><p>${escapeHtml(item.text || '')}</p><div class="inbox-actions">${item.type === 'friend' ? `<button class="accept-friend" data-inbox-action="accept" ${item.accepted ? 'disabled' : ''}>${item.accepted ? '已成为好友' : '同意加好友'}</button>${item.accepted ? '' : `<button class="reject-friend" data-inbox-action="reject">拒绝</button>`}` : `<button class="reply-message" data-inbox-action="reply">回复留言</button>`}</div></div></article>`).join('') : '<div class="empty-inbox">暂时没有新消息，去盲盒里认识朋友吧。</div>';
 }
 
 async function syncBuddyInbox() {
@@ -601,8 +611,7 @@ grid.addEventListener('click', async event => {
     await api.applyFriend(profile);
     profile.friendStatus = 'pending';
     requestedProfiles.add(profile.id);
-    inbox.unshift({id:`friend-${Date.now()}`,name:profile.name,avatar:profile.avatar,text:'你的好友申请已发送，等待对方回应。',type:'message',unread:false});
-    renderProfiles(); renderInbox(); showToast(`已向 ${profile.name} 发送好友申请`);
+    renderProfiles(); await syncBuddyInbox(); showToast(`已向 ${profile.name} 发送好友申请`);
   } catch (error) { button.disabled = false; showToast(error.message || '好友申请未发送成功，请稍后重试'); }
 });
 
@@ -614,8 +623,7 @@ $('#composeForm').addEventListener('submit', async event => {
   const payload = {to: composeProfile, text, source:'match-card', action:selectedTodayAction};
   try {
     await api.sendMessage(payload);
-    inbox.unshift({id:`message-${Date.now()}`,name:composeProfile.name,avatar:composeProfile.avatar,text:`你：${text}`,type:'message',unread:false});
-    renderInbox(); closeCompose(); showToast(`留言已发送给 ${payload.to.name}`);
+    await syncBuddyInbox(); closeCompose(); showToast(`留言已发送给 ${payload.to.name}`);
   } catch (error) { showToast('留言发送失败，请稍后重试'); }
 });
 
@@ -700,6 +708,10 @@ messageList.addEventListener('click', async event => {
   if (!item) return;
   if (action.dataset.inboxAction === 'accept') {
     try { await api.acceptFriend(item.id); item.accepted = true; item.unread = false; renderInbox(); await syncBuddyProfiles(selectedTodayAction); showToast('已成为好友'); } catch (_) { showToast('好友申请处理失败，请稍后重试'); }
+    return;
+  }
+  if (action.dataset.inboxAction === 'reject') {
+    try { await api.rejectFriend(item.id); await syncBuddyInbox(); await syncBuddyProfiles(selectedTodayAction); showToast('已拒绝好友申请'); } catch (error) { showToast(error.message || '好友申请处理失败，请稍后重试'); }
     return;
   }
   const text = window.prompt(`回复 ${item.name}`); if (!text?.trim() || !validateUserText(text)) return;

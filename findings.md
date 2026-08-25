@@ -100,3 +100,13 @@
 - 真实发布接口前不能用演示标题或描述替代空输入，否则会把开发内容永久写入生产数据库；应在调用 API 前阻止提交并给出明确提示。
 - 公网 `/dd/health` 的 200 仅证明旧线上服务存活，不证明本地交付版本已发布。源码特征检查显示线上缺少本轮“我的打听”汇总字段且保留旧发布兜底，因此发布状态必须保持待执行。
 - 当前工作机不存在 `~/.ssh/config` 和 SSH 私钥；没有可验证 CVM shell 时不得上传文件、迁移数据库或重启 PM2。
+## Blind-box chat/friend audit (2026-08-26)
+
+Read-only findings for `/root`:
+
+- **P1 relationship status selection:** `server/src/app.ts:873-904` ranks relationship rows by status only. When rows have equal status (especially rejected records in both directions), it keeps whichever `findMany` returns first and does not compare `updatedAt`. A recent rejection can therefore be hidden by an older rejection and incorrectly allow a new request inside the 30-minute cooldown. Select accepted/pending first, then the newest rejected row.
+- **P1 conversation history window:** `server/src/app.ts:963-969` orders messages ascending and applies `take: 100`, returning the oldest 100 messages. Long conversations omit recent messages. Query newest 100 descending and reverse before serializing, or paginate.
+- **P2 inbox XSS:** `backend-handoff-package/blind-box/app.js:202-210` inserts `item.name` and `item.text` directly into `innerHTML`; both come from user-controlled nickname/message data. Escape these values before interpolation while preserving the unread marker.
+- **P2 friend-request reply action:** `renderInbox()` always renders `回复留言`, including pending friend requests. Clicking it calls `sendMessage`, which the server correctly rejects until friendship is accepted. Hide/disable reply on `type === 'friend'`; expose conversation only after acceptance.
+- **P2 stale recommendations:** `syncBuddyProfiles()` at `app.js:189-200` returns when the server returns an empty profiles array, leaving old cards rendered. Clear `profiles` and call `renderProfiles()` on an empty successful response.
+- Existing server message POST/GET enforce accepted friendship and content filtering; accept/reject routes enforce recipient ownership. There are no focused tests covering latest-history selection, rejected cooldown selection, inbox XSS rendering, or accepted-only UI actions.

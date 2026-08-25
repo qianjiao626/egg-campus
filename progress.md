@@ -222,3 +222,13 @@
 - [x] `npm test` 12 个测试文件、67 项通过；`npm run build`、主站内联脚本语法、`git diff --check` 通过。
 - [x] 已生成前端 r13（19 文件，SHA-256 `BF926AA8BB893C0045169E0A8546FC85CD7C5FC2F0B56EF94E535BA3EA7CF309`）和后端 r12（47 文件，SHA-256 `4D91F1A797BA9E7E8C5CF59B2C113E619E911DC5A7B5BCBEC70DE8D9867BCB51`）发布包；敏感词过滤脚本已入前端包，禁入文件为 0。
 - [ ] CVM MFA 会话恢复后，按备份 -> 迁移 -> 构建 -> PM2 日志 -> `/health` -> 三端公网 smoke 发布。
+
+## 2026-08-26 本轮迭代
+
+- [x] 盲盒前端完整敏感词预检、收件箱 XSS 转义、好友拒绝 UI、空推荐清理。
+- [x] 好友关系更新时间 tie-break、聊天历史最近 100 条。
+- [x] 新增学生侧边栏“我的打听”独立页面，继续复用 `/api/inquiries/mine` 私有查询。
+- [x] DEMO 发布任务标记并在真实任务同步时保留，不混入真实任务过滤结果。
+- [x] `npm test` 70/70、`npm run build`、脚本语法和 `git diff --check` 通过。
+- [x] 交付包 r14/r13 已生成并校验 SHA-256，排除 `.env`、密码文件、`node_modules`、`dist`。
+- [ ] 生产部署仍等待腾讯云 CVM MFA；本轮没有远端数据库、文件或 PM2 写操作。
