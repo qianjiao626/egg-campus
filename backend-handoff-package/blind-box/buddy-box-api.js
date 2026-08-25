@@ -1,0 +1,234 @@
+(function () {
+  'use strict';
+
+  var base = '/dd';
+  var accessToken = null;
+  var featureNamePattern = /^[a-z][a-z0-9-]{1,39}$/;
+
+  async function request(path, options, retry) {
+    options = options || {};
+    var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+    if (accessToken) headers.Authorization = 'Bearer ' + accessToken;
+    var response = await fetch(base + path, Object.assign({}, options, {
+      headers: headers,
+      credentials: 'include'
+    }));
+    if (response.status === 401 && !retry) {
+      var refresh = await fetch(base + '/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: '{}'
+      });
+      if (refresh.ok) {
+        var refreshBody = await refresh.json().catch(function () { return {}; });
+        accessToken = refreshBody.accessToken || null;
+        return request(path, options, true);
+      }
+    }
+    var body = await response.json().catch(function () { return {}; });
+    if (!response.ok) {
+      var error = new Error(body.message || '请求失败');
+      error.status = response.status;
+      error.body = body;
+      throw error;
+    }
+    return body;
+  }
+
+  function queryString(values) {
+    return Object.keys(values || {}).filter(function (key) {
+      return values[key] !== undefined && values[key] !== null;
+    }).map(function (key) {
+      return encodeURIComponent(key) + '=' + encodeURIComponent(String(values[key]));
+    }).join('&');
+  }
+
+  function safeFeatureName(value, fallback) {
+    var name = String(value || '').trim().toLowerCase();
+    return featureNamePattern.test(name) ? name : fallback;
+  }
+
+  function resultBody(body) {
+    var record = body && body.record;
+    var result = record && record.result && typeof record.result === 'object' ? record.result : {};
+    return Object.assign({}, result, {
+      accepted: body && body.accepted !== false,
+      record: record || null
+    });
+  }
+
+  function writeFeature(feature, action, payload) {
+    var body = {
+      feature: safeFeatureName(feature, 'buddy'),
+      action: safeFeatureName(action, 'submit'),
+      payload: payload && typeof payload === 'object' ? payload : {}
+    };
+    if (body.feature === 'box' && body.action === 'draw') {
+      body.idempotencyKey = 'draw-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    }
+    return request('/api/buddy-box/features', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    }).then(resultBody);
+  }
+
+  function readFeature(feature, scope, limit) {
+    var path = '/api/buddy-box/features/' + encodeURIComponent(safeFeatureName(feature, 'buddy')) + '?' + queryString({
+      scope: scope || 'mine',
+      limit: limit || 50
+    });
+    return request(path);
+  }
+
+  function readAllFeatures(scope, limit) {
+    return request('/api/buddy-box/features?' + queryString({ scope: scope || 'mine', limit: limit || 100 }));
+  }
+
+  function recordsAs(records) {
+    return (Array.isArray(records) ? records : []).map(function (record) {
+      var result = record && record.result;
+      return result && typeof result === 'object' ? Object.assign({}, result, { record: record }) : record;
+    });
+  }
+
+  function latestFeatureResult(body, fallback) {
+    var records = body && Array.isArray(body.records) ? body.records : [];
+    if (!records.length) return fallback || {};
+    return resultBody({ accepted: true, record: records[0] });
+  }
+
+  function getPointAccount() {
+    return request('/api/users/me/point-account').catch(function (error) {
+      if (error.status === 404) return { account: null };
+      throw error;
+    });
+  }
+
+  var api = {
+    sendMessage: function (payload) {
+      return request('/api/buddy-box/messages', {
+        method: 'POST',
+        body: JSON.stringify({
+          recipientId: payload && payload.to ? payload.to.id : payload && payload.recipientId,
+          text: payload && payload.text,
+          source: payload && payload.source
+        })
+      });
+    },
+    applyFriend: function (profile) {
+      return request('/api/buddy-box/friend-requests', {
+        method: 'POST',
+        body: JSON.stringify({ recipientId: profile && (profile.id || profile.recipientId) })
+      });
+    },
+    getInbox: function () { return request('/api/buddy-box/inbox'); },
+    markMessageRead: function (id) {
+      return request('/api/buddy-box/messages/' + encodeURIComponent(id) + '/read', { method: 'POST', body: '{}' });
+    },
+    acceptFriend: function (id) {
+      return request('/api/buddy-box/friend-requests/' + encodeURIComponent(id) + '/accept', { method: 'POST', body: '{}' });
+    },
+    publishBoard: function (payload) { return writeFeature('board', 'publish', payload); }
+  };
+
+  var adapter = {
+    getRecommendations: function () { return request('/api/buddy-box/recommendations'); },
+    getPreferences: function () { return request('/api/buddy-box/preferences'); },
+    getBoard: function () {
+      return readFeature('board', 'mine').then(function (body) {
+        return { records: Array.isArray(body.records) ? body.records : [] };
+      });
+    },
+    getFeatureRecords: function () { return readAllFeatures('mine', 100); },
+    savePreferences: function (payload) {
+      return request('/api/buddy-box/preferences', { method: 'PUT', body: JSON.stringify(payload || {}) });
+    },
+
+    getTaskPlatformState: async function () {
+      var values = await Promise.all([request('/api/users/me'), getPointAccount(), readFeature('coop', 'mine')]);
+      return {
+        user: values[0] && values[0].user ? values[0].user : null,
+        tasks: recordsAs(values[2] && values[2].records),
+        prestige: values[1] && values[1].account ? values[1].account.availableBalance : null,
+        account: values[1] ? values[1].account : null
+      };
+    },
+    settlePrestige: function (payload) { return writeFeature('prestige', 'settle', payload); },
+    getCoopTaskCatalog: function () {
+      return readFeature('coop', 'public').then(function (body) { return { tasks: recordsAs(body.records) }; });
+    },
+    getPrestige: async function () {
+      var body = await getPointAccount();
+      return {
+        available: body && body.account ? body.account.availableBalance : null,
+        source: 'point-account',
+        account: body ? body.account : null
+      };
+    },
+    createBox: function (payload) {
+      return writeFeature(safeFeatureName(payload && payload.feature, 'box'), 'create', payload);
+    },
+    drawBox: function (payload) { return writeFeature('box', 'draw', payload); },
+    listQuizBoxes: function () {
+      return readFeature('quiz', 'public').then(function (body) { return { boxes: recordsAs(body.records) }; });
+    },
+    getWishPool: function () {
+      return readFeature('reverse', 'public').then(function (body) { return { wishes: recordsAs(body.records) }; });
+    },
+    getMemoryBoxes: function () {
+      return readFeature('memory', 'mine').then(function (body) { return { boxes: recordsAs(body.records) }; });
+    },
+    getAnonymousConversation: function (payload) {
+      return readFeature('conversation', 'mine', 1).then(function (body) {
+        return latestFeatureResult(body, { status: 'waiting', payload: payload || {} });
+      });
+    },
+    submitAnswers: function (payload) { return writeFeature('quiz', 'submit-answers', payload); },
+    reviewAnswers: function (payload) { return writeFeature('quiz', 'review-answers', payload); },
+    publishWishBox: function (payload) { return writeFeature('reverse', 'publish', payload); },
+    claimWishBox: function (payload) { return writeFeature('reverse', 'claim', payload); },
+    createMemoryBox: function (payload) { return writeFeature('memory', 'create', payload); },
+    unlockMemoryBox: function (payload) { return writeFeature('memory', 'unlock', payload); },
+    setCrossSchool: function (payload) { return writeFeature('cross-school', 'set', payload); },
+    getIcebreaker: function (payload) { return writeFeature('icebreaker', 'generate', payload); },
+    createCoopTask: function (payload) { return writeFeature('coop', 'create', payload); },
+    sendEcho: function (payload) { return writeFeature('echo', 'send', payload); },
+    getCollection: function () {
+      return readFeature('collection', 'mine').then(function (body) {
+        return { cards: recordsAs(body.records), fragments: null };
+      });
+    },
+    craftFragment: function (payload) { return writeFeature('fragments', 'craft', payload); },
+    getRadar: function (payload) {
+      return writeFeature('radar', 'summary', payload).then(function (result) {
+        return Object.assign({ summary: '玩游戏、分享歌单、一起自习是当前最活跃的标签。' }, result);
+      });
+    },
+    getQuestionWall: function () {
+      return readFeature('qa-wall', 'public').then(function (body) { return { questions: recordsAs(body.records) }; });
+    },
+    getGroupRooms: function () {
+      return readFeature('group', 'mine').then(function (body) { return { rooms: recordsAs(body.records) }; });
+    },
+    getWishNotes: function () {
+      return readFeature('wish-wall', 'public').then(function (body) { return { notes: recordsAs(body.records) }; });
+    },
+    askWall: function (payload) { return writeFeature('qa-wall', 'ask', payload); },
+    createGroup: function (payload) { return writeFeature('group', 'create', payload); },
+    publishWishNote: function (payload) {
+      return writeFeature('wish-wall', payload && payload.claim ? 'claim' : 'publish', payload);
+    },
+    setSafety: function (payload) { return writeFeature('safety', 'settings', payload); },
+    getSafetySettings: function () {
+      return readFeature('safety', 'mine', 1).then(function (body) {
+        return latestFeatureResult(body, { cooldownUntil: null, stealth: false, blocked: [] });
+      });
+    },
+    reportHarassment: function (payload) { return writeFeature('safety', 'report', payload); },
+    getEvent: function (payload) { return writeFeature('event', 'status', payload); }
+  };
+
+  window.buddyBoxApi = Object.assign(window.buddyBoxApi || {}, api);
+  window.buddyBoxDataAdapter = Object.assign(window.buddyBoxDataAdapter || {}, adapter);
+}());

@@ -1,0 +1,36 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const packageRoot = resolve(process.cwd(), '..', 'backend-handoff-package');
+const component = readFileSync(resolve(packageRoot, 'blind-box', 'index.html'), 'utf8');
+const componentCss = readFileSync(resolve(packageRoot, 'blind-box', 'styles.css'), 'utf8');
+const host = readFileSync(resolve(packageRoot, 'growth-school.html'), 'utf8');
+
+describe('blind-box content-only contract', () => {
+  it('contains only the business component and no plugin shell markup', () => {
+    expect(component).toContain('data-buddy-component="content-only"');
+    expect(component).not.toMatch(/<aside[^>]+class="[^\"]*sidebar/i);
+    expect(component).not.toMatch(/class="[^\"]*(?:topbar|page-title|app-shell)/i);
+    expect(component).not.toMatch(/<footer\b/i);
+    expect(component).not.toMatch(/(?:embed|standalone)/i);
+  });
+
+  it('keeps the core blind-box interaction anchors and adapters', () => {
+    for (const id of ['openBox', 'matchGrid', 'featureGroups', 'messageForm', 'drawOverlay', 'messageDrawer']) {
+      expect(component).toContain(`id="${id}"`);
+    }
+    expect(component).toContain('buddy-box-api.js');
+    expect(component).toContain('app.js');
+  });
+
+  it('leaves scrolling to the host container', () => {
+    expect(componentCss).toContain('.buddy-content');
+    expect(componentCss).toContain('overflow:visible');
+    expect(componentCss).toContain('.interest-choices,.board-list{max-height:none;overflow:visible}');
+    expect(host).toContain('class="buddybox-frame"');
+    expect(host).toContain('src="blind-box/"');
+    expect(host).toContain('scrolling="no"');
+    expect(host).toContain('dandan-buddy-height');
+  });
+});

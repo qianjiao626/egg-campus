@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.env
+.cvm-app-password.local
+coverage/

@@ -1,0 +1,35 @@
+# Dependencies and generated build output
+**/node_modules/
+**/dist/
+**/coverage/
+**/.cache/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+**/.cvm-app-password.local
+*.pem
+*.key
+*.p12
+
+# Deployment staging, release archives and local audit artifacts
+.deploy-*/
+output/
+*.zip
+*.tar
+*.gz
+
+# Screenshots and local browser state
+*.png
+*.webp
+*.mp4
+.playwright-cli/
+
+# OS/editor state
+Thumbs.db
+Desktop.ini
+docs/obsidian-sync/.obsidian/workspace.json

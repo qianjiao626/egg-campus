@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  student
+  admin
+}
+
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
+
+enum EggRarity {
+  N
+  R
+  SR
+  SSR
+  UR
+}
+
+model User {
+  id              BigInt     @id @default(autoincrement())
+  nickname        String     @unique @db.VarChar(50)
+  email           String?    @unique @db.VarChar(100)
+  phone           String?    @unique @db.VarChar(20)
+  passwordHash    String     @map("password_hash") @db.VarChar(255)
+  role            UserRole   @default(student)
+  status          UserStatus @default(active)
+  school          String?    @db.VarChar(100)
+  major           String?    @db.VarChar(100)
+  city            String?    @db.VarChar(50)
+  grade           String?    @db.VarChar(20)
+  age             Int?
+  bio             String?    @db.Text
+  mbtiType        String?    @map("mbti_type") @db.VarChar(4)
+  mbtiGroup       String?    @map("mbti_group") @db.VarChar(2)
+  likes           Int        @default(0)
+  reputation      Decimal    @default(0) @db.Decimal(3, 2)
+  eggCategory     String?    @map("egg_category") @db.VarChar(20)
+  eggRarity       EggRarity  @default(N) @map("egg_rarity")
+  inviteCode      String?    @unique @map("invite_code") @db.VarChar(20)
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  verifiedPhoneAt DateTime?  @map("verified_phone_at")
+  verifiedEmailAt DateTime?  @map("verified_email_at")
+
+  account      PointAccount?
+  characters   UserCharacter[]
+  sessions     AuthSession[]
+  stats        UserStats?
+  transactions PointTransaction[]
+  buddyPreference BuddyPreference?
+  buddyBoxesCreated BuddyBox[] @relation("BuddyBoxCreator")
+  buddyMessagesSent BuddyMessage[] @relation("BuddyMessageSender")
+  buddyMessagesReceived BuddyMessage[] @relation("BuddyMessageRecipient")
+  buddyFriendRequestsSent BuddyFriendRequest[] @relation("BuddyFriendRequester")
+  buddyFriendRequestsReceived BuddyFriendRequest[] @relation("BuddyFriendRecipient")
+  buddyFeatureRecords BuddyFeatureRecord[]
+
+  @@map("users")
+}
+
+model AuthSession {
+  id               String    @id @default(cuid()) @db.VarChar(30)
+  userId           BigInt    @map("user_id")
+  refreshTokenHash String    @unique @map("refresh_token_hash") @db.VarChar(255)
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  ip               String?   @db.VarChar(45)
+  userAgent        String?   @map("user_agent") @db.VarChar(512)
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model VerificationCode {
+  id                    String    @id @default(cuid()) @db.VarChar(30)
+  channel               String    @db.VarChar(10)
+  target                String    @db.VarChar(100)
+  purpose               String    @db.VarChar(30)
+  codeHash              String    @map("code_hash") @db.VarChar(64)
+  verificationTokenHash String?   @unique @map("verification_token_hash") @db.VarChar(64)
+  attempts              Int       @default(0)
+  maxAttempts           Int       @default(5) @map("max_attempts")
+  expiresAt             DateTime  @map("expires_at")
+  verifiedAt            DateTime? @map("verified_at")
+  consumedAt            DateTime? @map("consumed_at")
+  requestIp             String?   @map("request_ip") @db.VarChar(45)
+  userAgent             String?   @map("user_agent") @db.VarChar(512)
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  @@index([target, purpose, createdAt])
+  @@index([expiresAt])
+  @@map("verification_codes")
+}
+
+model UserStats {
+  userId         BigInt   @id @map("user_id")
+  knowledge      Decimal  @default(0) @db.Decimal(3, 1)
+  skills         Decimal  @default(0) @db.Decimal(3, 1)
+  charm          Decimal  @default(0) @db.Decimal(3, 1)
+  money          Decimal  @default(0) @db.Decimal(3, 1)
+  reputation     Decimal  @default(0) @db.Decimal(3, 2)
+  completedTasks Int      @default(0) @map("completed_tasks")
+  publishedTasks Int      @default(0) @map("published_tasks")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+}
+
+model UserCharacter {
+  id         BigInt    @id @default(autoincrement())
+  userId     BigInt    @map("user_id")
+  category   String    @db.VarChar(20)
+  unlocked   Boolean   @default(false)
+  count      Int       @default(0)
+  isCurrent  Boolean   @default(false) @map("is_current")
+  unlockedAt DateTime? @map("unlocked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@map("user_characters")
+}
+
+model PointAccount {
+  userId           BigInt   @id @map("user_id")
+  availableBalance Int      @default(10) @map("available_balance")
+  frozenBalance    Int      @default(0) @map("frozen_balance")
+  version          Int      @default(0)
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("point_accounts")
+}
+
+model PointTransaction {
+  id               BigInt   @id @default(autoincrement())
+  userId           BigInt   @map("user_id")
+  type             String   @db.VarChar(50)
+  deltaAvailable   Int      @map("delta_available")
+  deltaFrozen      Int      @map("delta_frozen")
+  balanceAvailable Int      @map("balance_available")
+  balanceFrozen    Int      @map("balance_frozen")
+  taskId           BigInt?  @map("task_id")
+  idempotencyKey   String   @unique @map("idempotency_key") @db.VarChar(100)
+  operatorId       BigInt?  @map("operator_id")
+  remark           String?  @db.VarChar(500)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([taskId])
+  @@map("point_transactions")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  actorId    BigInt?  @map("actor_id")
+  action     String   @db.VarChar(100)
+  targetType String   @map("target_type") @db.VarChar(50)
+  targetId   String   @map("target_id") @db.VarChar(100)
+  beforeData Json?    @map("before_data")
+  afterData  Json?    @map("after_data")
+  ip         String?  @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+  @@map("audit_logs")
+}
+
+model BuddyPreference {
+  userId       BigInt   @id @map("user_id")
+  mbtiType     String?  @map("mbti_type") @db.VarChar(4)
+  hobbies      Json
+  todayActions Json     @map("today_actions")
+  province     String?  @db.VarChar(50)
+  city         String?  @db.VarChar(50)
+  district     String?  @db.VarChar(50)
+  stealth      Boolean  @default(false)
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("buddy_preferences")
+}
+
+model BuddyBox {
+  id          BigInt   @id @default(autoincrement())
+  creatorId   BigInt   @map("creator_id")
+  kind        String   @db.VarChar(30)
+  payload     Json
+  status      String   @default("open") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  creator     User     @relation("BuddyBoxCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  @@index([creatorId, createdAt])
+  @@map("buddy_boxes")
+}
+
+model BuddyMessage {
+  id          BigInt   @id @default(autoincrement())
+  senderId    BigInt   @map("sender_id")
+  recipientId BigInt   @map("recipient_id")
+  text        String   @db.VarChar(180)
+  source      String?  @db.VarChar(30)
+  readAt      DateTime? @map("read_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  sender      User     @relation("BuddyMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("BuddyMessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  @@index([recipientId, createdAt])
+  @@map("buddy_messages")
+}
+
+model BuddyFriendRequest {
+  id          BigInt   @id @default(autoincrement())
+  requesterId BigInt   @map("requester_id")
+  recipientId BigInt   @map("recipient_id")
+  status      String   @default("pending") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  requester   User     @relation("BuddyFriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("BuddyFriendRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  @@unique([requesterId, recipientId])
+  @@index([recipientId, status])
+  @@map("buddy_friend_requests")
+}
+
+model BuddyFeatureRecord {
+  id             BigInt   @id @default(autoincrement())
+  userId         BigInt   @map("user_id")
+  feature        String   @db.VarChar(40)
+  action         String   @db.VarChar(40)
+  status         String   @default("active") @db.VarChar(20)
+  payload        Json
+  result         Json?
+  idempotencyKey String?  @unique @map("idempotency_key") @db.VarChar(160)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, feature, createdAt])
+  @@index([feature, status, createdAt])
+  @@map("buddy_feature_records")
+}
