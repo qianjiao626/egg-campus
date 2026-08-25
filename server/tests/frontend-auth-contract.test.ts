@@ -63,3 +63,20 @@ describe('blind-box persistence contract', () => {
     expect(app).toContain("record.feature");
   });
 });
+
+describe('my inquiries summary contract', () => {
+  it('renders the server-provided reply summaries in the my inquiries panel', () => {
+    expect(html).toContain('recentReplies');
+    expect(html).toContain('replyCount');
+    expect(html).toContain('我的打听回复');
+  });
+});
+
+describe('real task publishing contract', () => {
+  it('does not substitute development sample text for an empty published task', () => {
+    expect(html).not.toContain("value.trim() || '教你做高数期中复习笔记'");
+    expect(html).not.toContain("value.trim() || '分享学习经验，帮助学伴共同成长。'");
+    expect(html).toContain("toast('请输入任务名称')");
+    expect(html).toContain("toast('请输入任务描述')");
+  });
+});

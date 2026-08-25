@@ -53,18 +53,28 @@ model User {
   verifiedPhoneAt DateTime?  @map("verified_phone_at")
   verifiedEmailAt DateTime?  @map("verified_email_at")
 
-  account      PointAccount?
-  characters   UserCharacter[]
-  sessions     AuthSession[]
-  stats        UserStats?
-  transactions PointTransaction[]
-  buddyPreference BuddyPreference?
-  buddyBoxesCreated BuddyBox[] @relation("BuddyBoxCreator")
-  buddyMessagesSent BuddyMessage[] @relation("BuddyMessageSender")
-  buddyMessagesReceived BuddyMessage[] @relation("BuddyMessageRecipient")
-  buddyFriendRequestsSent BuddyFriendRequest[] @relation("BuddyFriendRequester")
+  account                     PointAccount?
+  characters                  UserCharacter[]
+  sessions                    AuthSession[]
+  stats                       UserStats?
+  transactions                PointTransaction[]
+  buddyPreference             BuddyPreference?
+  buddyBoxesCreated           BuddyBox[]           @relation("BuddyBoxCreator")
+  buddyMessagesSent           BuddyMessage[]       @relation("BuddyMessageSender")
+  buddyMessagesReceived       BuddyMessage[]       @relation("BuddyMessageRecipient")
+  buddyFriendRequestsSent     BuddyFriendRequest[] @relation("BuddyFriendRequester")
   buddyFriendRequestsReceived BuddyFriendRequest[] @relation("BuddyFriendRecipient")
-  buddyFeatureRecords BuddyFeatureRecord[]
+  buddyFeatureRecords         BuddyFeatureRecord[]
+  tasks                       Task[]
+  feedbacks                   Feedback[]
+  inquiries                   Inquiry[]
+  inquiryReplies              InquiryReply[]
+  inquiryLikes                InquiryLike[]
+  inquiryReplyLikes           InquiryReplyLike[]
+  notifications               Notification[]
+  taskClaims                  TaskClaim[]          @relation("TaskClaimer")
+  ratingsGiven                Rating[]             @relation("RatingFromUser")
+  ratingsReceived             Rating[]             @relation("RatingToUser")
 
   @@map("users")
 }
@@ -140,7 +150,7 @@ model UserCharacter {
 
 model PointAccount {
   userId           BigInt   @id @map("user_id")
-  availableBalance Int      @default(10) @map("available_balance")
+  availableBalance Int      @default(100) @map("available_balance")
   frozenBalance    Int      @default(0) @map("frozen_balance")
   version          Int      @default(0)
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -198,32 +208,36 @@ model BuddyPreference {
   stealth      Boolean  @default(false)
   updatedAt    DateTime @updatedAt @map("updated_at")
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("buddy_preferences")
 }
 
 model BuddyBox {
-  id          BigInt   @id @default(autoincrement())
-  creatorId   BigInt   @map("creator_id")
-  kind        String   @db.VarChar(30)
-  payload     Json
-  status      String   @default("open") @db.VarChar(20)
-  createdAt   DateTime @default(now()) @map("created_at")
-  creator     User     @relation("BuddyBoxCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  id        BigInt   @id @default(autoincrement())
+  creatorId BigInt   @map("creator_id")
+  kind      String   @db.VarChar(30)
+  payload   Json
+  status    String   @default("open") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+  creator   User     @relation("BuddyBoxCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
   @@index([creatorId, createdAt])
   @@map("buddy_boxes")
 }
 
 model BuddyMessage {
-  id          BigInt   @id @default(autoincrement())
-  senderId    BigInt   @map("sender_id")
-  recipientId BigInt   @map("recipient_id")
-  text        String   @db.VarChar(180)
-  source      String?  @db.VarChar(30)
+  id          BigInt    @id @default(autoincrement())
+  senderId    BigInt    @map("sender_id")
+  recipientId BigInt    @map("recipient_id")
+  text        String    @db.VarChar(180)
+  source      String?   @db.VarChar(30)
   readAt      DateTime? @map("read_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  sender      User     @relation("BuddyMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient   User     @relation("BuddyMessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  sender      User      @relation("BuddyMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User      @relation("BuddyMessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
   @@index([recipientId, createdAt])
+  @@index([senderId, recipientId, createdAt])
   @@map("buddy_messages")
 }
 
@@ -233,11 +247,176 @@ model BuddyFriendRequest {
   recipientId BigInt   @map("recipient_id")
   status      String   @default("pending") @db.VarChar(20)
   createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
   requester   User     @relation("BuddyFriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
   recipient   User     @relation("BuddyFriendRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
   @@unique([requesterId, recipientId])
   @@index([recipientId, status])
+  @@index([requesterId, status])
   @@map("buddy_friend_requests")
+}
+
+model Task {
+  id           BigInt      @id @default(autoincrement())
+  userId       BigInt      @map("user_id")
+  title        String      @db.VarChar(160)
+  description  String      @db.Text
+  remark       String?     @db.Text
+  taskType     String      @default("teach") @map("task_type") @db.VarChar(20)
+  claimMode    String      @default("single") @map("claim_mode") @db.VarChar(20)
+  reward       Int         @default(0)
+  maxClaimers  Int         @default(1) @map("max_claimers")
+  contact      String?     @db.VarChar(160)
+  requirements String?     @db.Text
+  status       String      @default("pending_review") @db.VarChar(30)
+  reviewReason String?     @map("review_reason") @db.VarChar(500)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  reviewedAt   DateTime?   @map("reviewed_at")
+  completedAt  DateTime?   @map("completed_at")
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  claims       TaskClaim[]
+  ratings      Rating[]
+
+  @@index([userId, status, createdAt])
+  @@index([status, createdAt])
+  @@map("tasks")
+}
+
+model TaskClaim {
+  id           BigInt    @id @default(autoincrement())
+  taskId       BigInt    @map("task_id")
+  claimerId    BigInt    @map("claimer_id")
+  contact      String?   @db.VarChar(160)
+  status       String    @default("pending") @db.VarChar(20)
+  frozenAmount Int       @default(0) @map("frozen_amount")
+  submittedAt  DateTime? @map("submitted_at")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  task         Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  claimer      User      @relation("TaskClaimer", fields: [claimerId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, claimerId])
+  @@index([taskId, status])
+  @@index([claimerId, status, createdAt])
+  @@map("task_claims")
+}
+
+model Rating {
+  id         BigInt   @id @default(autoincrement())
+  taskId     BigInt   @map("task_id")
+  fromUserId BigInt   @map("from_user_id")
+  toUserId   BigInt   @map("to_user_id")
+  score      Int
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fromUser   User     @relation("RatingFromUser", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation("RatingToUser", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, fromUserId, toUserId])
+  @@index([toUserId, createdAt])
+  @@map("ratings")
+}
+
+model Feedback {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt   @map("user_id")
+  type        String   @db.VarChar(50)
+  content     String   @db.Text
+  contact     String?  @db.VarChar(160)
+  source      String?  @db.VarChar(100)
+  status      String   @default("open") @db.VarChar(20)
+  adminRemark String?  @map("admin_remark") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("feedback")
+}
+
+model Inquiry {
+  id         BigInt         @id @default(autoincrement())
+  userId     BigInt         @map("user_id")
+  title      String         @db.VarChar(160)
+  content    String         @db.Text
+  tags       Json
+  bounty     Int            @default(0)
+  status     String         @default("open") @db.VarChar(20)
+  coinStatus String         @default("open") @map("coin_status") @db.VarChar(20)
+  likes      Int            @default(0)
+  adopted    Boolean        @default(false)
+  adoptedReplyId BigInt?    @map("adopted_reply_id")
+  deadline   DateTime?
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies    InquiryReply[]
+  likesBy    InquiryLike[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("inquiries")
+}
+
+model InquiryReply {
+  id        BigInt   @id @default(autoincrement())
+  inquiryId BigInt   @map("inquiry_id")
+  userId    BigInt   @map("user_id")
+  content   String   @db.Text
+  kind      String   @default("answer") @db.VarChar(20)
+  parentId  BigInt?  @map("parent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  inquiry   Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes      InquiryReplyLike[]
+
+  @@index([inquiryId, createdAt])
+  @@map("inquiry_replies")
+}
+
+model InquiryLike {
+  id        BigInt   @id @default(autoincrement())
+  inquiryId BigInt   @map("inquiry_id")
+  userId    BigInt   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  inquiry   Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([inquiryId, userId])
+  @@index([userId, createdAt])
+  @@map("inquiry_likes")
+}
+
+model InquiryReplyLike {
+  id        BigInt        @id @default(autoincrement())
+  replyId   BigInt        @map("reply_id")
+  userId    BigInt        @map("user_id")
+  createdAt DateTime      @default(now()) @map("created_at")
+  reply     InquiryReply  @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([replyId, userId])
+  @@index([userId, createdAt])
+  @@map("inquiry_reply_likes")
+}
+
+model Notification {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt    @map("user_id")
+  type      String    @db.VarChar(40)
+  refId     String?   @map("ref_id") @db.VarChar(100)
+  payload   Json
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
 }
 
 model BuddyFeatureRecord {

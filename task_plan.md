@@ -22,12 +22,20 @@
 | 3 | 用户数据 API 与认证 | completed_cvm_dd_smoke_passed |
 | 4 | 前端数据层接入与兼容迁移 | completed_dd_static_deployed_browser_verified |
 | 5 | 盲盒交友模块与用户认证接入 | completed_cvm_and_dd_deployed |
-| 6 | 任务、蛋蛋币、评价和通知闭环 | pending |
-| 7 | 测试、备份、监控和上线验收 | pending_backup_monitoring |
+| 6 | 任务、蛋蛋币、评价和通知闭环 | completed_local |
+| 7 | 测试、备份、监控和上线验收 | local_verification_complete_cvm_pending |
 
 ## 当前下一步
 
-下一步：配置腾讯云 SMS 真实 provider（当前按用户要求暂保留 Mock），在 CVM 会话恢复后执行 `server/deploy/backup-dandan-world.sh` 并完成临时库恢复演练。监控、回滚操作说明已写入 `docs/production-operations.md`。盲盒交友已发布到 `https://dsxnb.com/dd/blind-box/`，API 使用独立 `buddy_*` 表；PM2 已加载远程 `.env` 并接管 `127.0.0.1:3310`；“航线”根站保持原配置。
+下一步：在 CVM 会话恢复后先执行 `server/deploy/backup-dandan-world.sh`，再逐步执行 `prisma migrate deploy`、构建、PM2 重启、日志和 `/health` 检查，并接入受保护定时调用 `POST /api/admin/inquiries/refund-expired`。监控、回滚操作说明已写入 `docs/production-operations.md`。本地最终收口包为前端 r8、后端 r7；生产仍需按单步流程验收，未宣称本轮上线。“航线”根站和 Supabase 配置保持隔离。
+
+## 2026-08-26 收口状态更新
+
+- [x] 盲盒收件箱/会话 HTTP 轮询已接入，并在关闭窗口时清理定时器。
+- [x] 本地回归：53 个测试通过、TypeScript 构建通过、Prisma schema 校验通过、前端脚本和内联脚本语法通过。
+- [x] 390x844、768x1024、1440x900 三端无横向溢出，盲盒直达页仅输出内容组件。
+- [x] 前端 r8 与后端 r7 压缩包已生成并完成 SHA-256、文件数量和禁入文件检查。
+- [ ] 恢复可验证 CVM 会话后，按备份 -> 迁移 -> 构建 -> PM2 日志 -> `/health` -> 三端线上 smoke 执行生产发布。
 
 ## 验收总标准
 
@@ -56,3 +64,43 @@
 - 已将验证通过的 `index.html`、`app.js` 和 `buddy-box-api.js` 同步回原始 `D:\桌面文件\盲盒交友模块`，后续从该模块继续开发不会丢失认证/API 接入
 - CVM 新版本目录 `/root/dandan-world-server-20260823220500`，旧版本目录保留用于回滚
 - 公开子目录认证烟测输出 `AUTH_SMOKE_OK`
+
+## 2026-08-26 本轮收口状态
+
+- 本地完成：真实蛋蛋币流水查询、打听专属列表、回答采纳事务结算与通知、盲盒错误提示、学校/地区/任务联系方式敏感词校验。
+- 本地验证完成：后端 47 项测试、TypeScript 构建、前端三个脚本和主站内联脚本语法、浏览器访客首屏与盲盒纯内容 smoke。
+- 交付包已更新为 `output/releases/*20260826-business-iteration-r2.zip`，已做 SHA-256 和禁入文件边界检查。
+- 生产状态保持待执行：备份 -> Prisma migrate deploy -> 构建 -> PM2 日志 -> `/health` -> 三端线上 smoke；未获得可验证 CVM shell 前不得宣称上线。
+
+## 2026-08-26 本轮增量任务
+
+| 项目 | 状态 | 说明 |
+|---|---|---|
+| 今日盲盒行动参与推荐排序 | completed_local | 推荐 API 接收可选 `action`，按 `todayActions` 同值/包含关系提升命中用户；抽盒揭示后前端刷新推荐 |
+| 自动化契约 | completed_local | 后端排序契约、前端连接点契约均已先红后绿 |
+| 生产发布 | pending_cvm | 仍需恢复可验证 CVM 会话后按备份、迁移核对、构建、PM2 日志、health 和三端 smoke 执行 |
+
+## 2026-08-26（敏感词与盲盒本地开发收口）
+
+- [x] 对盲盒高级玩法嵌套 JSON 接入服务端递归敏感词校验。
+- [x] 对注册、资料、反馈字段补齐服务端敏感词校验；用户可见提示不展示具体敏感词。
+- [x] 修正盲盒本地 API origin，并去除高级玩法无记录时的伪造数据兜底。
+- [x] 完成本地后端 55 项测试、构建、Prisma、脚本语法、差异和三视口组件结构检查。
+- [ ] CVM 会话恢复后先备份生产数据库，再逐条执行迁移、构建、PM2 日志、`/health` 和三端公网 smoke；未完成前不得标记上线。
+
+## 2026-08-26（盲盒真实结果与交付）
+
+- [x] 移除雷达和破冰助手的固定服务端结果伪造，改为真实空状态。
+- [x] 好友申请事务补充双方用户行锁，保留既有关系状态与拒绝冷却规则。
+- [x] 重新完成构建、Prisma、55 项测试、前端语法、差异和三端组件结构验证。
+- [x] 已生成并核验前端 r10、后端 r9 交付包：18/46 文件，禁入文件 0，SHA-256 已写入验证记录。
+- [ ] 恢复可验证 CVM 会话后，按备份 -> 迁移 -> 构建 -> PM2 日志 -> `/health` -> 公网 smoke 发布。
+
+## 2026-08-26（我的打听与真实发布数据收口）
+
+- [x] `/api/inquiries/mine` 增加当前用户专属的回复总数和最新回复摘要，保留原字段且不改表。
+- [x] 打听页“我的打听”面板改用服务端专属汇总，不再从全站数据模拟消息汇总。
+- [x] 普通用户发布任务取消开发示例文本兜底，空标题或描述不发起写库请求。
+- [x] 已完成 58 项全量测试和 TypeScript 构建。
+- [x] 已生成并核验前端 r11、后端 r10 包：18/46 文件、禁入项 0，SHA-256 已写入验证记录。
+- [ ] CVM 恢复可验证会话后，严格按备份 -> 迁移状态核对 -> 构建 -> PM2 日志 -> `/health` -> 三端公网 smoke 发布。

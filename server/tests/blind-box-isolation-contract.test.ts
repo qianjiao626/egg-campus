@@ -32,4 +32,21 @@ describe('blind-box page isolation contract', () => {
     expect(html).toContain('class="buddy-content"');
     expect(client).toContain("dandan-buddy-height");
   });
+
+  it('passes the revealed today action into recommendation matching', () => {
+    expect(api).toContain('getRecommendations: function (action)');
+    expect(client).toContain('getRecommendations(action)');
+    expect(client).toContain('syncBuddyProfiles(selectedTodayAction)');
+  });
+
+  it('keeps inbox and accepted conversations fresh with bounded HTTP polling', () => {
+    expect(client).toContain('inboxPollTimer');
+    expect(client).toContain('conversationPollTimer');
+    expect(client).toContain('window.setInterval(syncBuddyInbox');
+    expect(client).toContain('window.setInterval(refreshConversation');
+  });
+
+  it('refreshes recommendation relationship state after accepting a friend', () => {
+    expect(client).toContain('item.accepted = true; item.unread = false; renderInbox(); await syncBuddyProfiles');
+  });
 });

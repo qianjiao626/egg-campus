@@ -1,92 +1,32 @@
 /*仅页面预览，上线删除，数据由数据库返回*/
-const profiles = [
+const profiles = []; /*
   {id:'lin-shen',name:'林深',meta:'大二 · 计算机科学 · 本科',avatar:'avatar-lin',score:'98% 同频',copy:'最近在研究独立游戏，也想找个人一起交换奇怪但好听的歌。',tags:['写代码','玩游戏','分享歌单'],reason:'都选择了「玩游戏 + 分享歌单」'},
   {id:'xiao-man',name:'小满',meta:'大一 · 视觉传达 · 本科',avatar:'avatar-man',score:'94% 同频',copy:'喜欢拍校园里的小角落，周末想去逛一家没去过的咖啡店。',tags:['拍照','探店','周末出门'],reason:'都把「拍照」放进了最近在做的事'},
   {id:'zhou-zhou',name:'周周',meta:'大三 · 新闻传播 · 本科',avatar:'avatar-zhou',score:'91% 同频',copy:'INTP 友好型选手，正在找一位可以安静自习、偶尔聊天的朋友。',tags:['看书','一起自习','INTP'],reason:'你们都选了「一起自习」'},
   {id:'a-yao',name:'阿遥',meta:'研一 · 心理学 · 硕士',avatar:'avatar-yao',score:'89% 同频',copy:'下班后喜欢玩合作解谜，最近想认真认识一个新朋友。',tags:['玩游戏','找人聊天','INFJ'],reason:'都期待「找人聊天」'},
   {id:'gu-lu',name:'咕噜',meta:'大二 · 建筑学 · 本科',avatar:'avatar-gulu',score:'87% 同频',copy:'收集城市里的声音和旧海报，欢迎交换你的私藏歌单。',tags:['听歌','拍照','分享歌单'],reason:'你们有两项兴趣相同'},
   {id:'you-zi',name:'柚子',meta:'大四 · 经济学 · 本科',avatar:'avatar-youzi',score:'85% 同频',copy:'正在准备毕业论文，想找一个互相监督又不尴尬的搭子。',tags:['写代码','一起自习','找人聊天'],reason:'都想找一个轻松的学习搭子'}
-];
+]; */
 
 //【数据库接入插头：对接数据库后补全此处，上层页面渲染代码无需修改】
-// Keep a host-provided adapter intact; the local fallback is only for this standalone preview.
-const api = window.buddyBoxApi || {sendMessage: async payload => payload,applyFriend: async profile => profile,publishBoard: async payload => payload};
+const api = window.buddyBoxApi;
+if (!api) throw new Error('盲盒交友服务端接口未加载');
 window.buddyBoxApi = api;
 
-//【数据库接入插头：对接数据库后补全此处，上层页面渲染代码无需修改】
-// All prestige, box, conversation, safety, collection and event writes are intentionally isolated here.
-const buddyBoxDataAdapter = window.buddyBoxDataAdapter || {
-  //【数据库接入插头：对接数据库后补全此处】读取任务平台用户、任务和声望快照；盲盒模块只消费返回值。
-  getTaskPlatformState: async () => ({user: null, tasks: [], prestige: null}),
-  //【数据库接入插头：对接数据库后补全此处】将交友板块合法产出的声望回流任务平台。
-  settlePrestige: async payload => ({accepted: true, payload}),
-  //【数据库接入插头：对接数据库后补全此处】创建/读取双人任务时调用主任务平台，不在前端复制任务数据。
-  getCoopTaskCatalog: async () => ({tasks: []}),
-  //【数据库接入插头】从任务平台读取当前用户声望；禁止在前端计算或写死数值。
-  getPrestige: async () => ({available: null, source: 'task-platform'}),
-  //【数据库接入插头】创建/投放各类盲盒，返回服务端生成的 boxId 与状态。
-  createBox: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】抽取盲盒并由服务端扣减声望、执行冷却和隐私规则。
-  drawBox: async payload => ({accepted: true, payload}),
-  //【数据库接入插头：对接数据库后补全此处】读取当前用户可参与的试题盲盒。
-  listQuizBoxes: async () => ({boxes: []}),
-  //【数据库接入插头：对接数据库后补全此处】读取反向许愿盲盒公开池，服务端过滤敏感和隐私字段。
-  getWishPool: async () => ({wishes: []}),
-  //【数据库接入插头：对接数据库后补全此处】读取记忆盲盒倒计时和便签权限。
-  getMemoryBoxes: async () => ({boxes: []}),
-  //【数据库接入插头：对接数据库后补全此处】读取匿名会话状态，不返回未解锁身份。
-  getAnonymousConversation: async payload => ({status: 'waiting', payload}),
-  //【数据库接入插头】保存试题答案，服务端校验完整性。
-  submitAnswers: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】出题人阅卷，服务端决定会话是否解锁并发放奖励。
-  reviewAnswers: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】发布/认领反向许愿盲盒。
-  publishWishBox: async payload => ({accepted: true, payload}),
-  claimWishBox: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】记忆盲盒的创建、放弃、解锁与声望返还。
-  createMemoryBox: async payload => ({accepted: true, payload}),
-  unlockMemoryBox: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】跨校开关和学校过滤必须由服务端执行。
-  setCrossSchool: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】仅返回 AI 话题素材，不读取或改写聊天内容。
-  getIcebreaker: async payload => ({accepted: true, topic: '来玩一轮校园二选一吧：图书馆还是自习室？', payload}),
-  //【数据库接入插头】创建双人协作任务并同步任务平台状态、声望结算。
-  createCoopTask: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】保存单向匿名回响纸条并执行拒收、冷却规则。
-  sendEcho: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】读取/兑换缘分图鉴标签与碎片，不返回其他用户隐私。
-  getCollection: async () => ({cards: [], fragments: null}),
-  craftFragment: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】标签统计，不获取 GPS，不返回具体用户身份。
-  getRadar: async payload => ({accepted: true, summary: '平台里有和你兴趣相同的同学正在投放盲盒。', payload}),
-  //【数据库接入插头：对接数据库后补全此处】读取匿名问答墙内容及当前用户可操作状态。
-  getQuestionWall: async () => ({questions: []}),
-  //【数据库接入插头：对接数据库后补全此处】读取当前用户参与的小组房间。
-  getGroupRooms: async () => ({rooms: []}),
-  //【数据库接入插头：对接数据库后补全此处】读取心愿墙可认领内容。
-  getWishNotes: async () => ({notes: []}),
-  //【数据库接入插头】匿名问答墙的提问、回答、点赞与奖励结算。
-  askWall: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】创建 3-4 人匿名小组、共同任务和超时解散。
-  createGroup: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】心愿投递、置顶、认领与成果结算。
-  publishWishNote: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】拒绝冷却、拉黑、隐身和骚扰信誉联动。
-  setSafety: async payload => ({accepted: true, payload}),
-  //【数据库接入插头：对接数据库后补全此处】读取冷却、隐身、拒收和拉黑状态。
-  getSafetySettings: async () => ({cooldownUntil: null, stealth: false, blocked: []}),
-  reportHarassment: async payload => ({accepted: true, payload}),
-  //【数据库接入插头】读取限时夜场与节日池的服务端状态和奖励。
-  getEvent: async payload => ({accepted: true, payload})
-};
-window.buddyBoxDataAdapter = buddyBoxDataAdapter;
+// All feature reads and writes must come from the real backend adapter.
+const buddyBoxDataAdapter = window.buddyBoxDataAdapter;
+if (!buddyBoxDataAdapter) throw new Error('盲盒交友数据服务端接口未加载');
 
-/*仅页面预览，上线删除，数据由数据库返回*/
-const previewFeatureState = {createdBoxes: [], completedFeatures: new Set()};
-/*仅页面预览，上线删除，数据由数据库返回*/
+const featureState = {createdBoxes: [], completedFeatures: new Set()};
 const featureUiState = {};
-/*仅页面预览，上线删除，数据由数据库返回*/
 let safetyState = {cooldownUntil: null, stealth: false, blocked: [], echoReject: false};
+let lastSyncErrorAt = 0;
+function reportSyncFailure(message = '数据同步失败，请稍后刷新重试') {
+  const now = Date.now();
+  if (now - lastSyncErrorAt < 3000) return;
+  lastSyncErrorAt = now;
+  showToast(message);
+}
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
 const featureCatalog = [
@@ -129,18 +69,20 @@ const drawOverlay = $('#drawOverlay');
 const messageDrawer = $('#messageDrawer');
 const messageOverlay = $('#messageOverlay');
 const composeOverlay = $('#composeOverlay');
+const profileDetailOverlay = $('#profileDetailOverlay');
+const conversationOverlay = $('#conversationOverlay');
 const messageList = $('#messageList');
 let rotation = 0;
 let drawTimer = null;
 let drawState = 'ready';
 let lastFocused = null;
 let composeProfile = null;
+let conversationProfile = null;
 let selectedTodayAction = '';
+let inboxPollTimer = null;
+let conversationPollTimer = null;
 /*仅页面预览，上线删除，数据由数据库返回*/
-let inbox = [
-  {id:'m1',name:'周周',avatar:'avatar-zhou',text:'看到你也喜欢安静自习，要不要一起找个位置？',type:'friend',unread:true},
-  {id:'m2',name:'小满',avatar:'avatar-man',text:'你分享的拍照地点很有意思，想和你交换一张照片。',type:'message',unread:true}
-];
+let inbox = [];
 const requestedProfiles = new Set();
 const blockedTerms = ['加微信','加我微信','手机号','裸聊','色情','博彩','刷单'];
 function findBlockedTerm(value) {
@@ -148,8 +90,12 @@ function findBlockedTerm(value) {
   return blockedTerms.find(term => text.includes(term));
 }
 function validateUserText(value) {
+  if (typeof window.validateDandanText === 'function' && !window.validateDandanText(value)) {
+    showToast('内容包含敏感词，请修改后再提交');
+    return false;
+  }
   const blocked = findBlockedTerm(value);
-  if (blocked) { showToast(`内容包含敏感词「${blocked}」，请修改后再提交`); return false; }
+  if (blocked) { showToast('内容包含敏感词，请修改后再提交'); return false; }
   return true;
 }
 const schoolsByEducation = {
@@ -180,6 +126,8 @@ function updatePreferenceStatus(state) {
 
 async function saveBuddyPreferences() {
   if (typeof buddyBoxDataAdapter.savePreferences !== 'function') return;
+  const textFields = [$('#school').value, $('#province').value, $('#city').value, $('#district').value];
+  if (!textFields.every(validateUserText)) return;
   try {
     await buddyBoxDataAdapter.savePreferences({
       mbtiType: activeText('mbti')[0] || null,
@@ -189,7 +137,7 @@ async function saveBuddyPreferences() {
       city: $('#city').value || null,
       district: $('#district').value || null,
     });
-  } catch (_) { /* anonymous preview remains usable */ }
+  } catch (_) { reportSyncFailure('偏好保存失败，请稍后重试'); }
 }
 
 function applyBuddyPreferences(preference) {
@@ -211,7 +159,7 @@ async function syncBuddyPreferences() {
   try {
     const result = await buddyBoxDataAdapter.getPreferences();
     applyBuddyPreferences(result?.preference);
-  } catch (_) { /* anonymous preview remains usable */ }
+  } catch (_) { reportSyncFailure('偏好加载失败，请稍后重试'); }
 }
 
 async function syncPlatformSnapshot() {
@@ -226,32 +174,37 @@ async function syncPlatformSnapshot() {
 }
 
 function renderProfiles() {
+  if (!profiles.length) { grid.innerHTML = '<div class="board-empty"><b>暂无可匹配用户</b><span>完成偏好后，服务端会按相似度返回真实用户。</span></div>'; return; }
   const start = rotation % profiles.length;
   const visible = profiles.slice(start, start + 3).concat(profiles.slice(0, Math.max(0, start + 3 - profiles.length))).slice(0, 3);
   grid.innerHTML = visible.map(profile => {
-    const requested = requestedProfiles.has(profile.id);
-    return `<article class="match-card" data-profile="${profile.id}"><div class="match-top">${avatarMarkup(profile.avatar)}<div><div class="match-name">${profile.name}</div><div class="match-meta" title="${profile.meta}">${profile.meta}</div></div><span class="match-score">${profile.score}</span></div><p class="match-copy">${profile.copy}</p><p class="match-reason"><span>推荐理由</span>${profile.reason}</p><div class="tag-list">${profile.tags.map(tag => `<span class="tag ${tag.includes('INTP') ? 'teal' : ''}">${tag}</span>`).join('')}</div><div class="card-actions"><button class="skip" data-action="message">留言</button><button class="like ${requested ? 'requested' : ''}" data-action="friend" ${requested ? 'disabled' : ''}>${requested ? '已申请' : '+ 申请加好友'}</button></div></article>`;
+    const status = profile.friendStatus || (requestedProfiles.has(profile.id) ? 'pending' : 'none');
+    const statusCopy = status === 'accepted' ? '已是好友' : status === 'pending' ? '已有待处理请求' : status === 'rejected_cooldown' ? '对方已拒绝' : '+ 申请加好友';
+    const statusLocked = status !== 'none';
+    const chatLocked = status !== 'accepted';
+    return `<article class="match-card" data-profile="${profile.id}"><div class="match-top">${avatarMarkup(profile.avatar)}<div><div class="match-name">${escapeHtml(profile.name)}</div><div class="match-meta" title="${escapeHtml(profile.meta)}">${escapeHtml(profile.meta)}</div></div><span class="match-score">${escapeHtml(profile.score)}</span></div><p class="match-copy">${escapeHtml(profile.copy)}</p><p class="match-reason"><span>推荐理由</span>${escapeHtml(profile.reason)}</p><div class="tag-list">${profile.tags.map(tag => `<span class="tag ${tag.includes('INTP') ? 'teal' : ''}">${escapeHtml(tag)}</span>`).join('')}</div><div class="card-actions"><button class="skip ${chatLocked ? 'requested' : ''}" data-action="message" ${chatLocked ? 'disabled' : ''}>${chatLocked ? '仅好友可聊' : '发起聊天'}</button><button class="like ${statusLocked ? 'requested' : ''}" data-action="friend" data-friend-status="${status}" ${statusLocked ? 'disabled' : ''}>${statusCopy}</button></div></article>`;
   }).join('');
 }
 
-async function syncBuddyProfiles() {
+async function syncBuddyProfiles(action) {
   if (typeof buddyBoxDataAdapter.getRecommendations !== 'function') return;
   try {
-    const result = await buddyBoxDataAdapter.getRecommendations();
+    const result = await buddyBoxDataAdapter.getRecommendations(action);
     if (!Array.isArray(result?.profiles) || !result.profiles.length) return;
     profiles.splice(0, profiles.length, ...result.profiles.map((profile, index) => ({
-      id: String(profile.id), name: profile.name, meta: profile.meta || '蛋蛋校园用户', avatar: ['avatar-lin','avatar-man','avatar-zhou','avatar-yao','avatar-gulu','avatar-youzi'][index % 6], score: '同频推荐', copy: '来自蛋蛋校园的真实推荐，更多信息将在双方解锁后展示。', tags: [profile.mbtiType || '蛋蛋用户'], reason: '根据你的盲盒偏好推荐'
+      id: String(profile.id), name: profile.name, meta: profile.meta || '蛋蛋校园用户', avatar: ['avatar-lin','avatar-man','avatar-zhou','avatar-yao','avatar-gulu','avatar-youzi'][index % 6], score: '同频推荐', mbtiType: profile.mbtiType || '', hobbies: profile.hobbies || [], todayActions: profile.todayActions || [], friendStatus: profile.friendStatus || 'none', friendRequestId: profile.friendRequestId || null, copy: '最近在做：' + ((profile.hobbies || []).join('、') || '暂未填写') + '；今天想做：' + ((profile.todayActions || []).join('、') || '暂未填写'), tags: [profile.mbtiType || '蛋蛋用户'].concat(profile.hobbies || []), reason: '根据 MBTI、最近在做和今天想做的偏好匹配'
     })));
     rotation = 0;
     renderProfiles();
-  } catch (_) { /* 未登录或接口暂不可用时保留空预览数据 */ }
+  } catch (_) { reportSyncFailure('推荐加载失败，请稍后重试'); }
 }
 
 function renderInbox() {
   const unreadMessages = inbox.filter(item => item.unread && item.type === 'message').length;
   const friendRequests = inbox.filter(item => item.type === 'friend' && !item.accepted).length;
   const pending = unreadMessages + friendRequests;
-  $('#messageCount').textContent = pending;
+  const messageCount = $('#messageCount');
+  if (messageCount) messageCount.textContent = pending;
   $('#quickMessageCount').textContent = pending;
   $('#inboxSummary').textContent = `${unreadMessages} 条未读留言 · ${friendRequests} 个好友申请`;
   messageList.innerHTML = inbox.length ? inbox.map(item => `<article class="inbox-item" data-inbox="${item.id}">${avatarMarkup(item.avatar)}<div class="inbox-body"><strong>${item.name}${item.unread ? '<i class="unread-dot" aria-label="未读"></i>' : ''}</strong><p>${item.text}</p><div class="inbox-actions">${item.type === 'friend' ? `<button class="accept-friend" data-inbox-action="accept" ${item.accepted ? 'disabled' : ''}>${item.accepted ? '已成为好友' : '同意加好友'}</button>` : ''}<button class="reply-message" data-inbox-action="reply">回复留言</button></div></div></article>`).join('') : '<div class="empty-inbox">暂时没有新消息，去盲盒里认识朋友吧。</div>';
@@ -269,7 +222,15 @@ async function syncBuddyInbox() {
       accepted: item.status === 'accepted',
     }));
     renderInbox();
-  } catch (_) { /* anonymous preview remains usable */ }
+  } catch (_) { reportSyncFailure('消息加载失败，请稍后重试'); }
+}
+
+function stopInboxPolling() {
+  if (inboxPollTimer) { window.clearInterval(inboxPollTimer); inboxPollTimer = null; }
+}
+function startInboxPolling() {
+  stopInboxPolling();
+  inboxPollTimer = window.setInterval(syncBuddyInbox, 15000);
 }
 
 function renderBoard(records) {
@@ -291,7 +252,7 @@ async function syncBuddyBoard() {
   try {
     const result = await buddyBoxDataAdapter.getBoard();
     renderBoard(result?.records);
-  } catch (_) { /* anonymous preview remains usable */ }
+  } catch (_) { reportSyncFailure('留言加载失败，请稍后重试'); }
 }
 
 async function syncBuddyFeatureState() {
@@ -300,14 +261,14 @@ async function syncBuddyFeatureState() {
     const result = await buddyBoxDataAdapter.getFeatureRecords();
     for (const record of Array.isArray(result?.records) ? result.records : []) {
       if (!record?.feature) continue;
-      previewFeatureState.completedFeatures.add(record.feature);
+      featureState.completedFeatures.add(record.feature);
       const payload = record.payload && typeof record.payload === 'object' ? record.payload : {};
       const outcome = record.result && typeof record.result === 'object' ? record.result : {};
       featureUiState[record.feature] = {...featureUiState[record.feature], ...payload, ...outcome};
       if (record.feature === 'safety' && record.action === 'settings') safetyState = {...safetyState, ...outcome};
     }
     renderFeatureCenter();
-  } catch (_) { /* anonymous preview remains usable */ }
+  } catch (_) { reportSyncFailure('玩法状态加载失败，请稍后重试'); }
 }
 
 function lockPage(lock) { document.body.classList.toggle('no-scroll', lock); }
@@ -322,6 +283,7 @@ function openInbox() {
   messageDrawer.classList.add('open');
   messageDrawer.setAttribute('aria-hidden', 'false');
   lockPage(true);
+  startInboxPolling();
   $('#closeMessages').focus();
 }
 function closeInbox() {
@@ -329,6 +291,7 @@ function closeInbox() {
   messageOverlay.setAttribute('aria-hidden', 'true');
   messageDrawer.classList.remove('open');
   messageDrawer.setAttribute('aria-hidden', 'true');
+  stopInboxPolling();
   lockPage(false);
   restoreFocus();
 }
@@ -361,7 +324,7 @@ function runDraw() {
   drawOverlay.classList.remove('revealed');
   drawOverlay.setAttribute('aria-hidden', 'false');
   lockPage(true);
-  buddyBoxDataAdapter.drawBox({source:'main-stage', actionPool: options, action:selectedTodayAction || null}).catch(() => {});
+  buddyBoxDataAdapter.drawBox({source:'main-stage', actionPool: options, action:selectedTodayAction || null}).catch(() => reportSyncFailure('盲盒抽取结果同步失败，请稍后重试'));
   let tick = 0;
   drawTimer = window.setInterval(() => {
     $('#drawResult').textContent = `${options[tick % options.length]} · 随机中`;
@@ -371,6 +334,7 @@ function runDraw() {
     selectedTodayAction = options[Math.floor(Math.random() * options.length)];
     drawState = 'revealed';
     $('#drawResult').textContent = `今日行动：${selectedTodayAction}`;
+    syncBuddyProfiles(selectedTodayAction);
     $('#drawTitle').textContent = '今天就做这件事吧';
     //【数据库接入插头】抽盒后的声望变动由服务端返回；前端只保留“待同步”展示。
     $('#experienceCount').textContent = '待同步';
@@ -395,9 +359,51 @@ function openCompose(profile) {
   $('#composeText').focus();
 }
 
+function openProfileDetails(profile) {
+  composeProfile = profile;
+  $('#profileDetailAvatar').className = `match-avatar person-avatar ${profile.avatar}`;
+  $('#profileDetailName').textContent = profile.name;
+  $('#profileDetailMeta').textContent = profile.meta;
+  $('#profileDetailBody').innerHTML = `<div><b>MBTI：</b>${escapeHtml(profile.mbtiType || (profile.tags || []).find(tag => /^[EI][NS][TF][PJ]$/.test(tag)) || '暂未填写')}</div><div><b>最近在做：</b>${escapeHtml((profile.hobbies || []).join('、') || profile.copy || '暂未填写')}</div><div><b>今天想做：</b>${escapeHtml((profile.todayActions || []).join('、') || '暂未填写')}</div><div><b>匹配理由：</b>${escapeHtml(profile.reason || '服务端相似度推荐')}</div>`;
+  const friendButton = $('#profileDetailFriend');
+  const friendStatus = profile.friendStatus || 'none';
+  friendButton.disabled = friendStatus !== 'none';
+  friendButton.textContent = friendStatus === 'accepted' ? '已是好友' : friendStatus === 'pending' ? '已有待处理请求' : friendStatus === 'rejected_cooldown' ? '对方已拒绝' : '添加好友';
+  const chatButton = $('#profileDetailChat');
+  chatButton.disabled = friendStatus !== 'accepted';
+  chatButton.textContent = friendStatus === 'accepted' ? '发起聊天' : '仅好友可聊';
+  profileDetailOverlay.classList.add('open'); profileDetailOverlay.setAttribute('aria-hidden','false'); lockPage(true);
+}
+function closeProfileDetails(){ profileDetailOverlay.classList.remove('open'); profileDetailOverlay.setAttribute('aria-hidden','true'); lockPage(false); }
+async function refreshConversation() {
+  if (!conversationProfile || !conversationOverlay.classList.contains('open')) return;
+  try {
+    const result = await api.getConversation(conversationProfile.id);
+    const messages = result.messages || [];
+    $('#conversationMessages').innerHTML = messages.length ? messages.map(message => `<div style="align-self:${String(message.senderId) === String(conversationProfile.id) ? 'flex-start' : 'flex-end'};max-width:85%;padding:8px 12px;border-radius:12px;background:${String(message.senderId) === String(conversationProfile.id) ? '#f3f4f6' : '#e7f5ef'}">${escapeHtml(message.text)}</div>`).join('') : '<div class="board-empty">暂无聊天记录</div>';
+  } catch(error) {
+    $('#conversationMessages').innerHTML = `<div class="board-empty">${escapeHtml(error.message || '接受好友后才能聊天')}</div>`;
+  }
+}
+function stopConversationPolling() {
+  if (conversationPollTimer) { window.clearInterval(conversationPollTimer); conversationPollTimer = null; }
+}
+async function openConversation(profile){
+  stopConversationPolling();
+  conversationProfile = profile;
+  $('#conversationAvatar').className = `match-avatar person-avatar ${profile.avatar}`;
+  $('#conversationName').textContent = profile.name;
+  $('#conversationMeta').textContent = profile.meta;
+  $('#conversationMessages').innerHTML = '<div class="board-empty">正在加载聊天记录…</div>';
+  conversationOverlay.classList.add('open'); conversationOverlay.setAttribute('aria-hidden','false'); lockPage(true);
+  await refreshConversation();
+  conversationPollTimer = window.setInterval(refreshConversation, 5000);
+}
+function closeConversation(){ stopConversationPolling(); conversationOverlay.classList.remove('open'); conversationOverlay.setAttribute('aria-hidden','true'); lockPage(false); conversationProfile = null; }
+
 function renderFeatureCenter() {
   const container = $('#featureGroups');
-  container.innerHTML = featureCatalog.map(group => `<section class="feature-group" aria-labelledby="feature-group-${group.group}"><div class="feature-group-head"><h3 id="feature-group-${group.group}">${group.group}</h3><span>${group.items.length} 项</span></div><div class="feature-grid">${group.items.map(item => `<button type="button" class="feature-card ${previewFeatureState.completedFeatures.has(item.id) ? 'feature-done' : ''}" data-feature="${item.id}"><span class="feature-icon" aria-hidden="true">${item.icon}</span><span class="feature-card-copy"><b>${item.title}</b><small>${item.desc}</small></span><span class="feature-arrow" aria-hidden="true">›</span></button>`).join('')}</div></section>`).join('');
+  container.innerHTML = featureCatalog.map(group => `<section class="feature-group" aria-labelledby="feature-group-${group.group}"><div class="feature-group-head"><h3 id="feature-group-${group.group}">${group.group}</h3><span>${group.items.length} 项</span></div><div class="feature-grid">${group.items.map(item => `<button type="button" class="feature-card ${featureState.completedFeatures.has(item.id) ? 'feature-done' : ''}" data-feature="${item.id}"><span class="feature-icon" aria-hidden="true">${item.icon}</span><span class="feature-card-copy"><b>${item.title}</b><small>${item.desc}</small></span><span class="feature-arrow" aria-hidden="true">›</span></button>`).join('')}</div></section>`).join('');
 }
 
 function findFeature(id) { return featureCatalog.flatMap(group => group.items).find(item => item.id === id); }
@@ -410,19 +416,19 @@ function featureFieldMarkup(feature) {
 }
 function featureResultMarkup(feature, result) {
   const state = featureUiState[feature.id] || {};
-  const detail = result?.topic || result?.summary || result?.message || '预览状态已更新，接入数据库后将显示真实结果。';
+  const detail = result?.topic || result?.summary || result?.message || '状态已更新，具体结果由服务端返回。';
   const common = `<div class="feature-result"><span class="feature-result-icon">✓</span><div><strong>${escapeHtml(feature.title)}已进入下一步</strong><p>${escapeHtml(detail)}</p></div></div>`;
   const views = {
-    quiz: `<div class="feature-next"><h4>等待出题人审核</h4><p>回答完整后才会解锁聊天。当前状态：<b>${state.reviewStatus || '待回答'}</b></p><div class="feature-inline-actions"><button type="button" data-feature-next="quiz-answer">开始答题</button><button type="button" data-feature-next="quiz-review">模拟审核通过</button></div></div>`,
-    reverse: `<div class="feature-next"><h4>公开愿望池</h4><p>已匿名发布，匹配标签将帮助同频用户认领。</p><div class="wish-preview"><span>音乐</span><span>学习</span><span>安静聊天</span></div><button type="button" data-feature-next="reverse-claim">模拟认领这份愿望</button></div>`,
+    quiz: `<div class="feature-next"><h4>等待出题人审核</h4><p>回答完整后才会解锁聊天。当前状态：<b>${state.reviewStatus || '待回答'}</b></p><div class="feature-inline-actions"><button type="button" data-feature-next="quiz-answer">开始答题</button><button type="button" data-feature-next="quiz-review">提交审核结果</button></div></div>`,
+    reverse: `<div class="feature-next"><h4>公开愿望池</h4><p>已匿名发布，匹配标签将帮助同频用户认领。</p><div class="wish-preview"><span>音乐</span><span>学习</span><span>安静聊天</span></div><button type="button" data-feature-next="reverse-claim">认领这份愿望</button></div>`,
     memory: `<div class="feature-next"><h4>时间胶囊已投放</h4><p>解锁倒计时：<b>${state.countdown || '7 天'}</b>。期间仅可发送 50 字以内便签。</p><button type="button" data-feature-next="memory-note">发送一张便签</button></div>`,
     'cross-school': `<div class="feature-next"><h4>跨校匹配${state.enabled ? '已开启' : '已关闭'}</h4><p>对外只展示学校，不展示学院和班级。</p></div>`,
-    icebreaker: `<div class="feature-next"><h4>今日破冰话题</h4><p class="icebreaker-topic">${escapeHtml(result?.topic || '图书馆还是自习室？说说你的选择。')}</p><button type="button" data-feature-next="icebreaker-refresh">换一个话题</button></div>`,
-    coop: `<div class="feature-next"><h4>协作任务大厅</h4><p>预览任务：共同完成一次校园调研，双方提交后等待平台审核。</p><button type="button" data-feature-next="coop-join">加入协作任务</button></div>`,
+    icebreaker: `<div class="feature-next"><h4>今日破冰话题</h4><p class="icebreaker-topic">${escapeHtml(result?.topic || '暂无服务端破冰话题')}</p><button type="button" data-feature-next="icebreaker-refresh">换一个话题</button></div>`,
+    coop: `<div class="feature-next"><h4>协作任务大厅</h4><p>当前任务：共同完成一次校园调研，双方提交后等待平台审核。</p><button type="button" data-feature-next="coop-join">加入协作任务</button></div>`,
     echo: `<div class="feature-next"><h4>回响已寄出</h4><p>这是单向匿名纸条，对方可拒收，无法直接回复。</p></div>`,
     collection: `<div class="feature-next"><h4>我的缘分图鉴</h4><div class="collection-grid"><span>初次相遇</span><span>歌单交换</span><span>学习搭子</span><span>待收集</span></div></div>`,
-    fragments: `<div class="feature-next"><h4>碎片合成</h4><p>当前碎片由服务端返回。预览中可将退回盲盒转为合成进度。</p><button type="button" data-feature-next="fragments-craft">尝试合成盲盒券</button></div>`,
-    radar: `<div class="feature-next"><h4>兴趣雷达</h4><p>${escapeHtml(result?.summary || '玩游戏、分享歌单、一起自习是当前最活跃的标签。')}</p></div>`,
+    fragments: `<div class="feature-next"><h4>碎片合成</h4><p>当前碎片由服务端返回，可将退回盲盒转为合成进度。</p><button type="button" data-feature-next="fragments-craft">合成盲盒券</button></div>`,
+    radar: `<div class="feature-next"><h4>兴趣雷达</h4><p>${escapeHtml(result?.summary || '暂无服务端统计')}</p></div>`,
     'qa-wall': `<div class="feature-next"><h4>匿名问答墙</h4><p>问题已进入匿名墙，可选择公开回答或拒绝回答。</p><button type="button" data-feature-next="qa-answer">写一条回答</button></div>`,
     group: `<div class="feature-next"><h4>多人小组已生成</h4><p>3-4 人匿名房间将在任务完成或超时后关闭。</p><button type="button" data-feature-next="group-enter">进入小组房间</button></div>`,
     'wish-wall': `<div class="feature-next"><h4>心愿纸条已投递</h4><p>其他同学可以认领，完成后由服务端结算双方奖励。</p><button type="button" data-feature-next="wish-claim">查看可认领心愿</button></div>`,
@@ -473,7 +479,7 @@ async function submitFeature(feature) {
   try {
     const result = await handler(payload);
     //【数据库接入插头】服务端结果只用于更新 UI，前端不计算声望、不生成奖励数值。
-    previewFeatureState.completedFeatures.add(feature.id);
+    featureState.completedFeatures.add(feature.id);
     featureUiState[feature.id] = {...featureUiState[feature.id], fields, enabled: payload.enabled, reviewStatus: feature.id === 'quiz' ? '待回答' : undefined};
     if (feature.id === 'stealth') safetyState = {...safetyState, stealth: payload.enabled};
     if (feature.id === 'cooldown') safetyState = {...safetyState, echoReject: payload.enabled};
@@ -484,7 +490,7 @@ async function submitFeature(feature) {
   } catch (error) { showToast('操作未完成，请稍后重试'); }
   finally {
     button.disabled = false;
-    if (previewFeatureState.completedFeatures.has(feature.id)) {
+    if (featureState.completedFeatures.has(feature.id)) {
       button.textContent = '已提交';
       button.disabled = true;
     }
@@ -551,33 +557,53 @@ document.addEventListener('click', event => { if (!event.target.closest('.school
 $('#addWish').addEventListener('click', () => {
   const input = $('#customWish'); const value = input.value.trim();
   if (!value) { showToast('先写一个今天想做的事'); return; }
+  if (!validateUserText(value)) return;
   const chip = document.createElement('span'); chip.className = 'wish-chip'; chip.dataset.wish = value; chip.innerHTML = `${value}<button type="button" aria-label="删除愿望">×</button>`;
   $('#wishPool').appendChild(chip); input.value = ''; updatePreferenceStatus(); showToast('愿望已加入抓阄池');
 });
-$('#wishPool').addEventListener('click', event => { if (event.target.matches('button')) { event.target.parentElement.remove(); updatePreferenceStatus(); } });
+const wishPool = $('#wishPool');
+if (wishPool) wishPool.addEventListener('click', event => { if (event.target.matches('button')) { event.target.parentElement.remove(); updatePreferenceStatus(); } });
 
 $('#openBox').addEventListener('click', runDraw);
 $('#closeDraw').addEventListener('click', () => closeDraw());
-$('#messageBell').addEventListener('click', openInbox);
+const messageBell = $('#messageBell');
+if (messageBell) messageBell.addEventListener('click', openInbox);
 $('#quickInbox').addEventListener('click', openInbox);
 $('#closeMessages').addEventListener('click', closeInbox);
 messageOverlay.addEventListener('click', closeInbox);
 $('#closeCompose').addEventListener('click', closeCompose);
 $('#cancelCompose').addEventListener('click', closeCompose);
 composeOverlay.addEventListener('click', event => { if (event.target === composeOverlay) closeCompose(); });
+$('#closeProfileDetail').addEventListener('click', closeProfileDetails);
+profileDetailOverlay.addEventListener('click', event => { if (event.target === profileDetailOverlay) closeProfileDetails(); });
+$('#profileDetailFriend').addEventListener('click', async () => {
+  if (!composeProfile) return;
+  if (composeProfile.friendStatus && composeProfile.friendStatus !== 'none') {
+    showToast(composeProfile.friendStatus === 'accepted' ? '双方已经是好友' : composeProfile.friendStatus === 'pending' ? '已有待处理请求' : '对方已拒绝，30分钟内不能再次添加');
+    return;
+  }
+  try { await api.applyFriend(composeProfile); composeProfile.friendStatus = 'pending'; requestedProfiles.add(composeProfile.id); renderProfiles(); closeProfileDetails(); showToast('好友申请已发送，等待对方回应'); }
+  catch(error) { showToast(error.message || '好友申请未发送成功'); }
+});
+$('#profileDetailChat').addEventListener('click', () => { if (composeProfile) { const profile = composeProfile; closeProfileDetails(); openConversation(profile); } });
+$('#closeConversation').addEventListener('click', closeConversation);
+conversationOverlay.addEventListener('click', event => { if (event.target === conversationOverlay) closeConversation(); });
 
 grid.addEventListener('click', async event => {
-  const button = event.target.closest('button'); if (!button) return;
-  const card = button.closest('[data-profile]'); const profile = profiles.find(item => item.id === card.dataset.profile);
-  if (button.dataset.action === 'message') { openCompose(profile); return; }
-  if (button.dataset.action !== 'friend' || requestedProfiles.has(profile.id)) return;
+  const card = event.target.closest('[data-profile]'); if (!card) return;
+  const profile = profiles.find(item => item.id === card.dataset.profile); if (!profile) return;
+  const button = event.target.closest('button');
+  if (!button) { openProfileDetails(profile); return; }
+  if (button.dataset.action === 'message') { openConversation(profile); return; }
+  if (button.dataset.action !== 'friend' || requestedProfiles.has(profile.id) || (profile.friendStatus && profile.friendStatus !== 'none')) return;
   button.disabled = true;
   try {
     await api.applyFriend(profile);
+    profile.friendStatus = 'pending';
     requestedProfiles.add(profile.id);
     inbox.unshift({id:`friend-${Date.now()}`,name:profile.name,avatar:profile.avatar,text:'你的好友申请已发送，等待对方回应。',type:'message',unread:false});
     renderProfiles(); renderInbox(); showToast(`已向 ${profile.name} 发送好友申请`);
-  } catch (error) { button.disabled = false; showToast('好友申请未发送成功，请稍后重试'); }
+  } catch (error) { button.disabled = false; showToast(error.message || '好友申请未发送成功，请稍后重试'); }
 });
 
 $('#composeText').addEventListener('input', event => { $('#composeCount').textContent = `${event.target.value.length} / 180`; });
@@ -665,9 +691,7 @@ $('#messageForm').addEventListener('submit', async event => {
   if (!validateUserText(text)) return;
   try {
     await api.publishBoard({text});
-    const list = $('#boardList'); list.querySelector('.board-empty')?.remove();
-    const item = document.createElement('article'); item.className = 'board-item'; item.innerHTML = `<b>赵珏</b><time>刚刚</time><p>${text.replace(/[<>]/g, '')}</p>`;
-    list.prepend(item); event.target.reset(); $('#charCount').textContent = '0 / 180'; showToast('留言已发布');
+    await syncBuddyBoard(); event.target.reset(); $('#charCount').textContent = '0 / 180'; showToast('留言已发布');
   } catch (error) { showToast('留言发布失败，请稍后重试'); }
 });
 messageList.addEventListener('click', async event => {
@@ -675,7 +699,7 @@ messageList.addEventListener('click', async event => {
   const item = inbox.find(entry => entry.id === action.closest('[data-inbox]').dataset.inbox);
   if (!item) return;
   if (action.dataset.inboxAction === 'accept') {
-    try { await api.acceptFriend(item.id); item.accepted = true; item.unread = false; renderInbox(); showToast('已成为好友'); } catch (_) { showToast('好友申请处理失败，请稍后重试'); }
+    try { await api.acceptFriend(item.id); item.accepted = true; item.unread = false; renderInbox(); await syncBuddyProfiles(selectedTodayAction); showToast('已成为好友'); } catch (_) { showToast('好友申请处理失败，请稍后重试'); }
     return;
   }
   const text = window.prompt(`回复 ${item.name}`); if (!text?.trim() || !validateUserText(text)) return;
@@ -688,9 +712,25 @@ messageList.addEventListener('click', async event => {
   } catch (error) { showToast('回复发送失败，请稍后重试'); }
 });
 
+$('#conversationText').addEventListener('input', event => { $('#conversationCount').textContent = `${event.target.value.length} / 180`; });
+$('#conversationForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const text = $('#conversationText').value.trim();
+  if (!text || !conversationProfile) return;
+  if (!validateUserText(text)) return;
+  try {
+    await api.sendMessage({to:{id:conversationProfile.id}, text, source:'conversation'});
+    $('#conversationText').value = '';
+    await openConversation(conversationProfile);
+    showToast('消息已发送');
+  } catch(error) { showToast(error.message || '消息发送失败，请先确认双方已成为好友'); }
+});
+
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
     if (composeOverlay.classList.contains('open')) closeCompose();
+    else if (profileDetailOverlay.classList.contains('open')) closeProfileDetails();
+    else if (conversationOverlay.classList.contains('open')) closeConversation();
     else if ($('#featureOverlay').classList.contains('open')) closeFeature();
     else if (drawOverlay.classList.contains('open')) closeDraw({announce:false});
     else if (messageDrawer.classList.contains('open')) closeInbox();
@@ -705,7 +745,7 @@ document.addEventListener('keydown', event => {
 
 async function syncSafetyState() {
   //【数据库接入插头：对接数据库后补全此处】页面只读取服务端安全状态，不在前端推断冷却或处罚。
-  try { safetyState = {...safetyState, ...(await buddyBoxDataAdapter.getSafetySettings())}; } catch (error) { /* preview fallback */ }
+  try { safetyState = {...safetyState, ...(await buddyBoxDataAdapter.getSafetySettings())}; } catch (error) { reportSyncFailure('安全设置加载失败，请稍后重试'); }
 }
 renderProfiles(); renderInbox(); renderFeatureCenter(); updatePreferenceStatus(); syncPlatformSnapshot(); syncSafetyState(); syncBuddyPreferences(); syncBuddyInbox(); syncBuddyProfiles(); syncBuddyBoard(); syncBuddyFeatureState();
 /* Report content height to the host page so the host container owns scrolling. */

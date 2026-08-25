@@ -1,4 +1,4 @@
-import { buildApp } from './app.js';
+import { buildApp, refundExpiredInquiries } from './app.js';
 import { loadConfig } from './config.js';
 import { prisma } from './prisma.js';
 
@@ -10,6 +10,10 @@ const verificationCleanup = setInterval(async () => {
   }).catch((error) => app.log.error({ err: error }, 'verification cleanup failed'));
 }, 15 * 60 * 1000);
 verificationCleanup.unref();
+const inquiryRefundSweep = setInterval(async () => {
+  await refundExpiredInquiries().catch((error) => app.log.error({ err: error }, 'inquiry refund sweep failed'));
+}, 5 * 60 * 1000);
+inquiryRefundSweep.unref();
 
 try {
   await app.listen({ host: config.HOST, port: config.PORT });
@@ -21,6 +25,7 @@ try {
 
 const shutdown = async () => {
   clearInterval(verificationCleanup);
+  clearInterval(inquiryRefundSweep);
   await app.close();
   await prisma.$disconnect();
 };

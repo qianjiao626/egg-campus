@@ -1,7 +1,8 @@
 (function () {
   'use strict';
 
-  var base = '/dd';
+  var isLocalPreview = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+  var base = window.DANDAN_API_ORIGIN || (isLocalPreview ? 'http://127.0.0.1:3310' : '/dd');
   var accessToken = null;
   var featureNamePattern = /^[a-z][a-z0-9-]{1,39}$/;
 
@@ -92,17 +93,14 @@
     });
   }
 
-  function latestFeatureResult(body, fallback) {
+  function latestFeatureResult(body) {
     var records = body && Array.isArray(body.records) ? body.records : [];
-    if (!records.length) return fallback || {};
+    if (!records.length) return { record: null };
     return resultBody({ accepted: true, record: records[0] });
   }
 
   function getPointAccount() {
-    return request('/api/users/me/point-account').catch(function (error) {
-      if (error.status === 404) return { account: null };
-      throw error;
-    });
+    return request('/api/users/me/point-account');
   }
 
   var api = {
@@ -123,6 +121,7 @@
       });
     },
     getInbox: function () { return request('/api/buddy-box/inbox'); },
+    getConversation: function (userId) { return request('/api/buddy-box/conversations/' + encodeURIComponent(userId) + '/messages'); },
     markMessageRead: function (id) {
       return request('/api/buddy-box/messages/' + encodeURIComponent(id) + '/read', { method: 'POST', body: '{}' });
     },
@@ -133,7 +132,10 @@
   };
 
   var adapter = {
-    getRecommendations: function () { return request('/api/buddy-box/recommendations'); },
+    getRecommendations: function (action) {
+      var query = queryString({ action: action || undefined });
+      return request('/api/buddy-box/recommendations' + (query ? '?' + query : ''));
+    },
     getPreferences: function () { return request('/api/buddy-box/preferences'); },
     getBoard: function () {
       return readFeature('board', 'mine').then(function (body) {
@@ -181,7 +183,7 @@
     },
     getAnonymousConversation: function (payload) {
       return readFeature('conversation', 'mine', 1).then(function (body) {
-        return latestFeatureResult(body, { status: 'waiting', payload: payload || {} });
+        return latestFeatureResult(body);
       });
     },
     submitAnswers: function (payload) { return writeFeature('quiz', 'submit-answers', payload); },
@@ -202,7 +204,7 @@
     craftFragment: function (payload) { return writeFeature('fragments', 'craft', payload); },
     getRadar: function (payload) {
       return writeFeature('radar', 'summary', payload).then(function (result) {
-        return Object.assign({ summary: '玩游戏、分享歌单、一起自习是当前最活跃的标签。' }, result);
+        return Object.assign({ summary: '暂无服务端统计' }, result);
       });
     },
     getQuestionWall: function () {
@@ -222,7 +224,7 @@
     setSafety: function (payload) { return writeFeature('safety', 'settings', payload); },
     getSafetySettings: function () {
       return readFeature('safety', 'mine', 1).then(function (body) {
-        return latestFeatureResult(body, { cooldownUntil: null, stealth: false, blocked: [] });
+        return latestFeatureResult(body);
       });
     },
     reportHarassment: function (payload) { return writeFeature('safety', 'report', payload); },

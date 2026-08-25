@@ -22,7 +22,25 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;background:linear-gradient(180deg,#F5F1E8 0%,#F0EBE0 35%,#F8F5EE 70%,#FBF3D9 100%);color:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden}
-  #stage{width:1440px;height:1024px;transform-origin:top left;position:absolute;top:0;left:0}
+  #stage{width:1440px;height:1024px;transform-origin:top left;position:absolute;top:0;left:0;visibility:hidden}
+  @media (max-width: 900px){
+    html,body{height:auto;min-height:100%;overflow:auto}
+    #stage{width:100%;height:auto;min-height:100vh;position:relative;transform:none!important;left:auto!important;top:auto!important}
+    .app{min-height:100vh;height:auto;overflow:visible}
+    .sidebar{position:sticky;top:0;z-index:20;max-height:100vh;overflow-y:auto}
+    .main{min-width:0;overflow:visible}
+    .page{height:auto;min-height:100vh;overflow:visible;padding:20px 16px 36px}
+    .topbar{position:sticky;top:0;z-index:10;background:rgba(245,241,232,.96)}
+    .grid-3,.grid-2,.kpi-row{grid-template-columns:1fr!important}
+  }
+  @media (max-width: 620px){
+    .sidebar{width:72px;min-width:72px;padding:14px 8px}
+    .sidebar .brand-text,.sidebar .nav-item span,.sidebar .user-card .info,.sidebar .logout{display:none}
+    .sidebar .nav-item{justify-content:center;padding:11px 4px}
+    .sidebar .nav-item svg{margin:0}
+    .right{gap:6px}
+    .search{display:none}
+  }
   .app{display:flex;width:100%;height:100%;background:linear-gradient(160deg,#F5F1E8 0%,#F0EBE0 30%,#F8F5EE 65%,#FBF6DE 100%);overflow:hidden;position:relative}
   .app::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 18% 12%,rgba(255,184,77,.07) 2px,transparent 2.5px),radial-gradient(circle at 82% 22%,rgba(78,205,196,.07) 2px,transparent 2.5px),radial-gradient(circle at 50% 55%,rgba(232,101,126,.06) 1.5px,transparent 2px),radial-gradient(circle at 90% 78%,rgba(212,160,23,.06) 2px,transparent 2.5px),radial-gradient(circle at 8% 85%,rgba(199,125,255,.05) 2px,transparent 2.5px),radial-gradient(circle,rgba(27,58,91,.04) 1.5px,transparent 1.5px);background-size:38px 38px,52px 52px,44px 44px,58px 58px,48px 48px,24px 24px;pointer-events:none;z-index:0}
   @keyframes candyBounce{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.03)}}
@@ -262,6 +280,7 @@
   .tag-lilac{background:var(--lilac-tint);color:var(--lilac)}
   .tag-green{background:var(--green-tint);color:var(--green)}
   .tag-orange{background:var(--orange-tint);color:var(--orange)}
+  .tag-demo{background:#EEF2FF;color:#4F46E5;border:1px solid #C7D2FE}
   .tag-red{background:var(--red-tint);color:var(--red)}
   .tag-gold{background:var(--gold-tint);color:#B07E00}
   .tag-gray{background:#EDF2F7;color:var(--ink2)}
@@ -1340,6 +1359,27 @@
   .mytask-tab-panel{display:none;animation:fadeInUp .3s ease}
   .mytask-tab-panel.active{display:block}
   @keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  /* Responsive overrides come after the fixed desktop shell so mobile rules win the cascade. */
+  @media (max-width:900px){
+    html,body{height:auto;min-height:100%;overflow:auto}
+    #stage{width:100%;height:auto;min-height:100vh;position:relative;transform:none!important;left:auto!important;top:auto!important}
+    .app{min-height:100vh;height:auto;overflow:visible}
+    .sidebar{position:sticky;top:0;z-index:20;max-height:100vh;overflow-y:auto}
+    .main{min-width:0;height:auto;overflow:visible}
+    .page{height:auto;min-height:100vh;overflow:visible;padding:20px 16px 36px}
+    .topbar{position:sticky;top:0;z-index:10;background:rgba(245,241,232,.96)}
+    .grid-3,.grid-2,.kpi-row{grid-template-columns:1fr!important}
+    .buddybox-page{overflow:visible!important}
+    .buddybox-frame{height:auto!important;min-height:860px;overflow:hidden}
+  }
+  @media (max-width:620px){
+    .sidebar{width:72px;min-width:72px;padding:14px 8px}
+    .sidebar .brand-text,.sidebar .nav-item span,.sidebar .user-card .info,.sidebar .logout{display:none}
+    .sidebar .nav-item{justify-content:center;padding:11px 4px}
+    .sidebar .nav-item svg{margin:0}
+    .right{gap:6px}
+    .search{display:none}
+  }
 </style>
 </head>
 <body>
@@ -1491,9 +1531,10 @@
           <div class="nav-item student-item" data-page="helpplaza"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 22C12 22 20 18 20 11V5L12 2L4 5V11C4 18 12 22 12 22Z" stroke-linejoin="round"/><path d="M9 12L11 14L15 9" stroke-linecap="round" stroke-linejoin="round"/></svg><span>求助中心</span></div>
           <div class="nav-item student-item" data-page="rankhall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2L14.5 8.5L21 9L16 14L17.5 21L12 17.5L6.5 21L8 14L3 9L9.5 8.5L12 2Z" stroke-linejoin="round"/></svg><span>神蛋榜单</span></div>
           <div class="nav-item student-item" data-page="gossip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke-linejoin="round"/></svg><span>八卦吃瓜</span></div>
+          <div class="nav-item student-item" data-page="myfeedback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v9A2.5 2.5 0 0 1 17.5 17H11l-4.5 4v-4.5h0A2.5 2.5 0 0 1 4 14.5z" stroke-linejoin="round"/><path d="M8 8h8M8 12h5" stroke-linecap="round"/></svg><span>我的反馈</span></div>
           <div class="nav-item student-item" data-page="mytasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 12L11 15L16 10" stroke-linecap="round" stroke-linejoin="round"/></svg><span>我的任务</span></div>
           <div class="nav-item student-item" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.5"/><path d="M4 20C4 16.5 7.6 14.5 12 14.5C16.4 14.5 20 16.5 20 20" stroke-linecap="round"/></svg><span>我的信息</span></div>
-          <div class="nav-item student-item" data-page="buddybox" aria-label="盲盒交友" title="盲盒交友"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3L14.5 9.5L21 10L16 14.5L17.5 21L12 17.5L6.5 21L8 14.5L3 10L9.5 9.5L12 3Z" stroke-linejoin="round"/></svg><span>盲盒交友</span><span class="tag tag-orange" style="margin-left:auto">NEW</span></div>
+          <div class="nav-item student-item" data-page="buddybox" aria-label="盲盒交友" title="盲盒交友"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3L14.5 9.5L21 10L16 14.5L17.5 21L12 17.5L6.5 21L8 14.5L3 10L9.5 9.5L12 3Z" stroke-linejoin="round"/></svg><span>盲盒交友</span></div>
         </nav>
 
         <div class="user-card" id="userCard">
@@ -1532,7 +1573,7 @@
       <main class="main">
 
         <!-- ===== ADMIN: 工作台 ===== -->
-        <section class="page active" id="page-dashboard">
+        <section class="page" id="page-dashboard">
           <div class="topbar"><span class="crumb">蛋蛋世界 / 工作台</span>
             <div class="right">
               <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="M20 20L16.5 16.5" stroke-linecap="round"/></svg><span>搜索任务、蛋蛋</span></div>
@@ -1747,7 +1788,7 @@
           <div class="title-row"><div class="t"><h2>反馈工单</h2><p>收集用户的 Bug 反馈、功能建议和内容举报，及时处理提升用户体验</p></div>
             <div class="gap8">
               <span class="tag tag-red" id="fbPendingTag">待处理 2</span>
-              <span class="tag tag-green">已回复 1</span>
+              <span class="tag tag-green" id="fbRepliedTag">已回复 0</span>
             </div>
           </div>
           <div class="filter-row" style="margin-bottom:16px">
@@ -1961,6 +2002,8 @@
         <!-- ===== STUDENT: 蛋蛋要八卦（八卦墙） ===== -->
         <section class="page" id="page-gossip">
           <div class="topbar"><span class="crumb">蛋蛋世界 / 蛋蛋要八卦</span></div>
+          <div style="display:flex;justify-content:flex-end;margin:8px 0"><button class="btn btn-ghost" onclick="toggleMyInquiries()">我的打听 <span id="myInquiryCount">0</span></button></div>
+          <section id="myInquiriesPanel" style="display:none;margin-bottom:16px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px"><div class="sec-head"><h3>我的打听</h3><button class="link" onclick="syncGossipInquiries()">刷新</button></div><div id="myInquiriesList" style="display:flex;flex-direction:column;gap:10px"><div style="padding:18px;text-align:center;color:var(--muted)">暂无打听记录</div></div></section>
           <div class="gossip-hero">
             <div class="banner-text">
               <h2>🐣 蛋蛋要八卦站</h2>
@@ -2030,6 +2073,13 @@
           </div>
         </section>
 
+        <!-- ===== STUDENT: 我的反馈 ===== -->
+        <section class="page" id="page-myfeedback">
+          <div class="topbar"><span class="crumb">蛋蛋世界 / 我的反馈</span><button class="link" onclick="syncFeedbackTickets()">刷新</button></div>
+          <div class="title-row"><div class="t"><h2>我的反馈</h2><p>这里只显示你本人提交的反馈及处理结果</p></div></div>
+          <div id="myFeedbackHistory" style="display:flex;flex-direction:column;gap:12px"></div>
+        </section>
+
         <!-- ===== STUDENT: 我的任务 ===== -->
         <section class="page" id="page-mytasks">
           <div class="topbar"><span class="crumb">蛋蛋世界 / 我的任务</span></div>
@@ -2053,6 +2103,13 @@
               <div class="tab-sub">寻求帮助</div>
             </div>
           </div>
+          <div id="myTaskStatusFilters" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px">
+            <button class="btn btn-sm btn-primary" data-task-status="all" onclick="filterMyPublishedTasks('all')">全部</button>
+            <button class="btn btn-sm btn-ghost" data-task-status="pending" onclick="filterMyPublishedTasks('pending')">待审核</button>
+            <button class="btn btn-sm btn-ghost" data-task-status="approved" onclick="filterMyPublishedTasks('approved')">已审核</button>
+            <button class="btn btn-sm btn-ghost" data-task-status="completed" onclick="filterMyPublishedTasks('completed')">已完成</button>
+            <button class="btn btn-sm btn-ghost" data-task-status="revision" onclick="filterMyPublishedTasks('revision')">待修改</button>
+          </div>
 
           <!-- Tab: 拜师学艺 -->
           <div class="mytask-tab-panel active" id="mytask-tab-teach">
@@ -2065,7 +2122,7 @@
             <div id="myPublishedListTeach" style="display:flex;flex-direction:column;gap:16px">
               <!-- 教学型任务（发布者视角 - 待确认配对，测试用） -->
               <div class="card pub-teach" data-task-type="teach" data-task-cost="200" data-skill-cat="生活互助" data-skill-sub="乐器音乐" data-claim-mode="single" data-max-claimers="1" data-claimed="0" data-submitted="0" data-status="已通过" data-deadline="10.15" data-signup-deadline="9.25" data-requirements="1. 零基础友好，自带吉他或用我的&#10;2. 每周1次课，每次1小时&#10;3. 学习基本和弦和弹唱&#10;4. 4周能弹唱3首歌" style="padding:20px;display:flex;flex-direction:column;gap:10px">
-                <div style="display:flex;align-items:center;justify-content:space-between"><span class="tag tag-orange">待确认配对 · 教学型</span><span style="font-size:12px;font-weight:500;color:var(--muted)">报名 3 人</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;gap:6px;align-items:center"><span class="tag tag-orange">待确认配对 · 教学型</span><span class="tag tag-demo">DEMO</span></span><span style="font-size:12px;font-weight:500;color:var(--muted)">报名 3 人</span></div>
                 <div style="font-size:15px;font-weight:600">教你零基础入门吉他</div>
                 <div style="display:flex;align-items:center;justify-content:space-between">
                   <div class="done-txt" style="font-size:12px;color:var(--muted)">3 人报名 · 待你确认配对</div>
@@ -2087,7 +2144,7 @@
             <div id="myPublishedListTeam" style="display:flex;flex-direction:column;gap:16px">
               <!-- 组队型任务（发布者视角 - 待确认配对，测试用） -->
               <div class="card pub-team" data-task-type="team" data-task-cost="150" data-skill-cat="学业技术" data-skill-sub="英语提升" data-claim-mode="multiple" data-max-claimers="3" data-claimed="0" data-submitted="0" data-status="已通过" data-deadline="10.30" data-signup-deadline="9.20" data-requirements="1. 有一定英语基础（四六级以上）&#10;2. 每周能参加2次周末练习&#10;3. 愿意开口说，不怕犯错&#10;4. 轮流准备话题，互相点评" style="padding:20px;display:flex;flex-direction:column;gap:10px">
-                <div style="display:flex;align-items:center;justify-content:space-between"><span class="tag tag-orange">待确认配对 · 组队型</span><span style="font-size:12px;font-weight:500;color:var(--muted)">报名 3 人</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;gap:6px;align-items:center"><span class="tag tag-orange">待确认配对 · 组队型</span><span class="tag tag-demo">DEMO</span></span><span style="font-size:12px;font-weight:500;color:var(--muted)">报名 3 人</span></div>
                 <div style="font-size:15px;font-weight:600">周末英语角口语练习搭子</div>
                 <div style="display:flex;align-items:center;justify-content:space-between">
                   <div class="done-txt" style="font-size:12px;color:var(--muted)">3 人报名 · 待你选择搭子</div>
@@ -2109,7 +2166,7 @@
             <div id="myPublishedListHelp" style="display:flex;flex-direction:column;gap:16px">
               <!-- 求助型任务（发布者视角 - 待确认配对，测试用） -->
               <div class="card pub-help" data-task-type="help" data-task-cost="80" data-skill-cat="副业技能" data-skill-sub="电脑维修" data-claim-mode="multiple" data-max-claimers="3" data-claimed="0" data-submitted="0" data-status="已通过" data-deadline="本周日" data-signup-deadline="本周六" data-requirements="1. 电脑开机频繁蓝屏&#10;2. 已重装系统还是一样&#10;3. 怀疑是硬件问题&#10;4. 上门或远程指导均可" style="padding:20px;display:flex;flex-direction:column;gap:10px">
-                <div style="display:flex;align-items:center;justify-content:space-between"><span class="tag tag-orange">待确认配对 · 求助型</span><span style="font-size:12px;font-weight:500;color:var(--muted)">报名 3 人</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;gap:6px;align-items:center"><span class="tag tag-orange">待确认配对 · 求助型</span><span class="tag tag-demo">DEMO</span></span><span style="font-size:12px;font-weight:500;color:var(--muted)">报名 3 人</span></div>
                 <div style="font-size:15px;font-weight:600">帮我修一下电脑蓝屏问题</div>
                 <div style="display:flex;align-items:center;justify-content:space-between">
                   <div class="done-txt" style="font-size:12px;color:var(--muted)">3 人报名 · 待你选择帮办</div>
@@ -3218,17 +3275,38 @@
     document.getElementById('charDetailModal').classList.remove('show');
   }
   var pointLogs = [
-    { type:'teach_complete', label:'完成「英雄联盟上分」(教学型)', delta:-10, time:'03-15', balance:410 },
-    { type:'teach_publish', label:'你的「LOL灵活组排」被完成', delta:15, time:'03-12', balance:420 },
-    { type:'reward_complete', label:'完成「Python 基础练习」(奖励型)', delta:10, time:'03-08', balance:405 },
-    { type:'help_complete', label:'帮助同学完成「代取快递」', delta:8, time:'03-05', balance:395 }
+    { type:'teach_complete', label:'完成「英雄联盟上分」(教学型)', delta:-10, time:'03-15', balance:410, demo:true },
+    { type:'teach_publish', label:'你的「LOL灵活组排」被完成', delta:15, time:'03-12', balance:420, demo:true },
+    { type:'reward_complete', label:'完成「Python 基础练习」(奖励型)', delta:10, time:'03-08', balance:405, demo:true },
+    { type:'help_complete', label:'帮助同学完成「代取快递」', delta:8, time:'03-05', balance:395, demo:true }
   ];
   var expLogs = [
-    { type:'task_complete', label:'完成「英雄联盟上分」', delta:10, time:'03-15', balance:52 },
-    { type:'task_completed_by_others', label:'你的任务被他人完成', delta:3, time:'03-12', balance:510 },
-    { type:'task_complete', label:'完成「Python 基础练习」', delta:10, time:'03-08', balance:507 },
-    { type:'task_publish', label:'发布「LOL灵活组排」', delta:5, time:'03-05', balance:497 }
+    { type:'task_complete', label:'完成「英雄联盟上分」', delta:10, time:'03-15', balance:52, demo:true },
+    { type:'task_completed_by_others', label:'你的任务被他人完成', delta:3, time:'03-12', balance:510, demo:true },
+    { type:'task_complete', label:'完成「Python 基础练习」', delta:10, time:'03-08', balance:507, demo:true },
+    { type:'task_publish', label:'发布「LOL灵活组排」', delta:5, time:'03-05', balance:497, demo:true }
   ];
+  var pointLogsLoading = false;
+  function pointTransactionLabel(transaction){
+    if(transaction.remark) return transaction.remark;
+    var labels = { registration_bonus:'登录获赠蛋蛋币', inquiry_bounty:'打听悬赏冻结', inquiry_adopted:'采纳回答奖励', buddy_box:'盲盒玩法声望变动' };
+    return labels[transaction.type] || transaction.type || '蛋蛋币变动';
+  }
+  async function syncPointTransactions(){
+    if(pointLogsLoading || !USER.registered || !window.apiClient || typeof window.apiClient.pointTransactions !== 'function') return;
+    pointLogsLoading = true;
+    try {
+      var result = await window.apiClient.pointTransactions(100);
+      var records = Array.isArray(result.transactions) ? result.transactions : [];
+      pointLogs = records.map(function(transaction){
+        var date = transaction.createdAt ? new Date(transaction.createdAt) : null;
+        return { type:transaction.type, label:pointTransactionLabel(transaction), delta:Number(transaction.deltaAvailable || 0), time:date && !isNaN(date.valueOf()) ? date.toLocaleString('zh-CN') : '刚刚', balance:Number(transaction.balanceAvailable || 0), demo:false };
+      });
+      renderPointLogs();
+    } catch(error){
+      /* 保留已展示内容，但不把接口失败伪装成新的流水。 */
+    } finally { pointLogsLoading = false; }
+  }
   var LEVELS = [
     {lv:'新手蛋', name:'新手蛋', min:0, max:99},
     {lv:'进阶蛋', name:'进阶蛋', min:100, max:299},
@@ -3242,18 +3320,39 @@
   }
 
   /* ===== Notification System ===== */
-  var notifications = [
-    { id:1, text:'你认领的任务「需求文档撰写」已被蛋总批改，得分 95', time:'2 小时前', unread:true, type:'grade' },
-    { id:2, text:'你发布的「高数复习笔记分享」已被审核通过，+5 经验值', time:'5 小时前', unread:true, type:'review' },
-    { id:3, text:'李昊认领了你发布的「PPT 排版求助」', time:'昨天', unread:true, type:'claim' }
-  ];
+  var notifications = [];
+  function notificationText(item){
+    var payload = item.payload && typeof item.payload === 'object' ? item.payload : {};
+    if(item.type === 'inquiry_reply') return '有人回复了你的打听';
+    if(item.type === 'feedback_submit') return '反馈已提交，感谢你的支持';
+    if(item.type === 'feedback_reply') return '管理员回复了你的反馈';
+    if(item.type === 'task_claimed') return '有人认领了你发布的任务';
+    if(item.type === 'task_submitted') return '认领者提交了任务，请及时确认';
+    if(item.type === 'task_completed') return '任务已完成，蛋蛋币已结算';
+    if(item.type === 'task_review_approved') return '你发布的任务已审核通过';
+    if(item.type === 'task_review_needs_revision') return '你的任务需要修改后重新提交';
+    return payload.message || item.type || '你有一条新通知';
+  }
+  async function syncNotifications(){
+    if(!USER.registered || !window.apiClient || !window.apiClient.unreadNotifications) return;
+    try {
+      var result = await window.apiClient.unreadNotifications();
+      var now = Date.now();
+      var localPending = notifications.filter(function(item){ return item.localOnly && item.unread && (!item.createdAt || now - item.createdAt < 5 * 60 * 1000); });
+      var serverNotifications = (result.notifications || []).map(function(item){ return {id:Number(item.id), text:notificationText(item), time:formatFbTime(new Date(item.createdAt).getTime()), unread:!item.readAt, type:item.type, serverId:String(item.id)}; });
+      notifications = serverNotifications.concat(localPending);
+      updateNotifBadge(); renderNotifPanel();
+    } catch(error){ /* 保留本地即时通知，不把接口失败伪装成已读 */ }
+  }
   function addNotif(data, type){
     if(typeof data === 'string'){
-      notifications.unshift({ id:Date.now(), text:data, time:'刚刚', unread:true, type:type||'info' });
+      notifications.unshift({ id:Date.now(), text:data, time:'刚刚', unread:true, type:type||'info', localOnly:true, createdAt:Date.now() });
     } else {
       data.id = data.id || Date.now();
       data.time = data.time || '刚刚';
       data.unread = data.unread !== false;
+      data.localOnly = true;
+      data.createdAt = data.createdAt || Date.now();
       notifications.unshift(data);
     }
     updateNotifBadge();
@@ -3307,13 +3406,15 @@
     if(adminPanel) adminPanel.classList.toggle('open');
     if(stuPanel) stuPanel.classList.toggle('open');
   }
-  function readNotif(id){
+  async function readNotif(id){
     var n = notifications.find(function(x){ return x.id===id; });
+    if(window.apiClient && n && n.serverId){ try { await window.apiClient.markNotificationRead(n.serverId); } catch(error){ return; } }
     if(n) n.unread = false;
     updateNotifBadge();
     renderNotifPanel();
   }
-  function clearNotif(){
+  async function clearNotif(){
+    if(window.apiClient && USER.registered){ try { await window.apiClient.markAllNotificationsRead(); } catch(error){ return; } }
     notifications.forEach(function(n){ n.unread = false; });
     updateNotifBadge();
     renderNotifPanel();
@@ -3348,6 +3449,7 @@
     ]
   };
   var currentClaimerTask = null;
+  var currentClaimerTaskId = null;
 
   /* ===== 用户数据库（蛋蛋名片） ===== */
   var USER_DB = {
@@ -3859,10 +3961,7 @@
 
   /* ===== 用户反馈工单 ===== */
   // { id, type, content, contact, status:'pending'|'replied'|'closed', createdAt, reply, userName, userId }
-  var FEEDBACK_TICKETS = [
-    { id: 1001, type: 'bug', content: '发布任务时选择组队类型，人数输入框不显示', contact: '', status: 'pending', createdAt: Date.now() - 3600*1000, userName: '小明', userId: 'u001' },
-    { id: 1002, type: 'suggestion', content: '希望能增加收藏任务的功能', contact: '', status: 'replied', createdAt: Date.now() - 2*24*3600*1000, userName: '测试用户', userId: 'u002', reply: '感谢建议，已加入需求池，下个版本规划！' }
-  ];
+  var FEEDBACK_TICKETS = [];
 
   /* ===== 发布者评价记录（防止重复评价） ===== */
   /* key: "任务名|学伴名"，value: { score: 4, comment: '', time: '刚刚' } */
@@ -3895,7 +3994,8 @@
     });
   }
 
-  function submitFeedback(){
+  async function submitFeedback(){
+    if(!USER.registered){ toast('请先登录后提交反馈'); openLoginModal(); return; }
     var content = document.getElementById('fbContent').value.trim();
     if(!content){
       toast('请填写反馈内容');
@@ -3903,25 +4003,22 @@
       return;
     }
     var contact = document.getElementById('fbContact').value.trim();
-    var newTicket = {
-      id: Date.now(),
-      type: currentFeedbackType,
-      content: content,
-      contact: contact,
-      status: 'pending',
-      createdAt: Date.now(),
-      userName: USER.registered ? USER.nickname : '匿名用户',
-      userId: USER.registered ? USER.id : 'guest'
-    };
-    FEEDBACK_TICKETS.unshift(newTicket);
+    if (typeof window.apiClient !== 'undefined' && USER.registered) {
+      var blockedMessage = window.apiClient.validateUserText(content) || window.apiClient.validateUserText(contact);
+      if (blockedMessage) { toast(blockedMessage); return; }
+      try {
+        await window.apiClient.submitFeedback({ type: currentFeedbackType, content: content, contact: contact || null, source: 'growth-school' });
+      } catch (error) {
+        toast(error.message || '反馈提交失败，请稍后重试');
+        return;
+      }
+    }
     closeFeedbackModal();
     toast('反馈提交成功！我们会尽快处理 💌');
-    if(USER.registered){
-      addNotif('你提交了一条新反馈，感谢你的支持～', 'feedback_submit');
-    }
+    addNotif('你提交了一条新反馈，感谢你的支持～', 'feedback_submit');
     /* 如果是管理员且在反馈工单页面，实时刷新 */
     if(USER.isAdmin && document.getElementById('page-feedback').classList.contains('active')){
-      renderFeedbackTickets();
+      syncFeedbackTickets();
     }
     updateFeedbackBadge();
   }
@@ -3931,6 +4028,7 @@
     var map = { bug: '🐛 Bug 反馈', suggestion: '💡 功能建议', report: '🚨 内容举报', other: '📝 其他' };
     return map[type] || type;
   }
+  function normalizeFeedbackStatus(status){ return status === 'open' ? 'pending' : (status === 'processing' || status === 'resolved' ? 'replied' : status); }
   function getFbStatusLabel(status){
     var map = { pending: '待处理', replied: '已回复', closed: '已关闭' };
     return map[status] || status;
@@ -4007,7 +4105,30 @@
     var repliedCount = FEEDBACK_TICKETS.filter(function(t){ return t.status === 'replied'; }).length;
     var pendingTag = document.getElementById('fbPendingTag');
     if(pendingTag) pendingTag.textContent = '待处理 ' + pendingCount;
+    var repliedTag = document.getElementById('fbRepliedTag');
+    if(repliedTag) repliedTag.textContent = '已回复 ' + repliedCount;
+    var dashFeedback = document.getElementById('dashFeedback');
+    if(dashFeedback) dashFeedback.textContent = String(pendingCount);
     updateFeedbackBadge();
+  }
+  async function syncFeedbackTickets(){
+    if(!USER.registered || !window.apiClient) return;
+    try {
+      var result = USER.isAdmin ? await window.apiClient.adminFeedback() : await window.apiClient.myFeedback();
+      FEEDBACK_TICKETS = (result.feedback || []).map(function(item){ return { id:Number(item.id), type:item.type, content:item.content, contact:item.contact || '', status:normalizeFeedbackStatus(item.status), createdAt:new Date(item.createdAt).getTime(), userName:item.user && item.user.nickname || USER.nickname, userId:String(item.userId), reply:item.adminRemark || '' }; });
+      if(USER.isAdmin) renderFeedbackTickets();
+      else renderMyFeedbackHistory();
+    } catch(error){ toast(error.message || '反馈加载失败，请稍后重试'); }
+  }
+  function renderMyFeedbackHistory(){
+    var container = document.getElementById('myFeedbackHistory');
+    if(!container) return;
+    if(!FEEDBACK_TICKETS.length){ container.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--muted);background:var(--card);border:1px dashed var(--border);border-radius:14px">暂无反馈记录</div>'; return; }
+    var labels = {pending:'待处理', replied:'已回复', closed:'已关闭'};
+    container.innerHTML = FEEDBACK_TICKETS.map(function(ticket){
+      var status = labels[ticket.status] || ticket.status;
+      return '<article class="card" style="padding:18px 20px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><b>' + escapeHtml(getFbTypeLabel(ticket.type)) + '</b><span class="tag ' + (ticket.status === 'closed' ? 'tag-green' : ticket.status === 'replied' ? 'tag-blue' : 'tag-orange') + '">' + status + '</span></div><p style="margin-top:10px;line-height:1.6;color:var(--ink2)">' + escapeHtml(ticket.content) + '</p>' + (ticket.reply ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg2);border-radius:10px;color:var(--ink2)"><b>官方回复：</b>' + escapeHtml(ticket.reply) + '</div>' : '') + '<div style="margin-top:10px;font-size:12px;color:var(--muted)">' + escapeHtml(formatFbTime(ticket.createdAt)) + '</div></article>';
+    }).join('');
   }
   var currentReplyTicketId = null;
   function replyFeedback(id){
@@ -4032,7 +4153,7 @@
     document.getElementById('replyModal').style.display = 'none';
     currentReplyTicketId = null;
   }
-  function confirmReply(){
+  async function confirmReply(){
     if(!currentReplyTicketId) return;
     var replyText = document.getElementById('rmReplyText').value.trim();
     if(!replyText){
@@ -4040,17 +4161,29 @@
       document.getElementById('rmReplyText').focus();
       return;
     }
+    if(window.apiClient){
+      var blockedReply = window.apiClient.validateUserText(replyText);
+      if(blockedReply){ toast(blockedReply); return; }
+    }
     var ticket = FEEDBACK_TICKETS.find(function(t){ return t.id === currentReplyTicketId; });
     if(!ticket) return;
+    if(window.apiClient){
+      try { await window.apiClient.updateFeedback(ticket.id, {status:'resolved', adminRemark:replyText}); }
+      catch(error){ toast(error.message || '回复发送失败，请稍后重试'); return; }
+    }
     ticket.reply = replyText;
     ticket.status = 'replied';
     closeReplyModal();
     renderFeedbackTickets();
     toast('回复已发送 ✉️');
   }
-  function closeFeedbackTicket(id){
+  async function closeFeedbackTicket(id){
     var ticket = FEEDBACK_TICKETS.find(function(t){ return t.id === id; });
     if(!ticket) return;
+    if(window.apiClient){
+      try { await window.apiClient.updateFeedback(ticket.id, {status:'closed'}); }
+      catch(error){ toast(error.message || '关闭工单失败，请稍后重试'); return; }
+    }
     ticket.status = 'closed';
     renderFeedbackTickets();
     toast('工单已关闭');
@@ -4077,7 +4210,7 @@
   }
 
   /* ===== 蛋蛋要八卦（八卦墙）数据 ===== */
-  var GOSSIP_POSTS = [
+  var GOSSIP_POSTS = []; /*
     {
       id: 1,
       title: '杭电下沙校区的宿舍条件怎么样？',
@@ -4329,16 +4462,23 @@
         }
       ]
     }
+  ]; */
+  /* 开发验收记录继续保留，但明确标记为 DEMO，禁止写入或混入真实数据库。 */
+  var DEMO_GOSSIP_POSTS = [
+    { id:-1001, demo:true, title:'杭电下沙校区宿舍条件怎么样？', desc:'开发测试记录：用于验证打听卡片、详情和筛选展示。', tags:['🏫 校园'], tagColor:'pink', publisher:'小萌新', publisherAvatar:'萌', publishTime:'DEMO', createdAt:Date.now(), deadline:Date.now()+30*24*3600*1000, bounty:1, coinStatus:'open', likes:23, liked:false, adopted:false, adoptedAnswerId:null, isMine:false, answers:[], cancelled:false },
+    { id:-1002, demo:true, title:'导师带项目的真实体验？', desc:'开发测试记录：用于验证回答消息汇总展示。', tags:['🎓 导师'], tagColor:'blue', publisher:'准备考研的蛋', publisherAvatar:'考', publishTime:'DEMO', createdAt:Date.now(), deadline:Date.now()+30*24*3600*1000, bounty:5, coinStatus:'open', likes:12, liked:false, adopted:false, adoptedAnswerId:null, isMine:false, answers:[], cancelled:false },
+    { id:-1003, demo:true, title:'互联网实习日常和加班情况', desc:'开发测试记录：用于验证 DEMO 标签与排序。', tags:['💼 职场'], tagColor:'green', publisher:'实习观察员', publisherAvatar:'实', publishTime:'DEMO', createdAt:Date.now(), deadline:Date.now()+30*24*3600*1000, bounty:3, coinStatus:'open', likes:8, liked:false, adopted:false, adoptedAnswerId:null, isMine:false, answers:[], cancelled:false }
   ];
+  DEMO_GOSSIP_POSTS.forEach(function(post){ GOSSIP_POSTS.push(post); });
   var currentGossipFilter = 'all';
   var currentGossipCat = 'all';
   var selectedGossipTag = null;
   var currentGossipDetail = null;
 
   var currentRatingCtx = null;
-  function openRating(taskName, taskType, isClaimer){
+  function openRating(taskName, taskType, isClaimer, taskId, targetUserId){
     if(taskType === 'reward' || taskType === 'cost') { toast('蛋总任务不参与互评'); return; }
-    currentRatingCtx = { taskName:taskName, taskType:taskType, isClaimer:isClaimer, scoreA:0, scoreB:0 };
+    currentRatingCtx = { taskName:taskName, taskType:taskType, isClaimer:isClaimer, taskId:taskId || null, targetUserId:targetUserId || null, scoreA:0, scoreB:0 };
     var modal = document.getElementById('ratingModal');
     var info = document.getElementById('ratingTaskInfo');
     var typeLabel = taskType==='teach'?'教学型':(taskType==='help'?'求助型':'组队型');
@@ -4388,11 +4528,22 @@
     });
     if(currentRatingCtx) currentRatingCtx['score'+group] = val;
   }
-  function submitRating(){
+  async function submitRating(){
     if(!currentRatingCtx) return;
     var score = currentRatingCtx.scoreA;
     if(score === 0){ toast('请先选择星级评分'); return; }
     var comment = document.getElementById('ratingComment').value.trim();
+    if(window.apiClient){ var blocked = window.apiClient.validateUserText(comment); if(blocked){ toast(blocked); return; } }
+    if(currentRatingCtx.taskId && currentRatingCtx.targetUserId && window.apiClient && window.apiClient.rateTask){
+      try {
+        await window.apiClient.rateTask(currentRatingCtx.taskId, { toUserId: currentRatingCtx.targetUserId, score: score, comment: comment || null });
+        closeRating();
+        toast('评价提交成功！');
+      } catch(error) {
+        toast(error.message || '评价提交失败，请稍后重试');
+      }
+      return;
+    }
     var fromName = USER.nickname;
     /* 如果是发布者从反馈学伴提交入口进来的，使用记录的学伴名 */
     var toName = (reviewSubmitCtx && reviewSubmitCtx.claimerName) ? reviewSubmitCtx.claimerName : '李昊';
@@ -4525,10 +4676,11 @@
     }
   }
 
-  function saveBio(){
+  async function saveBio(){
     var input = document.getElementById('bioInput');
     if(!input) return;
     var text = input.value.trim();
+    if(window.apiClient){ var blocked = window.apiClient.validateUserText(text); if(blocked){ toast(blocked); return; } try { await window.apiClient.updateMe({bio:text}); } catch(error){ toast(error.message || '个人签名保存失败'); return; } }
     USER.bio = text;
     var display = document.getElementById('bioDisplay');
     if(display){
@@ -4729,6 +4881,7 @@
     var input = document.getElementById('customSkillInput');
     var val = input.value.trim();
     if(!val){ toast('请输入技能名称'); return; }
+    if(window.apiClient){ var blocked = window.apiClient.validateUserText(val); if(blocked){ toast(blocked); return; } }
     if(tempSkills.indexOf(val) >= 0){ toast('该技能已添加'); return; }
     tempSkills.push(val);
     input.value = '';
@@ -5101,6 +5254,7 @@
       });
       hideAllPages(); showPage('dashboard'); setActiveNav('adminNav','dashboard');
       renderDashboard();
+      if(window.apiClient) syncFeedbackTickets();
     } else {
       USER.role = 'student';
       adminNav.style.display = 'none'; studentNav.style.display = 'flex';
@@ -5149,6 +5303,7 @@
       el.style.display = '';
     });
     applyRole(role);
+    syncNotifications();
   }
   function openLoginModal(){
     document.getElementById('loginOverlay').style.display = 'flex';
@@ -5251,7 +5406,7 @@
     /* 隐藏需要登录的导航项 */
     document.querySelectorAll('.student-item').forEach(function(item){
       var page = item.getAttribute('data-page');
-      if(page === 'mytasks' || page === 'profile'){
+      if(page === 'mytasks' || page === 'myfeedback' || page === 'profile'){
         item.style.display = 'none';
       }
     });
@@ -5409,7 +5564,7 @@
 
   /* ===== Page navigation ===== */
   var ADMIN_PAGES = ['dashboard','taskgroups','newgroup','reviewcenter','submissions','review','users','feedback','states'];
-  var STUDENT_PAGES = ['plaza','teamplaza','helpplaza','rankhall','gossip','mytasks','publish','profile','buddybox'];
+  var STUDENT_PAGES = ['plaza','teamplaza','helpplaza','rankhall','gossip','myfeedback','mytasks','publish','profile','buddybox'];
   function hideAllPages(){
     ADMIN_PAGES.concat(STUDENT_PAGES).forEach(function(id){ document.getElementById('page-' + id).classList.remove('active'); });
   }
@@ -5422,6 +5577,61 @@
       n.classList.toggle('active', n.getAttribute('data-page') === page);
     });
   }
+  var currentMyPublishedStatus = 'all';
+  function normalizePublishedTaskStatus(raw){
+    raw = String(raw || '').trim();
+    if(raw === 'completed' || raw === '已完成') return 'completed';
+    if(raw === 'approved' || raw === '已审核' || raw === '已通过') return 'approved';
+    if(raw === 'needs_revision' || raw === '待修改' || raw === '已驳回' || raw === 'rejected' || raw === 'returned') return 'revision';
+    return 'pending';
+  }
+  function filterMyPublishedTasks(status){
+    currentMyPublishedStatus = status || 'all';
+    document.querySelectorAll('#myPublishedListTeach [data-task-id],#myPublishedListTeam [data-task-id],#myPublishedListHelp [data-task-id]').forEach(function(card){
+      card.style.display = currentMyPublishedStatus === 'all' || card.getAttribute('data-status-group') === currentMyPublishedStatus ? 'flex' : 'none';
+    });
+    document.querySelectorAll('#myTaskStatusFilters [data-task-status]').forEach(function(btn){
+      btn.classList.toggle('btn-primary', btn.getAttribute('data-task-status') === currentMyPublishedStatus);
+      btn.classList.toggle('btn-ghost', btn.getAttribute('data-task-status') !== currentMyPublishedStatus);
+    });
+  }
+  function renderSyncedPublishedTask(task){
+    var type = task.taskType === 'team' || task.taskType === 'help' || task.taskType === 'reward' ? task.taskType : 'teach';
+    var list = document.getElementById('myPublishedList' + type.charAt(0).toUpperCase() + type.slice(1));
+    if(!list) list = document.getElementById('myPublishedListTeach');
+    var group = normalizePublishedTaskStatus(task.status);
+    var label = group === 'completed' ? '已完成' : group === 'approved' ? '已审核' : group === 'revision' ? '待修改' : '待审核';
+    var card = document.createElement('div');
+    card.className = 'card pub-' + type;
+    card.setAttribute('data-task-id', String(task.id));
+    card.setAttribute('data-owner-id', String(task.userId));
+    card.setAttribute('data-status', task.status || 'pending_review');
+    card.setAttribute('data-status-group', group);
+    card.setAttribute('data-task-type', type);
+    card.setAttribute('data-task-cost', String(task.reward || 0));
+    card.setAttribute('data-claimed', '0');
+    card.style.cssText = 'padding:20px;display:flex;flex-direction:column;gap:10px';
+    card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag ' + (group === 'completed' ? 'tag-green' : group === 'revision' ? 'tag-red' : 'tag-orange') + '">' + label + '</span><span style="font-size:12px;color:var(--muted)">' + new Date(task.createdAt).toLocaleString() + '</span></div>' +
+      '<div style="font-size:15px;font-weight:600">' + escapeHtml(task.title) + '</div>' +
+      '<div class="done-txt" style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description) + '</div>' +
+      (task.reviewReason ? '<div style="font-size:12px;color:var(--red)">修改意见：' + escapeHtml(task.reviewReason) + '</div>' : '') +
+      ((group === 'pending' || group === 'approved') ? '<div style="display:flex;justify-content:flex-end"><button class="btn btn-ghost btn-sm" onclick="cancelPublishedTask(this)">取消任务</button></div>' : '');
+    list.appendChild(card);
+  }
+  function syncMyTasks(){
+    if (!USER.registered || !window.apiClient || !window.apiClient.myTasks) return;
+    window.apiClient.myTasks().then(function(result){
+      var lists = ['myPublishedListTeach','myPublishedListTeam','myPublishedListHelp'];
+      lists.forEach(function(id){
+        var list = document.getElementById(id);
+        if(!list) return;
+        Array.prototype.slice.call(list.querySelectorAll('[data-task-id]')).forEach(function(card){ card.remove(); });
+        Array.prototype.slice.call(list.children).forEach(function(card){ if(!card.getAttribute('data-task-id')) card.remove(); });
+      });
+      (result.tasks || []).filter(function(task){ return String(task.userId) === String(USER.id); }).forEach(renderSyncedPublishedTask);
+      filterMyPublishedTasks(currentMyPublishedStatus);
+    }).catch(function(){ toast('任务加载失败，请稍后重试'); });
+  }
   function go(id){
     if(id === 'profile' && !USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
     if((id === 'mytasks' || id === 'publish') && !USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
@@ -5431,10 +5641,12 @@
     setActiveNav(navId, activePage);
     /* 每次切换页面都刷新用户数据显示（蛋蛋币、经验值等） */
     refreshProfile();
+    syncNotifications();
     if(id === 'users') renderUsers();
-    if(id === 'feedback'){ renderFeedbackTickets(); updateFeedbackBadge(); }
+    if(id === 'feedback' || id === 'myfeedback'){ syncFeedbackTickets(); updateFeedbackBadge(); }
     if(id === 'profile'){ renderChar(); renderCharUnlocked(); }
-    if(id === 'gossip'){ renderGossipWall(); renderGossipTopList(); }
+    if(id === 'gossip'){ renderGossipWall(); renderGossipTopList(); syncGossipInquiries(); }
+    if(id === 'mytasks') syncMyTasks();
   }
   document.querySelectorAll('.nav-item').forEach(function(n){
     n.addEventListener('click', function(event){
@@ -5561,13 +5773,17 @@
     updateRewardHint();
   }
 
-  function publishGroup(){
+  async function publishGroup(){
     var name = document.getElementById('adminPublishName').value.trim();
     if(!name){ toast('请输入任务名称'); return; }
     var desc = document.getElementById('adminPublishDesc').value.trim() || '蛋总发布任务';
     var requirements = document.getElementById('adminPublishRequirements').value.trim();
     var contact = document.getElementById('adminPublishContact').value.trim();
     if(!contact){ toast('请填写联系方式'); return; }
+    if(window.apiClient){
+      var blockedPublishText = [name, desc, requirements, contact].map(function(value){ return window.apiClient.validateUserText(value); }).find(Boolean);
+      if(blockedPublishText){ toast(blockedPublishText); return; }
+    }
     var reward = parseInt(document.getElementById('adminPublishReward').value) || 10;
     var maxClaimers = '';
     if(adminClaimMode === 'multiple'){
@@ -5589,6 +5805,18 @@
     var modeClass = adminClaimMode === 'multiple' ? 'claim-mode multi' : 'claim-mode';
     var claimCount = adminClaimMode === 'single' ? '0/1' : maxClaimers ? '0/' + maxClaimers : '0 人已认领';
 
+    var createdTaskId = null;
+    if(window.apiClient && USER.registered){
+      try {
+        var created = await window.apiClient.createTask({ title: name, description: desc, remark: requirements || contact || null, taskType: adminTaskType === 'reward' ? 'reward' : (adminTaskType === 'help' ? 'help' : 'teach'), claimMode: adminClaimMode, reward: reward, maxClaimers: parseInt(maxClaimers) || 1, contact: contact || null, requirements: requirements || null });
+        createdTaskId = created.task && created.task.id;
+        if(createdTaskId && window.apiClient.reviewTask) await window.apiClient.reviewTask(createdTaskId, { status: 'approved' });
+      } catch(error) {
+        toast(error.message || '任务发布失败，请稍后重试');
+        return;
+      }
+    }
+
     var card = document.createElement('div');
     card.className = 'plaza-card';
     card.setAttribute('data-claim-mode', adminClaimMode);
@@ -5600,6 +5828,7 @@
     card.setAttribute('data-contact', contact);
     card.setAttribute('data-requirements', requirements);
     card.setAttribute('data-reward', reward);
+    if(createdTaskId) card.setAttribute('data-task-id', createdTaskId);
 
     var rewardTag = adminTaskType === 'reward'
       ? '<span class="tag" style="background:var(--green-tint);color:var(--green)">💰 奖励 ' + reward + '/人</span>'
@@ -5882,6 +6111,7 @@
     if(!currentCancelCtx) return;
     var reason = document.getElementById('cancelReqReason').value.trim();
     if(!reason){ toast('请填写取消原因'); return; }
+    if(window.apiClient){ var blocked = window.apiClient.validateUserText(reason); if(blocked){ toast(blocked); return; } }
 
     var ctx = currentCancelCtx;
     CANCEL_REQUESTS[ctx.taskName] = {
@@ -6327,11 +6557,24 @@
     var modal = document.getElementById('cancelTaskModal');
     if(modal){ modal.classList.remove('show'); setTimeout(function(){ modal.style.display = 'none'; }, 250); }
   }
-  function confirmCancelTask(){
+  async function confirmCancelTask(){
     if(!cancelTaskCtx || !cancelTaskCtx.card) return;
+    var serverTaskId = cancelTaskCtx.card.getAttribute('data-task-id');
+    if(serverTaskId && window.apiClient && window.apiClient.cancelTask){
+      try {
+        await window.apiClient.cancelTask(serverTaskId);
+        if(window.apiClient.pointAccount){
+          var account = await window.apiClient.pointAccount();
+          if(account.account) USER.points = account.account.availableBalance;
+        }
+      } catch(error) {
+        toast(error.message || '取消任务失败，请稍后重试');
+        return;
+      }
+    }
     cancelTaskCtx.card.remove();
     var ptsEl = document.getElementById('profilePoints');
-    if(ptsEl && cancelTaskCtx.cost > 0){
+    if(!serverTaskId && ptsEl && cancelTaskCtx.cost > 0){
       var cur = parseInt(ptsEl.textContent || '0', 10);
       ptsEl.textContent = cur + cancelTaskCtx.cost;
     }
@@ -6344,7 +6587,7 @@
   var EGG_ICONS = { '学业技术':'📖', '就业技能':'💼', '副业技能':'💰', '兴趣爱好':'🎯', '游戏搭子':'🎮', '生活互助':'🤝' };
   var EGG_COLORS_CL = { '学业技术':'#E91E63', '就业技能':'#2196F3', '副业技能':'#FFD700', '兴趣爱好':'#9C27B0', '游戏搭子':'#4CAF50', '生活互助':'#FF6B6B' };
 
-  function openClaimerManager(btn){
+  async function openClaimerManager(btn){
     var card = btn.closest('.card');
     if(!card) return;
     var nameEl = card.querySelector('div[style*="font-weight:600"]');
@@ -6352,6 +6595,20 @@
     if(!taskName) return;
     currentClaimerTask = taskName;
     var taskType = card.getAttribute('data-task-type') || 'help';
+    var serverTaskId = card.getAttribute('data-task-id');
+    currentClaimerTaskId = serverTaskId || null;
+    if(serverTaskId && window.apiClient && window.apiClient.taskClaims){
+      try {
+        var claimResult = await window.apiClient.taskClaims(serverTaskId);
+        TASK_CLAIMERS[taskName] = (claimResult.claims || []).map(function(claim){
+          var profile = claim.claimer || {};
+          return { id: claim.id, userId: claim.claimerId, name: profile.nickname || '匿名用户', mbti: profile.mbtiType || '—', nick: (MBTI_NICKNAMES && MBTI_NICKNAMES[profile.mbtiType]) || '—', egg: '生活互助', rarity: 'N', rep: profile.reputation || 0, stats: {}, bio: profile.bio || '已提交任务认领', selected: claim.status === 'submitted', status: claim.status === 'submitted' ? '已提交' : (claim.status === 'completed' ? '已完成' : '进行中'), coinFrozen: claim.frozenAmount || 0, claimerContact: claim.contact || '' };
+        });
+      } catch(error) {
+        toast(error.message || '认领列表加载失败，请稍后重试');
+        return;
+      }
+    }
     var modal = document.getElementById('claimerModal');
     document.getElementById('claimerTaskName').textContent = taskName;
     /* 根据任务类型调整标题和提示 */
@@ -6442,11 +6699,19 @@
     if(el) el.textContent = '已选 ' + count + ' 人';
   }
 
-  function confirmAssign(){
+  async function confirmAssign(){
     if(!currentClaimerTask) return;
     var claimers = TASK_CLAIMERS[currentClaimerTask] || [];
     var selected = claimers.filter(function(c){ return c.selected; });
     if(selected.length === 0){ toast('请至少选择一名认领者'); return; }
+    if(currentClaimerTaskId && window.apiClient && window.apiClient.assignTaskClaims){
+      try {
+        await window.apiClient.assignTaskClaims(currentClaimerTaskId, selected.map(function(c){ return c.id; }));
+      } catch(error) {
+        toast(error.message || '确认配对失败，请稍后重试');
+        return;
+      }
+    }
     var names = selected.map(function(c){ return c.name; }).join('、');
 
     /* 更新选中认领者的状态为"进行中"，未选中的标记为"未入选" */
@@ -6609,6 +6874,7 @@
     var modal = document.getElementById('claimerModal');
     if(modal){ modal.classList.remove('show'); setTimeout(function(){ modal.style.display = 'none'; }, 250); }
     currentClaimerTask = null;
+    currentClaimerTaskId = null;
   }
 
   /* ===== 发布者视角：刷新已发布任务的取消状态 ===== */
@@ -6996,6 +7262,10 @@
     if(!pendingClaimData) return;
     var d = pendingClaimData;
     var claimerContact = document.getElementById('claimContactInput').value.trim();
+    if(window.apiClient){
+      var blockedClaimContact = window.apiClient.validateUserText(claimerContact);
+      if(blockedClaimContact){ toast(blockedClaimContact); return; }
+    }
     /* 保存用户的联系方式，下次默认带出 */
     USER.claimContact = claimerContact;
     closeTaskDetail();
@@ -7004,18 +7274,34 @@
   }
 
   /* 执行实际认领逻辑 */
-  function doClaim(card, name, pubName, mode, maxC, claimed, taskType, contact, requirements, skillSub, skillCat, reward, isSignIn, claimerContact){
+  async function doClaim(card, name, pubName, mode, maxC, claimed, taskType, contact, requirements, skillSub, skillCat, reward, isSignIn, claimerContact){
+
+    var serverTaskId = card && card.getAttribute('data-task-id');
+    if(serverTaskId && window.apiClient && window.apiClient.claimTask){
+      try {
+        await window.apiClient.claimTask(serverTaskId, { contact: claimerContact || null });
+        if(window.apiClient.pointAccount) {
+          var account = await window.apiClient.pointAccount();
+          if(account.account) USER.points = account.account.availableBalance;
+        }
+      } catch(error) {
+        toast(error.message || '认领失败，请稍后重试');
+        return;
+      }
+    }
 
     /* ===== 认领前余额校验 + 冻结学费（教学型：学员需付学费，进入保护模式） ===== */
     if(taskType === 'teach'){
       var rewardNum = parseInt(reward) || 10;
-      if(USER.points < rewardNum){
+      if(!serverTaskId && USER.points < rewardNum){
         toast('蛋蛋币不足，无法认领教学任务（当前 ' + USER.points + ' / 需 ' + rewardNum + '）');
         return;
       }
       /* 冻结学费：从学员余额扣除，进入保护模式（待确认配对后确认开始教学） */
-      USER.points -= rewardNum;
-      pointLogs.unshift({ type:'teach_claim_frozen', label:'认领教学任务（冻结学费）：' + name, delta:-rewardNum, time:'刚刚', balance: USER.points });
+      if(!serverTaskId){
+        USER.points -= rewardNum;
+        pointLogs.unshift({ type:'teach_claim_frozen', label:'认领教学任务（冻结学费）：' + name, delta:-rewardNum, time:'刚刚', balance: USER.points });
+      }
     }
 
     // 教学型/求助型/组队型用户间任务，认领后状态为"待确认配对"
@@ -7028,7 +7314,7 @@
     if(!TASK_CLAIMERS[name]) TASK_CLAIMERS[name] = [];
     var curChar = CHAR_STATE.characters[CHAR_STATE.current] || {};
     TASK_CLAIMERS[name].push({
-      name: USER.nickname, mbti: USER.mbtiType || 'ENTP',
+      name: USER.nickname, userId: USER.id, mbti: USER.mbtiType || 'ENTP',
       nick: (MBTI_NICKNAMES && MBTI_NICKNAMES[USER.mbtiType]) || '—',
       egg: curChar.name || '游戏搭子', rarity: curChar.rarity || 'SR',
       rep: USER.stats.reputation || 0, stats: Object.assign({}, USER.stats),
@@ -7066,7 +7352,7 @@
   document.querySelectorAll('.claim-btn').forEach(bindDetailBtn);
 
   /* ===== Complete task — 蛋蛋币(货币) + 蛋蛋经验(只增不减) + 能力值 ===== */
-  function completeTask(btn){
+  async function completeTask(btn){
     var panel = btn.closest('.submit-panel');
     var card = btn.closest('.card');
     var toggleBtn = card ? card.querySelector('.btn[onclick^="toggleSubmit"]') : null;
@@ -7076,6 +7362,24 @@
     var taskName = nameEl ? nameEl.textContent : '任务';
     btn.textContent = '提交中…'; btn.disabled = true;
     btn.classList.remove('btn-primary'); btn.classList.add('btn-disabled');
+    var serverTaskId = card && card.getAttribute('data-task-id');
+    if(serverTaskId && window.apiClient && window.apiClient.submitTask){
+      try {
+        await window.apiClient.submitTask(serverTaskId);
+        if(window.apiClient.pointAccount){
+          var account = await window.apiClient.pointAccount();
+          if(account.account) USER.points = account.account.availableBalance;
+        }
+        if(toggleBtn){ toggleBtn.textContent = '已提交，等待发布者确认'; toggleBtn.disabled = true; }
+        if(panel) panel.classList.remove('open');
+        addNotif('任务「' + taskName + '」已提交，等待发布者确认', 'submit');
+        toast('提交成功，等待发布者确认');
+      } catch(error) {
+        btn.disabled = false; btn.textContent = '提交完成'; btn.classList.remove('btn-disabled'); btn.classList.add('btn-primary');
+        toast(error.message || '提交失败，请稍后重试');
+      }
+      return;
+    }
     setTimeout(function(){
       /* 蛋类型匹配判断：当前蛋角色分类与任务分类一致时 ×1.2 蛋蛋币加成 */
       var catMap = {'学业技术':'study','就业技能':'job','副业技能':'side','兴趣爱好':'hobby','游戏搭子':'game','生活互助':'life'};
@@ -7156,9 +7460,12 @@
   }
 
   /* ===== Publish task (+20 points) ===== */
-  function submitPublish(){
-    var name = document.getElementById('publishName').value.trim() || '教你做高数期中复习笔记';
-    var desc = document.getElementById('publishDesc').value.trim() || '分享学习经验，帮助学伴共同成长。';
+  async function submitPublish(){
+    window.__lastCreatedTaskId = null;
+    var name = document.getElementById('publishName').value.trim();
+    var desc = document.getElementById('publishDesc').value.trim();
+    if(!name){ toast('请输入任务名称'); return; }
+    if(!desc){ toast('请输入任务描述'); return; }
     var requirementsEl = document.getElementById('publishRequirements');
     var requirements = requirementsEl ? requirementsEl.value.trim() : '';
 
@@ -7168,6 +7475,7 @@
     /* 读取任务类型 */
     var typeChip = document.querySelector('[data-group="taskType"].active');
     var taskType = typeChip ? (typeChip.textContent.indexOf('求助') >= 0 ? 'help' : (typeChip.textContent.indexOf('组队') >= 0 ? 'team' : 'teach')) : 'teach';
+    var maxC = document.getElementById('publishMaxClaimers').value;
     var typeLabel = taskType === 'teach' ? '教学型' : (taskType === 'help' ? '求助型' : '组队型');
     var typeClass = taskType === 'teach' ? 'claim-mode' : (taskType === 'help' ? 'claim-mode multi' : 'claim-mode team');
     var pointDir = taskType === 'teach' ? '完成者 −' + reward + ' / 你 +' + reward : (taskType === 'help' ? '完成者 +' + reward + ' / 你 −' + reward : '搭子 +' + reward + '/人 · 你 −' + reward + '×人数');
@@ -7194,7 +7502,6 @@
     var modeLabel = mode === 'single' ? '单人' : '多人';
     var modeClass = mode === 'single' ? 'claim-mode' : 'claim-mode multi';
     /* 读取最大认领人数 */
-    var maxC = document.getElementById('publishMaxClaimers').value;
     /* 读取截止日期 */
     var dl = document.getElementById('publishDeadline').value;
     var dlText = dl ? dl.replace(/^(\d{4})-(\d{2})-(\d{2})$/, function(m,y,mo,da){ return parseInt(mo) + '.' + parseInt(da); }) : '';
@@ -7206,6 +7513,17 @@
     var contactEl = document.getElementById('publishContact');
     var contact = contactEl ? contactEl.value.trim() : '';
     if(!contact){ toast('请填写联系方式'); return; }
+    if (typeof window.apiClient !== 'undefined' && USER.registered) {
+      var blocked = window.apiClient.validateUserText(name) || window.apiClient.validateUserText(desc) || window.apiClient.validateUserText(requirements) || window.apiClient.validateUserText(contact);
+      if (blocked) { toast(blocked); return; }
+      try {
+        var createdTask = await window.apiClient.createTask({ title: name, description: desc, remark: requirements || contact || null, taskType: taskType, claimMode: mode, reward: reward, maxClaimers: parseInt(maxC) || 1, contact: contact || null, requirements: requirements || null });
+        window.__lastCreatedTaskId = createdTask.task && createdTask.task.id;
+      } catch (error) {
+        toast(error.message || '任务发布失败，请稍后重试');
+        return;
+      }
+    }
 
     /* 读取技能分类 */
     var skillCat = selectedSkillCat || '学业技术';
@@ -7217,7 +7535,9 @@
     var card = document.createElement('div');
     card.className = 'plaza-card';
     card.setAttribute('data-review','');
+    if (window.__lastCreatedTaskId) card.setAttribute('data-task-id', window.__lastCreatedTaskId);
     card.setAttribute('data-own','true');
+    card.setAttribute('data-owner-id', String(USER.id));
     card.setAttribute('data-claim-mode', mode);
     card.setAttribute('data-max-claimers', maxC || '');
     card.setAttribute('data-task-type', taskType);
@@ -7255,6 +7575,8 @@
     if(mineList){
       var m = document.createElement('div');
       m.className = 'card pub-' + taskType;
+      if (window.__lastCreatedTaskId) m.setAttribute('data-task-id', window.__lastCreatedTaskId);
+      m.setAttribute('data-owner-id', String(USER.id));
       m.setAttribute('data-task-type', taskType);
       m.setAttribute('data-skill-cat', skillCat);
       m.setAttribute('data-skill-sub', skillSub);
@@ -7264,6 +7586,7 @@
       m.setAttribute('data-claimed', 0);
       m.setAttribute('data-submitted', 0);
       m.setAttribute('data-status', '待审核');
+      m.setAttribute('data-status-group', 'pending');
       m.setAttribute('data-deadline', dlText || '');
       m.setAttribute('data-signup-deadline', signupDlText || '');
       m.setAttribute('data-requirements', requirements || desc);
@@ -7320,7 +7643,7 @@
     var name = nameEl ? nameEl.textContent : '该任务';
     var taskType = card && card.getAttribute('data-task-type') ? card.getAttribute('data-task-type') : 'teach';
 
-    reviewSubmitCtx = { taskName: name, taskType: taskType };
+    reviewSubmitCtx = { taskName: name, taskType: taskType, taskId: card && card.getAttribute('data-task-id') };
 
     var info = document.getElementById('reviewSubmitTaskInfo');
     var typeName = taskType === 'teach' ? '教学型' : (taskType === 'help' ? '求助型' : '组队型');
@@ -7331,6 +7654,7 @@
     var submitters = claimers.length > 0 ? claimers.map(function(c){
       return {
         name: c.name,
+        userId: c.userId || c.id || null,
         status: c.status === '已提交' ? '已提交' : (c.status === '进行中' ? '进行中' : '待确认配对'),
         time: c.status === '已提交' ? '刚刚' : '—',
         desc: c.status === '已提交' ? '已完成任务并提交' : (c.status === '进行中' ? '正在进行中' : '等待发布者确认配对'),
@@ -7357,7 +7681,7 @@
         actionHtml = '<button class="btn btn-primary btn-sm" onclick="confirmReviewAndRate(' + i + ',\'' + s.name.replace(/'/g, "\\'") + '\')">反馈并评价</button>';
       }
       var contactHtml = (s.status === '进行中' || s.status === '已提交') && s.contact ? '<div style="font-size:12px;color:var(--ink2);padding:6px 10px;background:#FFF7E6;border-radius:8px">📞 ' + s.contact + '</div>' : '';
-      return '<div style="padding:16px;border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;gap:8px">' +
+      return '<div data-user-id="' + (s.userId || '') + '" style="padding:16px;border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;gap:8px">' +
         '<div style="display:flex;align-items:center;justify-content:space-between">' +
           '<div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;font-size:14px">' + s.name + '</span>' +
           '<span class="tag ' + (s.status === '已提交' ? 'tag-green' : (s.status === '进行中' ? 'tag-orange' : '')) + '" style="font-size:11px' + (s.status === '待确认配对' ? ';background:#FCE4EC;color:#E91E63' : '') + '">' + s.status + '</span></div>' +
@@ -7383,11 +7707,13 @@
     }
     /* 记录当前评价的学伴名，供 submitRating 使用 */
     reviewSubmitCtx.claimerName = claimerName;
+    var selectedSubmitter = (document.getElementById('reviewSubmitList').children[idx] || null);
+    reviewSubmitCtx.targetUserId = selectedSubmitter ? selectedSubmitter.getAttribute('data-user-id') : null;
     closeReviewSubmit();
     addNotif('你已反馈「' + name + '」中学伴的提交', 'grade');
     toast('反馈成功！接下来请对学伴进行评价');
     setTimeout(function() {
-      openRating(name, taskType, false);
+      openRating(name, taskType, false, reviewSubmitCtx.taskId, reviewSubmitCtx.targetUserId);
     }, 600);
   }
   function closeReviewSubmit() {
@@ -7396,8 +7722,13 @@
 
   /* ===== Admin review ===== */
   var pendingCount = 2;
-  function approve(btn){
+  async function approve(btn){
     var card = btn.closest('[data-review]');
+    var taskId = card.getAttribute('data-task-id');
+    if (taskId && window.apiClient && window.apiClient.reviewTask) {
+      try { await window.apiClient.reviewTask(taskId, { status: 'approved' }); }
+      catch (error) { toast(error.message || '审核失败，请稍后重试'); return; }
+    }
     var name = card.querySelector('.nm').textContent;
     var pubName = card.querySelector('.pname').textContent;
     var levelEl = card.querySelector('.publisher .tag:not(.tag-gold)');
@@ -7407,7 +7738,7 @@
     var own = pubName === USER.nickname && USER.role === 'student';
 
     /* ===== 审核通过前余额校验（仅 own 任务涉及扣币） ===== */
-    if(own){
+    if(own && !taskId){
       var taskTypeCheck = card.getAttribute('data-task-type') || 'teach';
       var rewardCheck = parseInt(card.getAttribute('data-reward')) || 10;
       if(taskTypeCheck === 'help'){
@@ -7446,6 +7777,8 @@
 
       var p = document.createElement('div');
       p.className = 'plaza-card';
+      if(taskId) p.setAttribute('data-task-id', taskId);
+      if(card.getAttribute('data-owner-id')) p.setAttribute('data-owner-id', card.getAttribute('data-owner-id'));
       p.setAttribute('data-claim-mode', mode);
       p.setAttribute('data-max-claimers', maxC);
       p.setAttribute('data-claimed', '0');
@@ -7487,25 +7820,31 @@
       renderPubEggs();
     }
     if(own){
-      USER.exp += 5;
-      expLogs.unshift({ type:'task_publish', label:'发布任务', delta:5, time:'刚刚', balance: USER.exp });
-      if(isHelp){
-        var rewardVal = parseInt(card.getAttribute('data-reward')) || 10;
-        USER.points -= rewardVal;
-        pointLogs.unshift({ type:'help_publish', label:'发布求助任务（悬赏支出）', delta:-rewardVal, time:'刚刚', balance: USER.points });
-        addNotif('你发布的「' + name + '」已通过审核，消耗 ' + rewardVal + ' 蛋蛋币悬赏，+5 经验值', 'review');
-        toast('审核通过！悬赏 ' + rewardVal + ' 蛋蛋币已扣除，+5 经验值，已加入蛋蛋要求助');
-      } else if(isTeam){
-        var rewardVal = parseInt(card.getAttribute('data-reward')) || 10;
-        var maxClaim = parseInt(card.getAttribute('data-max-claimers')) || 1;
-        var totalFrozen = rewardVal * maxClaim;
-        USER.points -= totalFrozen;
-        pointLogs.unshift({ type:'team_publish', label:'发布组队任务（悬赏冻结）', delta:-totalFrozen, time:'刚刚', balance: USER.points });
-        addNotif('你发布的「' + name + '」已通过审核，冻结 ' + totalFrozen + ' 蛋蛋币（' + rewardVal + '×' + maxClaim + '人），+5 经验值', 'review');
-        toast('审核通过！' + totalFrozen + ' 蛋蛋币已冻结（' + rewardVal + '/人×' + maxClaim + '人），+5 经验值，已加入蛋蛋要组队');
+      if(taskId && window.apiClient){
+        await hydrateUserState();
+        addNotif('你发布的「' + name + '」已通过审核，任务已上线', 'review');
+        toast('审核通过，任务已上线');
       } else {
-        addNotif('你发布的「' + name + '」已通过审核，+5 经验值', 'review');
-        toast('审核通过！+5 经验值，已加入蛋蛋要收徒');
+        USER.exp += 5;
+        expLogs.unshift({ type:'task_publish', label:'发布任务', delta:5, time:'刚刚', balance: USER.exp });
+        if(isHelp){
+          var rewardVal = parseInt(card.getAttribute('data-reward')) || 10;
+          USER.points -= rewardVal;
+          pointLogs.unshift({ type:'help_publish', label:'发布求助任务（悬赏支出）', delta:-rewardVal, time:'刚刚', balance: USER.points });
+          addNotif('你发布的「' + name + '」已通过审核，消耗 ' + rewardVal + ' 蛋蛋币悬赏，+5 经验值', 'review');
+          toast('审核通过！悬赏 ' + rewardVal + ' 蛋蛋币已扣除，+5 经验值，已加入蛋蛋要求助');
+        } else if(isTeam){
+          var rewardVal = parseInt(card.getAttribute('data-reward')) || 10;
+          var maxClaim = parseInt(card.getAttribute('data-max-claimers')) || 1;
+          var totalFrozen = rewardVal * maxClaim;
+          USER.points -= totalFrozen;
+          pointLogs.unshift({ type:'team_publish', label:'发布组队任务（悬赏冻结）', delta:-totalFrozen, time:'刚刚', balance: USER.points });
+          addNotif('你发布的「' + name + '」已通过审核，冻结 ' + totalFrozen + ' 蛋蛋币（' + rewardVal + '×' + maxClaim + '人），+5 经验值', 'review');
+          toast('审核通过！' + totalFrozen + ' 蛋蛋币已冻结（' + rewardVal + '/人×' + maxClaim + '人），+5 经验值，已加入蛋蛋要组队');
+        } else {
+          addNotif('你发布的「' + name + '」已通过审核，+5 经验值', 'review');
+          toast('审核通过！+5 经验值，已加入蛋蛋要收徒');
+        }
       }
       refreshProfile();
     } else {
@@ -7514,14 +7853,19 @@
       toast('已通过，任务已发布到' + destName);
     }
   }
-  function reject(btn){
+  async function reject(btn){
     var card = btn.closest('[data-review]');
+    var taskId = card.getAttribute('data-task-id');
+    if (taskId && window.apiClient && window.apiClient.reviewTask) {
+      try { await window.apiClient.reviewTask(taskId, { status: 'needs_revision' }); }
+      catch (error) { toast(error.message || '退回失败，请稍后重试'); return; }
+    }
     var pubName = card.querySelector('.pname') ? card.querySelector('.pname').textContent : '';
     var own = pubName === USER.nickname && USER.role === 'student';
-    card.querySelector('.tag-orange').outerHTML = '<span class="tag tag-red">已驳回</span>';
-    btn.parentElement.innerHTML = '<span class="tag tag-red">已驳回</span>';
+    card.querySelector('.tag-orange').outerHTML = '<span class="tag tag-red">待修改</span>';
+    btn.parentElement.innerHTML = '<span class="tag tag-red">待修改</span>';
     pendingCount--; syncPending();
-    toast(own ? '任务被驳回，未获得蛋蛋币' : '已驳回该任务');
+    toast(own ? '任务待修改，未获得蛋蛋币' : '已退回修改');
   }
   function syncPending(){
     document.getElementById('pendingBadge').textContent = pendingCount;
@@ -8491,6 +8835,7 @@
     var prog = lv.max === Infinity ? 100 : Math.round((USER.exp - lv.min) / (lv.max - lv.min) * 100);
     document.getElementById('levelProgress').style.width = prog + '%';
     renderPointLogs();
+    syncPointTransactions();
     renderSkillProfile();
     renderMyRatings();
     renderChar();
@@ -8505,7 +8850,7 @@
       var color = l.delta > 0 ? 'var(--green)' : 'var(--red)';
       var bal = l.balance != null ? l.balance : '—';
       return '<div class="trow" style="height:52px">' +
-        '<div class="cell" style="flex:1"><span style="font-size:13px">' + l.label + '</span></div>' +
+        '<div class="cell" style="flex:1"><span style="font-size:13px">' + l.label + '</span>' + (l.demo ? '<span class="tag tag-demo" style="margin-left:8px;font-size:10px;padding:2px 6px">DEMO</span>' : '') + '</div>' +
         '<div class="cell c-time"><span style="font-size:12px;color:var(--muted)">' + l.time + '</span></div>' +
         '<div class="cell c-status"><span style="font-size:13px;font-weight:600;color:' + color + '">' + (l.delta > 0 ? '+' : '') + l.delta + '</span></div>' +
         '<div class="cell c-op"><span style="font-size:12px;color:var(--ink2)">' + bal + '</span></div>' +
@@ -8539,6 +8884,49 @@
     return map[color] || 'gossip-tag-purple';
   }
 
+  function mapInquiryToGossip(inquiry, replies){
+    var tags = Array.isArray(inquiry.tags) && inquiry.tags.length ? inquiry.tags : ['🎮 其他'];
+    var tagText = tags[0] || '🎮 其他';
+    var answers = (replies || []).filter(function(reply){ return reply.kind !== 'comment'; }).map(function(reply){
+      return { id: Number(reply.id), author: reply.user && reply.user.nickname || '蛋蛋用户', avatar: (reply.user && reply.user.nickname || '蛋').charAt(0), avatarColor: 'linear-gradient(135deg,#64B5F6,#2196F3)', time: new Date(reply.createdAt).toLocaleString('zh-CN'), content: reply.content, likes: Number(reply.likes || 0), liked: Boolean(reply.likedByMe), comments: (replies || []).filter(function(comment){ return comment.kind === 'comment' && String(comment.parentId) === String(reply.id); }).map(function(comment){ return {id:Number(comment.id), author: comment.user && comment.user.nickname || '蛋蛋用户', avatar:(comment.user && comment.user.nickname || '蛋').charAt(0), text:comment.content, time:new Date(comment.createdAt).toLocaleString('zh-CN')}; }) };
+    });
+    return { id:Number(inquiry.id), serverId:String(inquiry.id), title:inquiry.title, desc:inquiry.content, tags:tags, tagColor:getTagColorByName(tagText), publisher:inquiry.user && inquiry.user.nickname || '蛋蛋用户', publisherAvatar:(inquiry.user && inquiry.user.nickname || '蛋').charAt(0), publishTime:new Date(inquiry.createdAt).toLocaleString('zh-CN'), createdAt:new Date(inquiry.createdAt).getTime(), deadline: inquiry.deadline ? new Date(inquiry.deadline).getTime() : Date.now()+30*24*3600*1000, bounty:Number(inquiry.bounty || 0), coinStatus:inquiry.coinStatus || 'open', likes:Number(inquiry.likes || 0), liked:Boolean(inquiry.likedByMe), adopted:Boolean(inquiry.adopted), adoptedAnswerId:inquiry.adoptedReplyId == null ? null : Number(inquiry.adoptedReplyId), isMine:String(inquiry.userId) === String(USER.id), ownerId:String(inquiry.userId), demo:Boolean(inquiry.demo), answers:answers, cancelled:false };
+  }
+  async function syncGossipInquiries(){
+    if(!USER.registered || !window.apiClient || !window.apiClient.inquiries) return;
+    try {
+      var response = await window.apiClient.inquiries();
+      var mineResponse = typeof window.apiClient.myInquiries === 'function' ? await window.apiClient.myInquiries() : { inquiries: [] };
+      var records = response.inquiries || [];
+      var mapped = await Promise.all(records.map(async function(inquiry){
+        var replyResponse = await window.apiClient.inquiryReplies(inquiry.id);
+        return mapInquiryToGossip(inquiry, replyResponse.replies || []);
+      }));
+      var demoPosts = DEMO_GOSSIP_POSTS.slice();
+      GOSSIP_POSTS.length = 0;
+      Array.prototype.push.apply(GOSSIP_POSTS, demoPosts.concat(mapped));
+      renderGossipWall(); renderGossipTopList();
+      var mine = Array.isArray(mineResponse.inquiries) ? mineResponse.inquiries : [];
+      var count = document.getElementById('myInquiryCount'); if(count) count.textContent = mine.length;
+      var list = document.getElementById('myInquiriesList');
+      if(list) list.innerHTML = mine.length ? mine.map(function(inquiry){
+        var replies = Array.isArray(inquiry.recentReplies) ? inquiry.recentReplies : [];
+        var replyCount = Number(inquiry.replyCount || 0);
+        var latestReply = replies[0];
+        var replySummary = latestReply
+          ? '我的打听回复 · ' + escapeHtml(latestReply.user && latestReply.user.nickname || '匿名用户') + '：' + escapeHtml(latestReply.content || '')
+          : '暂时没有新回复';
+        return '<button class="btn btn-ghost" style="text-align:left" onclick="showGossipDetail(' + Number(inquiry.id) + ')"><b>' + escapeHtml(inquiry.title) + '</b><span style="display:block;color:var(--muted);font-size:12px;margin-top:4px">' + replyCount + ' 条回复 · ' + replySummary + '</span></button>';
+      }).join('') : '<div style="padding:18px;text-align:center;color:var(--muted)">暂无打听记录</div>';
+    } catch(error) { toast(error.message || '打听加载失败，请稍后重试'); }
+  }
+  function toggleMyInquiries(){
+    var panel = document.getElementById('myInquiriesPanel');
+    if(!panel) return;
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    if(panel.style.display === 'block') syncGossipInquiries();
+  }
+
   function renderGossipWall(){
     var wall = document.getElementById('gossipWall');
     if(!wall) return;
@@ -8560,7 +8948,7 @@
     wall.innerHTML = posts.map(function(p){
       var cd = p.coinStatus === 'refunded' && !p.adopted ? { text:'⏰ 已自动退回', class:'done' } : getCountdownText(p.deadline);
       var tagClass = getTagClass(p.tagColor);
-      var tagsHtml = p.tags.map(function(t){ return '<span class="gossip-card-tag ' + tagClass + '" style="background:var(--bg-tint);opacity:.8">' + t + '</span>'; }).join('');
+      var tagsHtml = p.tags.map(function(t){ return '<span class="gossip-card-tag ' + tagClass + '" style="background:var(--bg-tint);opacity:.8">' + t + '</span>'; }).join('') + (p.demo ? '<span class="tag tag-demo">DEMO</span>' : '');
       var bountyText = p.adopted ? '✓ 已采纳' : (p.coinStatus === 'refunded' ? '💎 已退回' : '💎 ' + p.bounty + ' 蛋蛋币');
       var bountyClass = p.adopted ? 'bounty adopted' : (p.coinStatus === 'refunded' ? 'bounty' : 'bounty');
       var answerCount = p.answers ? p.answers.length : 0;
@@ -8782,16 +9170,15 @@
     }).join('');
   }
 
-  function likeGossipPost(id){
+  async function likeGossipPost(id){
     var post = GOSSIP_POSTS.find(function(p){ return p.id === id; });
     if(!post) return;
-    if(post.liked){
-      post.liked = false;
-      post.likes--;
-    } else {
-      post.liked = true;
-      post.likes++;
-    }
+    if(post.demo || !post.serverId || !window.apiClient || typeof window.apiClient.likeInquiry !== 'function'){ toast('演示记录不支持点赞'); return; }
+    var result;
+    try { result = await window.apiClient.likeInquiry(post.serverId); }
+    catch(error){ toast(error.message || '点赞失败，请稍后重试'); return; }
+    post.liked = Boolean(result.liked);
+    post.likes = Number(result.likes || 0);
     renderGossipWall();
   }
 
@@ -8814,11 +9201,12 @@
     if(hint) hint.textContent = '将冻结 ' + val + ' 蛋蛋币';
   }
 
-  function publishGossip(){
+  async function publishGossip(){
     if(!USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
     var title = document.getElementById('gossipTitle').value.trim();
     var desc = document.getElementById('gossipDesc').value.trim();
     if(!title){ toast('请填写打听内容'); return; }
+    if(window.apiClient){ var blocked = window.apiClient.validateUserText(title) || window.apiClient.validateUserText(desc); if(blocked){ toast(blocked); return; } }
     var bounty = parseInt(document.getElementById('gossipBounty').value) || 1;
     if(bounty < 1) bounty = 1;
 
@@ -8828,13 +9216,21 @@
       return;
     }
 
-    /* 冻结蛋蛋币（从余额扣除，记录为冻结状态） */
-    USER.points -= bounty;
-    pointLogs.unshift({ type:'gossip_publish_frozen', label:'发布打听（冻结）：' + title, delta:-bounty, time:'刚刚', balance: USER.points });
+    var tags = selectedGossipTag ? [selectedGossipTag] : ['🎮 其他'];
+    try {
+      await window.apiClient.createInquiry({ title:title, content:desc || '（发布者未填写补充描述）', tags:tags, bounty:bounty, deadline:new Date(Date.now() + 30*24*3600*1000).toISOString() });
+    } catch(error) {
+      toast(error.message || '打听发布失败，请稍后重试');
+      return;
+    }
+
+    /* 余额和流水由服务端事务写入，前端只刷新服务端快照。 */
+    try {
+      var accountSnapshot = await window.apiClient.pointAccount();
+      if(accountSnapshot.account) USER.points = Number(accountSnapshot.account.availableBalance || 0);
+    } catch(error) { /* 流水同步会在个人中心再次重试 */ }
 
     var tagColor = selectedGossipTag ? getTagColorByName(selectedGossipTag) : 'pink';
-    var tags = selectedGossipTag ? [selectedGossipTag] : ['🎮 其他'];
-
     var newPost = {
       id: Date.now(),
       title: title,
@@ -8857,6 +9253,8 @@
       cancelled: false
     };
     GOSSIP_POSTS.unshift(newPost);
+    try { await syncGossipInquiries(); }
+    catch(error) { toast('打听已发布，列表刷新失败，请稍后点击刷新'); }
 
     /* 清空输入 */
     document.getElementById('gossipTitle').value = '';
@@ -9011,17 +9409,21 @@
     currentGossipDetail = null;
   }
 
-  function likeGossipAnswer(postId, answerId){
+  async function likeGossipAnswer(postId, answerId){
     var post = GOSSIP_POSTS.find(function(p){ return p.id === postId; });
     if(!post || !post.answers) return;
     var answer = post.answers.find(function(a){ return a.id === answerId; });
     if(!answer) return;
-    if(answer.liked){ answer.liked = false; answer.likes--; }
-    else { answer.liked = true; answer.likes++; }
+    if(post.demo || !post.serverId || !window.apiClient || typeof window.apiClient.likeInquiryReply !== 'function'){ toast('演示记录不支持点赞'); return; }
+    var result;
+    try { result = await window.apiClient.likeInquiryReply(post.serverId, answerId); }
+    catch(error){ toast(error.message || '点赞失败，请稍后重试'); return; }
+    answer.liked = Boolean(result.liked);
+    answer.likes = Number(result.likes || 0);
     showGossipDetail(postId);
   }
 
-  function adoptGossipAnswer(postId, answerId){
+  async function adoptGossipAnswer(postId, answerId){
     var post = GOSSIP_POSTS.find(function(p){ return p.id === postId; });
     if(!post || !post.answers) return;
     if(post.adopted){ toast('已经采纳过啦'); return; }
@@ -9030,21 +9432,16 @@
     var answer = post.answers.find(function(a){ return a.id === answerId; });
     if(!answer) return;
 
+    var bounty = post.bounty || 1;
+    try {
+      if(!window.apiClient || typeof window.apiClient.adoptInquiry !== 'function') throw new Error('采纳服务暂不可用');
+      await window.apiClient.adoptInquiry(post.serverId || post.id, answerId);
+    } catch(error){ toast(error.message || '采纳失败，请稍后重试'); return; }
     post.adopted = true;
     post.adoptedAnswerId = answerId;
     post.coinStatus = 'transferred';
-
-    /* 冻结币转移给回答者（模拟：给回答者增加蛋蛋币） */
-    var bounty = post.bounty || 1;
     addNotif('你的回答在打听「' + post.title + '」中被采纳，获得 ' + bounty + ' 蛋蛋币', 'gossip_adopted');
-
-    /* 如果回答者是当前用户自己（自问自答被防住，这里是其他场景），实际增加余额 */
-    if(answer.author === USER.nickname){
-      /* 理论上不会走到这里，因为禁止自问自答 */
-    }
-
-    /* 记录蛋蛋币流转日志（从冻结状态转为已发放） */
-    pointLogs.unshift({ type:'gossip_adopt_transfer', label:'采纳回答：' + answer.author + '（' + post.title + '）', delta:0, time:'刚刚', balance: USER.points, note: bounty + ' 冻结币已转移给 ' + answer.author });
+    syncPointTransactions();
 
     toast('已采纳「' + answer.author + '」的回答，' + bounty + ' 蛋蛋币已发放');
     showGossipDetail(postId);
@@ -9056,15 +9453,18 @@
     if(el) el.classList.toggle('open');
   }
 
-  function submitGossipComment(postId, answerId){
+  async function submitGossipComment(postId, answerId){
     var input = document.getElementById('commentInput-' + answerId);
     if(!input) return;
     var text = input.value.trim();
     if(!text){ toast('写点什么吧～'); return; }
+    if(window.apiClient){ var blocked = window.apiClient.validateUserText(text); if(blocked){ toast(blocked); return; } }
     var post = GOSSIP_POSTS.find(function(p){ return p.id === postId; });
     if(!post || !post.answers) return;
     var answer = post.answers.find(function(a){ return a.id === answerId; });
     if(!answer) return;
+    try { await window.apiClient.replyInquiry(post.serverId || post.id, text, {kind:'comment', parentId:String(answerId)}); }
+    catch(error){ toast(error.message || '评论发送失败，请稍后重试'); return; }
     if(!answer.comments) answer.comments = [];
     answer.comments.push({
       author: USER.nickname,
@@ -9080,12 +9480,13 @@
     }, 50);
   }
 
-  function submitGossipAnswer(postId){
+  async function submitGossipAnswer(postId){
     if(!USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
     var textarea = document.getElementById('gossipReplyText');
     if(!textarea) return;
     var text = textarea.value.trim();
     if(!text){ toast('写点什么吧～'); return; }
+    if(window.apiClient){ var blocked = window.apiClient.validateUserText(text); if(blocked){ toast(blocked); return; } }
 
     var post = GOSSIP_POSTS.find(function(p){ return p.id === postId; });
     if(!post) return;
@@ -9111,6 +9512,10 @@
       return;
     }
 
+    var replyResult;
+    try { replyResult = await window.apiClient.replyInquiry(post.serverId || post.id, text, {kind:'answer'}); }
+    catch(error){ toast(error.message || '回答发布失败，请稍后重试'); return; }
+
     if(!post.answers) post.answers = [];
 
     var colors = [
@@ -9123,7 +9528,7 @@
     var randColor = colors[Math.floor(Math.random() * colors.length)];
 
     post.answers.push({
-      id: Date.now(),
+      id: replyResult.reply ? Number(replyResult.reply.id) : Date.now(),
       author: USER.nickname,
       avatar: USER.nickname.charAt(0),
       avatarColor: randColor,
@@ -9146,25 +9551,7 @@
 
   /* ===== 打听自动退回：发布1个月后无人回答，自动退回冻结币（提问永久保留） ===== */
   function autoRefundGossip(){
-    var now = Date.now();
-    var oneMonth = 30*24*3600*1000;
-    var refunded = false;
-    GOSSIP_POSTS.forEach(function(post){
-      if(post.coinStatus === 'frozen' && !post.adopted && (!post.answers || post.answers.length === 0)){
-        if(post.createdAt && (now - post.createdAt >= oneMonth)){
-          post.coinStatus = 'refunded';
-          post.deadline = post.createdAt + oneMonth;
-          if(post.isMine){
-            var bounty = post.bounty || 1;
-            USER.points += bounty;
-            pointLogs.unshift({ type:'gossip_auto_refund', label:'打听1个月无人回答（自动退回）：' + post.title, delta:bounty, time:'刚刚', balance: USER.points });
-            addNotif('你发布的打听「' + post.title + '」1个月无人回答，' + bounty + ' 蛋蛋币已自动退回', 'gossip_refund');
-            refunded = true;
-          }
-        }
-      }
-    });
-    if(refunded) refreshProfile();
+    /* 自动退回由服务端定时任务执行，前端不再本地修改余额或悬赏状态。 */
   }
 
   /* ===== 查看用户蛋蛋名片 ===== */
@@ -9506,12 +9893,26 @@
 </div>
 <script src="api-client.js"></script>
 <script>
+  function revealStage(){
+    var stage = document.getElementById('stage');
+    if(stage) stage.style.visibility = 'visible';
+  }
   window.addEventListener('dandan:session-restored', async function (event) {
     var user = event.detail;
-    if (!user) return;
+    if (!user) {
+      USER = { id: 0, nickname: '', role: 'guest', registered: false, isAdmin: false, points: 0, exp: 0, stats: { knowledge: 0, skills: 0, charm: 0, money: 0, reputation: 0 } };
+      document.getElementById('guestCard').style.display = 'flex';
+      document.getElementById('userCard').style.display = 'none';
+      document.getElementById('adminNav').style.display = 'none';
+      document.getElementById('studentNav').style.display = 'none';
+      if (typeof openLoginModal === 'function') openLoginModal();
+      revealStage();
+      return;
+    }
     USER = Object.assign({}, USER, user, { registered: true, isAdmin: user.role === 'admin' });
     if (typeof hydrateUserState === 'function') await hydrateUserState();
     if (typeof login === 'function') login(user.role === 'admin' ? 'admin' : 'student');
+    revealStage();
   });
 </script>
 </body>

@@ -97,3 +97,117 @@
 - 新后端目录迁移、构建、PM2 切换和 `pm2 save` 完成；旧后端目录与 `/var/www/dd.backup-auth-persistence-v5` 保留。
 - 线上 `health`、主站、盲盒页和匿名 401 smoke 通过；注册→refresh→`/users/me`→盲盒 features→退出生产 smoke 通过。
 - 根站“航线”保持 200 和原标题；当前目标已达到上线验收条件，剩余为 SMS 真机、备份恢复和高级玩法结算语义等后续工作。
+
+## 2026-08-25（九项迭代修复启动）
+
+- 用户已完成 30 项确认：任务状态含待审核/已审核/已完成/待修改；移动端新增简洁侧边栏；敏感词前后端双重校验且不展示具体词语；“我的打听”使用八卦页小图标；蛋蛋币初始值 100；demo 流水保留；角色决定首页；好友申请 30 分钟拒绝冷却；仅已接受好友可聊天；复用 HTTP 轮询；允许必要最小迁移；多 Agent 分批累计至少 10 个分工。
+- 根因审计完成：任务、反馈、打听/通知模型和接口缺失；盲盒好友/聊天权限与匹配不完整；主站首屏管理员静态闪现；固定 stage 造成手机/平板布局问题；敏感词过滤仍是盲盒局部前端函数。
+- 下一阶段：先新增失败契约测试，再按 schema/routes、前端 API、任务/反馈/打听渲染、盲盒好友聊天、响应式/路由、敏感词、自检等文件边界分批实现。
+
+## 2026-08-26（九项迭代本地完成）
+
+- 业务迁移草案已创建：`server/prisma/migrations/202608260001_business_iteration/migration.sql`。
+- Fastify 已新增任务、反馈、打听/回复、通知接口；任务发布默认为 `pending_review`，普通用户本人查询按 JWT 用户 ID 隔离，管理员审核由服务端角色校验。
+- 统一 `server/src/content-filter.ts` 并接入新接口和盲盒消息/偏好边界，前后端提示均不展示具体敏感词。
+- 盲盒推荐过滤 `stealth`，按 MBTI/兴趣重排；好友申请支持好友已存在、待处理、拒绝后 30 分钟冷却；聊天发送与历史读取要求 accepted 关系。
+- PointAccount 新用户初始余额及注册流水改为 100 蛋蛋币，保留历史 demo 明细。
+- 主站移除盲盒 NEW 角标，加入响应式断点、访客登录首屏、任务/反馈 API 插头和统一文本校验；API 客户端新增业务方法。
+- 本地验证：`npm test` 12 个测试文件/47 个测试通过；`npm run build` 通过；前端三个脚本语法检查通过；Prisma schema validate 在完整占位 `DATABASE_URL` 下通过。
+- 生产尚未执行本轮迁移、构建、PM2 重启或公网 smoke；下一步必须遵守备份→迁移→构建→日志→health 的单步流程。
+- 前端任务二次审阅已完成：同步时清理静态演示发布卡片，仅渲染当前用户 API 任务；新增四状态筛选；审核按钮接入真实 review API。相关语法、构建和 47 项测试重新通过。
+- 迁移审阅发现并修正字段宽度、复合索引、JSON NULLability 与 MySQL 默认值语法漂移；使用本地完整占位 `DATABASE_URL` 的 Prisma validate 已重新通过。
+
+## 2026-08-26（最终本地收口）
+
+- [x] 修复任务认领通知导致的隔离测试 500，生产通知逻辑保持不变。
+- [x] 后端 53/53 测试、TypeScript 构建、Prisma generate/validate、前端/内联脚本语法和盲盒三端浏览器检查通过。
+- [x] 重新生成前端 r8（18 文件）与后端 r7（47 文件）部署包，并完成 SHA-256 与禁入文件检查。
+- [ ] CVM 生产发布仍待可验证 shell/MFA 会话：备份 -> 迁移 -> 构建 -> PM2 重启 -> 查看日志 -> `/health` -> 三端公网 smoke。
+
+## 2026-08-26（本轮收口）
+
+- 收口补丁继续：新增前端 `pointTransactions` 客户端方法，个人明细优先读取 MySQL 流水；打听“我的打听”改走 `/api/inquiries/mine`；新增服务端采纳事务路由，真实结算并通知回答者。
+- 校验记录：误对 `.html` 文件执行 `node --check`，Node 报 `ERR_UNKNOWN_FILE_EXTENSION`；已确认是命令用法错误，后续改用项目测试与脚本抽取检查，不把该错误当作代码失败。
+- 校验记录：PowerShell 传递带斜杠的 Node 正则字面量时出现 `Unterminated regexp literal`；改用字符串切分方式执行内联脚本语法校验。
+
+- 清理盲盒运行时代码的 fallback adapter，收件箱与反馈列表改为服务端真实数据源；保留数据库历史 demo 记录。
+- 为打听 tags 补充后端敏感词校验。
+- 新鲜验证：前端三个脚本 `node --check` 通过；`npm test` 12 个文件、47 个测试通过；`npm run build` 通过。
+- 浏览器 CLI 当前未返回快照或截图输出，桌面/手机/平板视觉验收未宣称完成。
+- 线上部署仍未执行本轮迁移；必须先备份，再单步迁移、构建、检查 PM2 日志和 `/health`。
+- 浏览器补充验收：连接现有 Chrome CDP 后，主站访客登录首屏和盲盒纯内容组件均可见；窄视口截图已生成，未发现独立导航壳。
+- 三张源码内保留的开发测试发布卡已补 `DEMO` 标签；前端包已重打包并重新计算 SHA-256。
+- 最终验证：12 个测试文件/47 个测试通过，TypeScript 构建通过，三个前端脚本语法检查通过，两个压缩包边界检查通过。
+- 收口结果：`npm test` 12 个文件/47 个测试通过，`npm run build` 通过；前端三个 JS 与主站 3 段内联脚本通过语法检查。
+- 浏览器烟测通过：访客主站显示登录首屏；盲盒内容组件标题和业务区域正常，无插件顶部导航/侧栏/页脚。
+- 交付包 r2：前端 `A5F2A7082844ED9FA520442FF4EFE57D5D9B9EFE6BA7E43856F1EB32B9BC31AC`，后端 `87D6E4EDC6A7428648BA5A1AACB179489D30FB1994F4C4BF264DC5E402D58C47`。
+- 生产仍未执行本轮迁移、备份、PM2 重启或线上 smoke；“上线”状态不变。
+
+## 2026-08-26（任务结算与评价本地完成）
+
+- 新增 `TaskClaim`、`Rating` Prisma 模型和 `202608260003_task_settlement` 迁移：任务类型、认领模式、奖励、人数上限、联系方式和要求均持久化。
+- 新增任务认领、认领列表、确认配对、提交完成、发布者验收结算、取消退款和评价接口；复合唯一约束与服务端状态校验防止重复认领、重复评价和重复结算。
+- 教学任务认领冻结蛋蛋币，求助/组队/奖励任务审核冻结发布者预算，完成和取消均通过幂等 `PointTransaction` 结算；前端真实任务卡不再直接修改余额。
+- `submitPublish`、管理员发布、`doClaim`、`completeTask`、`confirmCancelTask`、`openClaimerManager`、`confirmAssign` 和 `submitRating` 已接入真实 API；无任务 ID 的三张开发卡继续保留本地 demo 行为。
+- 新增管理员 `POST /api/admin/inquiries/refund-expired`：到期且无人回答的打听在事务中退款、标记 expired/refunded 并通知发布者，供受保护定时任务调用；前端不再伪造自动退款余额。
+- TDD 契约测试覆盖幂等认领和重复评价；本地验证：12 个测试文件、49 个测试通过，TypeScript 构建通过，Prisma validate 通过，主站 3 段内联脚本和 API/盲盒脚本语法检查通过。
+- 线上仍未执行本轮备份、迁移、构建、PM2 重启和三端 smoke；不得据此宣称本轮已上线。
+- 最终交付包已重新生成并做边界检查：前端 `dandan-frontend-dd-20260826-business-iteration-r4.zip`（18 个文件，SHA-256 `16C5F92C24388BF6A077A08493DCD97A67918FFE8879334A1E5F84650BBAE784`）；后端 `dandan-server-deploy-20260826-business-iteration-r3.zip`（45 个文件，SHA-256 `B70DD8EFF8805DFA989FEAFA287B9DFFF4F096892F4239913A6B0416F32C4D5D`）。包内无 `.env`、本地密码、`node_modules` 或 `dist`。
+
+## 2026-08-26（收口补丁与多端验收）
+
+- 修复主站首屏管理员闪现：`#stage` 在会话恢复事件完成前保持隐藏，访客和登录用户均在正确状态渲染后显示。
+- 补齐管理员反馈回复的前端敏感词前置校验；静态开发蛋蛋币/经验流水保留并渲染 `DEMO` 标签。
+- 盲盒推荐关系状态接入服务端：已是好友、已有待处理请求、对方已拒绝和 30 分钟冷却均有明确 UI 状态；旧的反向拒绝记录在重新申请时复用，避免重复写入。
+- 盲盒脚本按顺序 `defer`，对缺少可选消息入口的宿主做空节点保护；旧预览根目录导致的节点错误已通过当前包专用静态服务复核排除。
+- 验证：`npm test` 12 个测试文件/49 个测试通过；`npm run build` 通过；Prisma validate 通过；三个前端脚本和主站内联脚本语法通过。
+- 浏览器验证：当前包专用静态服务下盲盒无业务 JS 异常；390x844、768x1024、1440x900 均无横向溢出，截图保存于 `output/playwright/blind-box-mobile-r5.png`、`blind-box-tablet-r5.png`、`blind-box-desktop-r5.png`。
+- 新交付包：前端 `output/releases/dandan-frontend-dd-20260826-business-iteration-r5.zip`，SHA-256 `914E08085616E8E603810A394A82776DC064D142E2CA61A74DA1D1832F7EC8F9`；后端 `output/releases/dandan-server-deploy-20260826-business-iteration-r4.zip`，SHA-256 `48DD1E9B8E5E40F8D47B93B0CD6C65985E750B15B750554A45C2668F6112006D`。
+- 生产仍未宣称完成：必须先 CVM 备份，再迁移、构建、PM2 日志、`/health` 和线上三端 smoke；本轮未读取或记录任何密码、Token、验证码或 MFA。
+
+## 2026-08-26（今日盲盒行动匹配补齐）
+
+- 推荐接口新增可选 `action` 查询参数；服务端对推荐用户的 `todayActions` 做同值/包含关系匹配，命中时提升排序分，保留原有返回字段和 MBTI/兴趣排序。
+- 盲盒揭示行动后，前端调用 `syncBuddyProfiles(selectedTodayAction)` 重新拉取推荐；API 适配器以 URL 编码参数传递行动，未传行动时保持原请求兼容。
+- TDD 契约先红后绿：新增后端排序契约和前端连接点契约；专项测试通过。
+- 生产仍未执行本轮迁移、构建、PM2 重启或线上 smoke；发布仍须按备份→迁移状态核对→构建→日志→health 顺序执行。
+- 交付包已更新：前端 `output/releases/dandan-frontend-dd-20260826-business-iteration-r6.zip`（18 文件，SHA-256 `A10207C75EEC4CA06034424934869BA3DC701926B64D287B7CFED3E868A3D2D9`）；后端 `output/releases/dandan-server-deploy-20260826-business-iteration-r5.zip`（46 文件，SHA-256 `50508687A484861F24019A3937765F842C1A788DB8A3077296127D43302A43A8`）。
+
+## 2026-08-26（HTTP 轮询与最终本地收口）
+
+- 盲盒消息抽屉打开时每 15 秒同步收件箱；会话窗口打开时每 5 秒刷新聊天历史；关闭对应窗口时清理定时器。好友申请接受后立即刷新推荐关系状态。
+- `server/npm test`：12 个测试文件、53 个测试全部通过；`npm run build` 通过；Prisma schema 在临时完整占位 `DATABASE_URL` 下通过。
+- `api-client.js`、`blind-box/app.js`、`blind-box/buddy-box-api.js` 通过 `node --check`；主站 2 段内联脚本通过 `vm.Script` 抽取校验；`git diff --check` 无空白错误。
+- 本地浏览器验证：盲盒直达内容页不含顶部导航、侧栏和页脚；390x844、768x1024、1440x900 均无横向溢出。截图位于 `output/playwright/blind-box-mobile.png`、`blind-box-tablet.png`、`blind-box-desktop.png`。
+- 重新生成交付包：前端 `output/releases/dandan-frontend-dd-20260826-business-iteration-r7.zip`（18 文件，SHA-256 `87EAB959BC3A16BA6D7489C3D6157543F649C97A394EFF67BC0E98E10B70A829`）；后端 `output/releases/dandan-server-deploy-20260826-business-iteration-r6.zip`（46 文件，SHA-256 `FB5ECCE2B9C32A42D3F6E976976C3CAAB72600C17164DBC5671D3F8945DF2F82`）。
+- 生产仍未执行本轮备份、迁移、PM2 重启和公网 smoke；未取得可验证 CVM 会话前不宣称上线。
+
+## 2026-08-26（敏感词与盲盒接口收口）
+
+- `assertSafeJsonText()` 已覆盖盲盒高级玩法的嵌套 JSON；前端绕过后直调接口仍会返回统一安全提示，且不暴露命中词。
+- 注册、资料更新、反馈的全部用户可写文本字段均接入服务端统一敏感词校验，形成前端提示与后端拦截的双重校验。
+- 盲盒 API 地址在本地静态预览时使用 `http://127.0.0.1:3310`，生产仍使用 `/dd`，并保留 `window.DANDAN_API_ORIGIN` 覆盖插头。
+- 高级玩法删除无服务端记录时的静态伪造结果；兴趣雷达无统计时明确显示“暂无服务端统计”。
+- 本地验证：12 个测试文件、55 个测试全部通过；TypeScript 构建、Prisma generate/validate、三个前端脚本语法与 `git diff --check` 全部通过。
+- 浏览器结构验收：主站点击侧栏“盲盒交友”后在右侧激活内容组件；盲盒直达页不含 header/nav/footer，390x844、768x1024、1440x900 均无横向溢出且无 `New` 文案。静态服务未启动 3310 后端时会产生预期的连接拒绝，不能替代线上健康检查。
+- 生产发布仍待可验证 CVM/MFA 会话，必须按备份 -> Prisma 迁移 -> 构建 -> PM2 日志 -> `/health` -> 公网 smoke 单步执行。
+- 新交付包：前端 `output/releases/dandan-frontend-dd-20260826-business-iteration-r9.zip`（18 文件，SHA-256 `0FFF0CE68A49C5E024D82C8417B0F978A708478DD98BDB60501D434D1E699F0A`）；后端 `output/releases/dandan-server-deploy-20260826-business-iteration-r8.zip`（46 文件，SHA-256 `63A15736E15DDE1AECA51BFB1DC988D56546C885634C4EFB45F69A2B39226FDB`）。两包均无环境文件、本地密码、`node_modules` 或 `dist`。
+
+## 2026-08-26（盲盒真实结果与关系并发收口）
+
+- 移除兴趣雷达和 AI 破冰助手在无服务端结果时的固定文案，分别显示“暂无服务端统计”和“暂无服务端破冰话题”。
+- 好友申请在事务中锁定双方用户记录，结合既有唯一约束处理并发双向申请；现有好友、待处理和拒绝冷却规则不变。
+- 本地验证重新通过：TypeScript 构建、Prisma generate/validate、12 个测试文件共 55 项测试、三个前端脚本语法和差异检查。
+- 浏览器结构验证：盲盒直达组件在 390x844、768x1024、1440x900 无横向溢出，且无 header/nav/footer；主站仍包含同源 `#page-buddybox` iframe 容器。
+- 待完成：重新生成 r10/r9 交付包并做文件边界与 SHA-256 校验；生产仍须按备份、迁移、构建、PM2 日志、health、公网 smoke 单步执行。
+- 已生成交付包：前端 r10（18 文件，SHA-256 `D33240081899937EC2544A746408990CE743B2C8FD60E7CF7F0B1CD6E55EA584`）；后端 r9（46 文件，SHA-256 `19A5BFA7F9E6BDF2504A23DE22F8CC468AC229FA041AE23E8E4C9464FA57EABF`）；两包禁入项均为 0。
+
+## 2026-08-26（我的打听汇总与真实任务发布收口）
+
+- `/api/inquiries/mine` 现在按当前用户读取本人打听，并返回 `replyCount` 与最多 20 条他人 `recentReplies`；未新增表、未改变既有基础字段。
+- 打听页“我的打听”面板直接渲染该专属汇总的最新回复摘要，不再把全站帖子逐一当作本人消息数据源。
+- 普通用户发布任务时，空标题或空描述会直接提示，不再自动替换为开发阶段示例文案后写入 MySQL。
+- 新增后端和前端回归契约；全量验证为 12 个测试文件、58 项测试通过，TypeScript 构建通过。
+- 待完成：更新交付包到前端 r11、后端 r10，生产仍需按备份、迁移状态确认、构建、PM2 日志、health、公网 smoke 单步发布。
+- 已生成交付包：前端 r11（18 文件，SHA-256 `FD51BB38499DF6531E93F9A46FA92AD9F80CBF1376E564B3165E4A5DA4700968`）；后端 r10（46 文件，SHA-256 `61916188C3E1FA9CD844F9F5A5D3AC6B54AA9099488F62F333404B6B284639AD`）；禁入项均为 0。
+- 公网只读检查：`https://dsxnb.com/dd/health` 返回 200；但线上首页尚未出现 `myInquiriesPanel`/`recentReplies`，且仍有旧发布示例兜底，确认 r11/r10 尚未部署。当前机器没有 SSH 配置或私钥，无法执行 CVM 写操作。
