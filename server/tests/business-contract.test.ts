@@ -77,6 +77,23 @@ describe('business API contracts', () => {
     }));
   });
 
+  it('rejects a comment whose parent answer belongs to another inquiry', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+    vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 2n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
+    vi.spyOn(prisma.inquiry, 'findUnique').mockResolvedValue({ id: 8n, userId: 1n } as never);
+    vi.spyOn(prisma.inquiryReply, 'findUnique').mockResolvedValue(null);
+    const create = vi.spyOn(prisma.inquiryReply, 'create');
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback(prisma as never) as never);
+    const token = await app.jwt.sign({ sub: '2', sessionId: 'session', role: 'student' });
+    const response = await app.inject({ method: 'POST', url: '/api/inquiries/8/replies', headers: { authorization: `Bearer ${token}` }, payload: { content: '评论', kind: 'comment', parentId: '99' } });
+    expect(response.statusCode).toBe(400);
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('persists an idempotent task claim and rejects a second claim by the same user', async () => {
     process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
     process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';

@@ -581,11 +581,22 @@ export function buildApp(): FastifyInstance {
     const params = notificationParamsSchema.parse(request.params);
     const input = inquiryReplySchema.parse(request.body);
     assertSafeText(input.content);
-    const inquiry = await prisma.inquiry.findUnique({ where: { id: params.id }, select: { id: true, userId: true } });
+    const userId = currentUserId(request);
+    const inquiry = await prisma.inquiry.findUnique({ where: { id: params.id }, select: { id: true, userId: true, title: true } });
     if (!inquiry) return reply.code(404).send({ error: 'INQUIRY_NOT_FOUND', message: '打听不存在' });
+    if (input.kind === 'comment') {
+      if (!input.parentId) return reply.code(400).send({ error: 'PARENT_REPLY_REQUIRED', message: '评论缺少所属回答' });
+      const parent = await prisma.inquiryReply.findUnique({ where: { id: input.parentId }, select: { id: true, inquiryId: true, kind: true } });
+      if (!parent || parent.inquiryId !== params.id || parent.kind !== 'answer') {
+        return reply.code(400).send({ error: 'INVALID_PARENT_REPLY', message: '评论对象不存在' });
+      }
+    }
+    const author = inquiry.userId !== userId
+      ? await prisma.user.findUnique({ where: { id: userId }, select: { nickname: true } })
+      : null;
     const result = await prisma.$transaction(async (tx) => {
-      const replyRow = await tx.inquiryReply.create({ data: { inquiryId: params.id, userId: currentUserId(request), content: input.content, kind: input.kind, parentId: input.parentId ?? null } });
-      if (inquiry.userId !== currentUserId(request)) await tx.notification.create({ data: { userId: inquiry.userId, type: 'inquiry_reply', refId: params.id.toString(), payload: { replyId: replyRow.id.toString() } } });
+      const replyRow = await tx.inquiryReply.create({ data: { inquiryId: params.id, userId, content: input.content, kind: input.kind, parentId: input.parentId ?? null } });
+      if (inquiry.userId !== userId) await tx.notification.create({ data: { userId: inquiry.userId, type: 'inquiry_reply', refId: params.id.toString(), payload: { replyId: replyRow.id.toString(), inquiryId: inquiry.id.toString(), inquiryTitle: inquiry.title, replyAuthorNickname: author?.nickname || '同学' } } });
       return replyRow;
     });
     return reply.code(201).send({ reply: { ...result, id: result.id.toString(), inquiryId: result.inquiryId.toString(), userId: result.userId.toString(), parentId: result.parentId?.toString() ?? null } });
@@ -600,13 +611,13 @@ export function buildApp(): FastifyInstance {
         if (!inquiry) throw new Error('INQUIRY_NOT_FOUND');
         if (inquiry.userId !== userId) throw new Error('INQUIRY_FORBIDDEN');
         if (inquiry.adopted || inquiry.coinStatus === 'transferred') throw new Error('INQUIRY_ALREADY_ADOPTED');
-        const answer = await tx.inquiryReply.findFirst({ where: { id: params.replyId, inquiryId: params.id, kind: 'answer' } });
+        const answer = await tx.inquiryReply.findFirst({ where: { id: params.replyId, inquiryId: params.id, kind: 'answer' }, include: { user: { select: { nickname: true } } } });
         if (!answer) throw new Error('INQUIRY_REPLY_NOT_FOUND');
         const point = inquiry.bounty > 0
           ? await applyBuddyPointDelta(tx, answer.userId, inquiry.bounty, `inquiry-adopted:${inquiry.id.toString()}`, 'inquiry_adopted', `采纳打听回答:${inquiry.id.toString()}`)
           : null;
         const updated = await tx.inquiry.update({ where: { id: inquiry.id }, data: { adopted: true, adoptedReplyId: answer.id, coinStatus: 'transferred' } });
-        if (answer.userId !== userId) await tx.notification.create({ data: { userId: answer.userId, type: 'inquiry_adopted', refId: inquiry.id.toString(), payload: { bounty: inquiry.bounty, replyId: answer.id.toString() } } });
+        if (answer.userId !== userId) await tx.notification.create({ data: { userId: answer.userId, type: 'inquiry_adopted', refId: inquiry.id.toString(), payload: { bounty: inquiry.bounty, replyId: answer.id.toString(), inquiryId: inquiry.id.toString(), inquiryTitle: inquiry.title, replyAuthorNickname: answer.user.nickname } } });
         return { inquiry: updated, point };
       });
       return { inquiry: serializeInquiry(result.inquiry), point: result.point };

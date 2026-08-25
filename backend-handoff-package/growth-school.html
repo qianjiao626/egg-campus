@@ -1371,6 +1371,14 @@
     .grid-3,.grid-2,.kpi-row{grid-template-columns:1fr!important}
     .buddybox-page{overflow:visible!important}
     .buddybox-frame{height:auto!important;min-height:860px;overflow:hidden}
+    .split{flex-direction:column}
+    .split .right{width:100%}
+    .plaza-banner{align-items:flex-start;flex-wrap:wrap}
+    .plaza-banner .banner-text{min-width:0;flex:1 1 260px}
+    .plaza-banner .banner-eggs-row{margin-left:0;padding-left:0;border-left:0;width:100%}
+    .banner-tasks,.gossip-hero .banner-tasks{grid-template-columns:repeat(2,minmax(0,1fr));width:100%;justify-content:stretch}
+    .bt-chip{min-width:0}
+    .modal-box,#feedbackModal .feedback-card,.invite-modal-box,.char-modal-card,.reg-modal-card{width:calc(100vw - 32px)!important;max-width:calc(100vw - 32px)!important;box-sizing:border-box}
   }
   @media (max-width:620px){
     .sidebar{width:72px;min-width:72px;padding:14px 8px}
@@ -1379,6 +1387,16 @@
     .sidebar .nav-item svg{margin:0}
     .right{gap:6px}
     .search{display:none}
+    #plazaAdminList,#plazaUserList,#helpAdminList,#helpUserList,#teamUserList{grid-template-columns:minmax(0,1fr)!important}
+    .mytask-tabs{flex-direction:column}
+    .char-section{flex-direction:column}
+    .char-stage{flex:0 1 auto;width:100%;min-width:0}
+    .rank-stat-col{min-width:0;flex:1}
+    .rank-matches{min-width:0}
+    .plaza-banner{padding:16px}
+    .banner-tasks,.gossip-hero .banner-tasks{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+    .bt-chip{padding:5px 7px 5px 5px}
+    .bt-chip .bt-name{overflow:hidden;text-overflow:ellipsis}
   }
 </style>
 </head>
@@ -3274,12 +3292,13 @@
   function closeCharDetail(){
     document.getElementById('charDetailModal').classList.remove('show');
   }
-  var pointLogs = [
+  var DEMO_POINT_LOGS = [
     { type:'teach_complete', label:'完成「英雄联盟上分」(教学型)', delta:-10, time:'03-15', balance:410, demo:true },
     { type:'teach_publish', label:'你的「LOL灵活组排」被完成', delta:15, time:'03-12', balance:420, demo:true },
     { type:'reward_complete', label:'完成「Python 基础练习」(奖励型)', delta:10, time:'03-08', balance:405, demo:true },
     { type:'help_complete', label:'帮助同学完成「代取快递」', delta:8, time:'03-05', balance:395, demo:true }
   ];
+  var pointLogs = DEMO_POINT_LOGS.slice();
   var expLogs = [
     { type:'task_complete', label:'完成「英雄联盟上分」', delta:10, time:'03-15', balance:52, demo:true },
     { type:'task_completed_by_others', label:'你的任务被他人完成', delta:3, time:'03-12', balance:510, demo:true },
@@ -3298,10 +3317,11 @@
     try {
       var result = await window.apiClient.pointTransactions(100);
       var records = Array.isArray(result.transactions) ? result.transactions : [];
-      pointLogs = records.map(function(transaction){
+      var realRecords = records.map(function(transaction){
         var date = transaction.createdAt ? new Date(transaction.createdAt) : null;
         return { type:transaction.type, label:pointTransactionLabel(transaction), delta:Number(transaction.deltaAvailable || 0), time:date && !isNaN(date.valueOf()) ? date.toLocaleString('zh-CN') : '刚刚', balance:Number(transaction.balanceAvailable || 0), demo:false };
       });
+      pointLogs = DEMO_POINT_LOGS.concat(realRecords);
       renderPointLogs();
     } catch(error){
       /* 保留已展示内容，但不把接口失败伪装成新的流水。 */
@@ -3323,7 +3343,16 @@
   var notifications = [];
   function notificationText(item){
     var payload = item.payload && typeof item.payload === 'object' ? item.payload : {};
-    if(item.type === 'inquiry_reply') return '有人回复了你的打听';
+    if(item.type === 'inquiry_reply'){
+      var author = payload.replyAuthorNickname || '有人';
+      var title = payload.inquiryTitle ? '「' + payload.inquiryTitle + '」' : '你的打听';
+      return author + '回复了你的打听' + title;
+    }
+    if(item.type === 'inquiry_adopted'){
+      var adoptedTitle = payload.inquiryTitle ? '「' + payload.inquiryTitle + '」' : '一条打听';
+      var adoptedBounty = Number(payload.bounty || 0);
+      return '你的回答已被采纳' + adoptedTitle + (adoptedBounty > 0 ? '，获得 ' + adoptedBounty + ' 蛋蛋币' : '');
+    }
     if(item.type === 'feedback_submit') return '反馈已提交，感谢你的支持';
     if(item.type === 'feedback_reply') return '管理员回复了你的反馈';
     if(item.type === 'task_claimed') return '有人认领了你发布的任务';
@@ -3339,7 +3368,7 @@
       var result = await window.apiClient.unreadNotifications();
       var now = Date.now();
       var localPending = notifications.filter(function(item){ return item.localOnly && item.unread && (!item.createdAt || now - item.createdAt < 5 * 60 * 1000); });
-      var serverNotifications = (result.notifications || []).map(function(item){ return {id:Number(item.id), text:notificationText(item), time:formatFbTime(new Date(item.createdAt).getTime()), unread:!item.readAt, type:item.type, serverId:String(item.id)}; });
+      var serverNotifications = (result.notifications || []).map(function(item){ return {id:Number(item.id), text:notificationText({type:item.type, payload:item.payload}), time:formatFbTime(new Date(item.createdAt).getTime()), unread:!item.readAt, type:item.type, serverId:String(item.id), refId:item.refId, serverPayload:item.payload || {}}; });
       notifications = serverNotifications.concat(localPending);
       updateNotifBadge(); renderNotifPanel();
     } catch(error){ /* 保留本地即时通知，不把接口失败伪装成已读 */ }
@@ -3386,7 +3415,7 @@
               '<div class="tm">' + n.time + '</div>' +
             '</div></div>';
         } else {
-          html += '<div class="notif-item' + (n.unread?' unread':'') + '" onclick="readNotif(' + n.id + ')">' +
+          html += '<div class="notif-item' + (n.unread?' unread':'') + '" onclick="openNotification(' + n.id + ')">' +
             '<span class="dot' + (n.unread?'':' read') + '"></span>' +
             '<div class="body"><div class="txt">' + n.text + '</div><div class="tm">' + n.time + '</div></div></div>';
         }
@@ -3394,6 +3423,20 @@
     }
     if(adminPanel) adminPanel.innerHTML = html;
     if(stuPanel) stuPanel.innerHTML = html;
+  }
+  function openNotification(id){
+    var item = notifications.find(function(entry){ return entry.id === id; });
+    if(!item) return;
+    if(item.type === 'inquiry_reply' && item.refId){
+      readNotif(item.id);
+      go('gossip');
+      setTimeout(function(){ openNotificationDetail(item); }, 120);
+      return;
+    }
+    readNotif(item.id);
+  }
+  function openNotificationDetail(item){
+    if(item && item.type === 'inquiry_reply' && item.refId) showGossipDetail(Number(item.refId));
   }
   function publishFromNotif(skillName){
     toggleNotif();
@@ -5230,6 +5273,9 @@
     var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+  function escapeInlineString(str){
+    return String(str || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r/g,'\\r').replace(/\n/g,'\\n');
   }
 
   /* ===== Login / Logout ===== */
@@ -8948,7 +8994,7 @@
     wall.innerHTML = posts.map(function(p){
       var cd = p.coinStatus === 'refunded' && !p.adopted ? { text:'⏰ 已自动退回', class:'done' } : getCountdownText(p.deadline);
       var tagClass = getTagClass(p.tagColor);
-      var tagsHtml = p.tags.map(function(t){ return '<span class="gossip-card-tag ' + tagClass + '" style="background:var(--bg-tint);opacity:.8">' + t + '</span>'; }).join('') + (p.demo ? '<span class="tag tag-demo">DEMO</span>' : '');
+      var tagsHtml = p.tags.map(function(t){ return '<span class="gossip-card-tag ' + tagClass + '" style="background:var(--bg-tint);opacity:.8">' + escapeHtml(t) + '</span>'; }).join('') + (p.demo ? '<span class="tag tag-demo">DEMO</span>' : '');
       var bountyText = p.adopted ? '✓ 已采纳' : (p.coinStatus === 'refunded' ? '💎 已退回' : '💎 ' + p.bounty + ' 蛋蛋币');
       var bountyClass = p.adopted ? 'bounty adopted' : (p.coinStatus === 'refunded' ? 'bounty' : 'bounty');
       var answerCount = p.answers ? p.answers.length : 0;
@@ -8959,13 +9005,13 @@
             '<div class="gossip-card-tags">' + tagsHtml + '</div>' +
             '<div class="gossip-card-countdown ' + cd.class + '">' + cd.text + '</div>' +
           '</div>' +
-          '<div class="gossip-card-title">' + p.title + '</div>' +
-          '<div class="gossip-card-desc">' + p.desc + '</div>' +
+          '<div class="gossip-card-title">' + escapeHtml(p.title) + '</div>' +
+          '<div class="gossip-card-desc">' + escapeHtml(p.desc) + '</div>' +
           '<div class="gossip-card-publisher">' +
-            '<div class="gossip-card-avatar">' + p.publisherAvatar + '</div>' +
+            '<div class="gossip-card-avatar">' + escapeHtml(p.publisherAvatar) + '</div>' +
             '<div>' +
-              '<div class="gossip-card-pub-name">' + p.publisher + (p.isMine ? ' · 我' : '') + '</div>' +
-              '<div class="gossip-card-pub-time">' + p.publishTime + '</div>' +
+              '<div class="gossip-card-pub-name">' + escapeHtml(p.publisher) + (p.isMine ? ' · 我' : '') + '</div>' +
+              '<div class="gossip-card-pub-time">' + escapeHtml(p.publishTime) + '</div>' +
             '</div>' +
           '</div>' +
           '<div class="gossip-card-stats">' +
@@ -9299,7 +9345,7 @@
 
     var cd = post.coinStatus === 'refunded' && !post.adopted ? { text:'⏰ 已自动退回', class:'done' } : getCountdownText(post.deadline);
     var tagClass = getTagClass(post.tagColor);
-    var tagsHtml = post.tags.map(function(t){ return '<span class="gossip-card-tag ' + tagClass + '" style="background:var(--bg-tint);opacity:.8;padding:4px 12px;font-size:12px">' + t + '</span>'; }).join('');
+    var tagsHtml = post.tags.map(function(t){ return '<span class="gossip-card-tag ' + tagClass + '" style="background:var(--bg-tint);opacity:.8;padding:4px 12px;font-size:12px">' + escapeHtml(t) + '</span>'; }).join('');
 
     /* 回答列表 */
     var answersHtml = '';
@@ -9313,17 +9359,17 @@
         if(post.isMine && !post.adopted){
           adoptBtn = '<button class="gossip-answer-btn adopt-btn" onclick="adoptGossipAnswer(' + post.id + ',' + a.id + ')">✓ 采纳</button>';
         }
-        var inviteBtn = !post.isMine ? '' : '<button class="gossip-answer-btn invite-btn" onclick="inviteGossipUser(\'' + a.author + '\')">📩 邀请发任务</button>';
+        var inviteBtn = !post.isMine ? '' : '<button class="gossip-answer-btn invite-btn" onclick="inviteGossipUser(\'' + escapeInlineString(a.author) + '\')">📩 邀请发任务</button>';
 
         /* 评论 */
         var commentsHtml = '';
         if(a.comments && a.comments.length > 0){
           commentsHtml = a.comments.map(function(c){
             return '<div class="gossip-comment">' +
-              '<div class="gossip-comment-avatar" style="background:linear-gradient(135deg,#B388EB,#7C4DFF);cursor:pointer" onclick="event.stopPropagation();showUserEggModal(\'' + c.author + '\')">' + c.avatar + '</div>' +
+              '<div class="gossip-comment-avatar" style="background:linear-gradient(135deg,#B388EB,#7C4DFF);cursor:pointer" onclick="event.stopPropagation();showUserEggModal(\'' + escapeInlineString(c.author) + '\')">' + escapeHtml(c.avatar) + '</div>' +
               '<div class="gossip-comment-body">' +
-                '<div class="gossip-comment-name" style="cursor:pointer" onclick="event.stopPropagation();showUserEggModal(\'' + c.author + '\')">' + c.author + '</div>' +
-                '<div class="gossip-comment-text">' + c.text + '</div>' +
+                '<div class="gossip-comment-name" style="cursor:pointer" onclick="event.stopPropagation();showUserEggModal(\'' + escapeInlineString(c.author) + '\')">' + escapeHtml(c.author) + '</div>' +
+                '<div class="gossip-comment-text">' + escapeHtml(c.text) + '</div>' +
               '</div>' +
             '</div>';
           }).join('');
@@ -9332,15 +9378,15 @@
         return (
           '<div class="gossip-answer ' + (isAdopted ? 'adopted' : '') + '" id="answer-' + a.id + '">' +
             '<div class="gossip-answer-head">' +
-              '<div class="gossip-answer-user" style="cursor:pointer" onclick="showUserEggModal(\'' + a.author + '\')">' +
-                '<div class="gossip-answer-avatar" style="background:' + a.avatarColor + '">' + a.avatar + '</div>' +
+              '<div class="gossip-answer-user" style="cursor:pointer" onclick="showUserEggModal(\'' + escapeInlineString(a.author) + '\')">' +
+                '<div class="gossip-answer-avatar" style="background:' + a.avatarColor + '">' + escapeHtml(a.avatar) + '</div>' +
                 '<div>' +
-                  '<div class="gossip-answer-name">' + a.author + '</div>' +
-                  '<div class="gossip-answer-time">' + a.time + '</div>' +
+                  '<div class="gossip-answer-name">' + escapeHtml(a.author) + '</div>' +
+                  '<div class="gossip-answer-time">' + escapeHtml(a.time) + '</div>' +
                 '</div>' +
               '</div>' +
             '</div>' +
-            '<div class="gossip-answer-content">' + a.content.replace(/\n/g,'<br>') + '</div>' +
+            '<div class="gossip-answer-content">' + escapeHtml(a.content).replace(/\n/g,'<br>') + '</div>' +
             '<div class="gossip-answer-actions">' +
               '<button class="gossip-answer-btn like-btn ' + likeClass + '" onclick="likeGossipAnswer(' + post.id + ',' + a.id + ')">❤️ ' + a.likes + '</button>' +
               '<button class="gossip-answer-btn" onclick="toggleGossipComments(' + a.id + ')">💬 ' + (a.comments ? a.comments.length : 0) + ' 评论</button>' +
@@ -9380,14 +9426,14 @@
           '<div class="gossip-card-tags">' + tagsHtml + '</div>' +
           '<div class="gossip-card-countdown ' + cd.class + '">' + cd.text + '</div>' +
         '</div>' +
-        '<div style="font-size:18px;font-weight:700;color:#2D1B4E;line-height:1.4;margin-bottom:10px">' + post.title + '</div>' +
-        '<div style="font-size:13px;color:var(--ink2);line-height:1.7;white-space:pre-wrap">' + post.desc + '</div>' +
+        '<div style="font-size:18px;font-weight:700;color:#2D1B4E;line-height:1.4;margin-bottom:10px">' + escapeHtml(post.title) + '</div>' +
+        '<div style="font-size:13px;color:var(--ink2);line-height:1.7;white-space:pre-wrap">' + escapeHtml(post.desc) + '</div>' +
       '</div>' +
-      '<div class="gossip-card-publisher" style="margin:0;cursor:pointer" onclick="showUserEggModal(\'' + post.publisher + '\')">' +
-        '<div class="gossip-card-avatar">' + post.publisherAvatar + '</div>' +
+      '<div class="gossip-card-publisher" style="margin:0;cursor:pointer" onclick="showUserEggModal(\'' + escapeInlineString(post.publisher) + '\')">' +
+        '<div class="gossip-card-avatar">' + escapeHtml(post.publisherAvatar) + '</div>' +
         '<div>' +
-          '<div class="gossip-card-pub-name">' + post.publisher + (post.isMine ? ' · 我发布的' : '') + '</div>' +
-          '<div class="gossip-card-pub-time">' + post.publishTime + ' · ' + post.likes + ' 人觉得有用</div>' +
+          '<div class="gossip-card-pub-name">' + escapeHtml(post.publisher) + (post.isMine ? ' · 我发布的' : '') + '</div>' +
+          '<div class="gossip-card-pub-time">' + escapeHtml(post.publishTime) + ' · ' + post.likes + ' 人觉得有用</div>' +
         '</div>' +
         '<div class="gossip-stat bounty ' + (post.adopted ? 'adopted' : '') + '" style="margin-left:auto" onclick="event.stopPropagation()">' + (post.adopted ? '✓ 已采纳' : (post.coinStatus === 'refunded' ? '💎 已退回' : '💎 ' + post.bounty + ' 蛋蛋币悬赏')) + '</div>' +
       '</div>' +
@@ -9440,7 +9486,6 @@
     post.adopted = true;
     post.adoptedAnswerId = answerId;
     post.coinStatus = 'transferred';
-    addNotif('你的回答在打听「' + post.title + '」中被采纳，获得 ' + bounty + ' 蛋蛋币', 'gossip_adopted');
     syncPointTransactions();
 
     toast('已采纳「' + answer.author + '」的回答，' + bounty + ' 蛋蛋币已发放');
@@ -9538,11 +9583,6 @@
       liked: false,
       comments: []
     });
-
-    /* 通知发布者有新回答 */
-    if(post.isMine === false && post.publisher){
-      addNotif(USER.nickname + ' 回答了你的打听「' + post.title + '」', 'gossip_answered');
-    }
 
     showGossipDetail(postId);
     renderGossipWall();

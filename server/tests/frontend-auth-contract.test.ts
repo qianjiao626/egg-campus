@@ -78,6 +78,13 @@ describe('my inquiries summary contract', () => {
     expect(html).toContain('replyCount');
     expect(html).toContain('我的打听回复');
   });
+
+  it('keeps inquiry notification context for the notification panel', () => {
+    expect(html).toContain('replyAuthorNickname');
+    expect(html).toContain('inquiryTitle');
+    expect(html).toContain('serverPayload');
+    expect(html).toContain('showGossipDetail(Number(item.refId))');
+  });
 });
 
 describe('real task publishing contract', () => {
@@ -86,5 +93,10 @@ describe('real task publishing contract', () => {
     expect(html).not.toContain("value.trim() || '分享学习经验，帮助学伴共同成长。'");
     expect(html).toContain("toast('请输入任务名称')");
     expect(html).toContain("toast('请输入任务描述')");
+  });
+
+  it('keeps development point-log records alongside server transactions', () => {
+    expect(html).toContain('var DEMO_POINT_LOGS =');
+    expect(html).toContain('DEMO_POINT_LOGS.concat(realRecords)');
   });
 });
