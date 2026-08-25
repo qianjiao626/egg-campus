@@ -104,6 +104,9 @@
   }
 
   var api = {
+    updateProfile: function (payload) {
+      return request('/api/users/me', { method: 'PUT', body: JSON.stringify(payload || {}) });
+    },
     sendMessage: function (payload) {
       return request('/api/buddy-box/messages', {
         method: 'POST',

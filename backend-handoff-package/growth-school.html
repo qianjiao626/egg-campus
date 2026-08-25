@@ -3418,14 +3418,14 @@
           html += '<div class="notif-item notif-invite' + (n.unread?' unread':'') + '">' +
             '<span class="dot' + (n.unread?'':' read') + '"></span>' +
             '<div class="body">' +
-              '<div class="txt"><b>' + n.from + '</b> 邀请你发布以下技能的教学任务：</div>' +
+              '<div class="txt"><b>' + escapeHtml(n.from || '蛋蛋用户') + '</b> 邀请你发布以下技能的教学任务：</div>' +
               '<div class="notif-invite-skills">' + skillsHtml + '</div>' +
               '<div class="tm">' + n.time + '</div>' +
             '</div></div>';
         } else {
           html += '<div class="notif-item' + (n.unread?' unread':'') + '" onclick="openNotification(' + n.id + ')">' +
             '<span class="dot' + (n.unread?'':' read') + '"></span>' +
-            '<div class="body"><div class="txt">' + n.text + '</div><div class="tm">' + n.time + '</div></div></div>';
+            '<div class="body"><div class="txt">' + escapeHtml(n.text || '') + '</div><div class="tm">' + escapeHtml(n.time || '') + '</div></div></div>';
         }
       });
     }
@@ -3435,16 +3435,15 @@
   function openNotification(id){
     var item = notifications.find(function(entry){ return entry.id === id; });
     if(!item) return;
-    if(item.type === 'inquiry_reply' && item.refId){
+    if((item.type === 'inquiry_reply' || item.type === 'inquiry_adopted') && item.refId){
       readNotif(item.id);
-      go('gossip');
-      setTimeout(function(){ openNotificationDetail(item); }, 120);
+      Promise.resolve(go('gossip')).then(function(){ openNotificationDetail(item); });
       return;
     }
     readNotif(item.id);
   }
   function openNotificationDetail(item){
-    if(item && item.type === 'inquiry_reply' && item.refId) showGossipDetail(Number(item.refId));
+    if(item && (item.type === 'inquiry_reply' || item.type === 'inquiry_adopted') && item.refId) showGossipDetail(Number(item.refId));
   }
   function publishFromNotif(skillName){
     toggleNotif();
@@ -5699,7 +5698,7 @@
     if(id === 'users') renderUsers();
     if(id === 'feedback' || id === 'myfeedback'){ syncFeedbackTickets(); updateFeedbackBadge(); }
     if(id === 'profile'){ renderChar(); renderCharUnlocked(); }
-    if(id === 'gossip'){ renderGossipWall(); renderGossipTopList(); syncGossipInquiries(); }
+    if(id === 'gossip'){ renderGossipWall(); renderGossipTopList(); return syncGossipInquiries(); }
     if(id === 'myinquiries') syncGossipInquiries();
     if(id === 'mytasks') syncMyTasks();
   }

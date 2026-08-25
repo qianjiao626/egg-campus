@@ -133,6 +133,7 @@ async function saveBuddyPreferences() {
   const textFields = [$('#school').value, $('#province').value, $('#city').value, $('#district').value];
   if (!textFields.every(validateUserText)) return;
   try {
+    if (typeof api.updateProfile === 'function') await api.updateProfile({school: $('#school').value.trim() || null});
     await buddyBoxDataAdapter.savePreferences({
       mbtiType: activeText('mbti')[0] || null,
       hobbies: activeText('hobby'),
@@ -161,6 +162,7 @@ function applyBuddyPreferences(preference) {
 
 async function syncBuddyPreferences() {
   try {
+    if (window.regionReady && typeof window.regionReady.then === 'function') await window.regionReady;
     const result = await buddyBoxDataAdapter.getPreferences();
     applyBuddyPreferences(result?.preference);
   } catch (_) { reportSyncFailure('偏好加载失败，请稍后重试'); }

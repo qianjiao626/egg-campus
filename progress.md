@@ -229,6 +229,6 @@
 - [x] 好友关系更新时间 tie-break、聊天历史最近 100 条。
 - [x] 新增学生侧边栏“我的打听”独立页面，继续复用 `/api/inquiries/mine` 私有查询。
 - [x] DEMO 发布任务标记并在真实任务同步时保留，不混入真实任务过滤结果。
-- [x] `npm test` 70/70、`npm run build`、脚本语法和 `git diff --check` 通过。
-- [x] 交付包 r14/r13 已生成并校验 SHA-256，排除 `.env`、密码文件、`node_modules`、`dist`。
+- [x] `npm test` 72/72、`npm run build`、脚本语法和 `git diff --check` 通过。
+- [x] 交付包 r14/r13 已重新生成并校验 SHA-256，排除 `.env`、密码文件、`node_modules`、`dist`。
 - [ ] 生产部署仍等待腾讯云 CVM MFA；本轮没有远端数据库、文件或 PM2 写操作。

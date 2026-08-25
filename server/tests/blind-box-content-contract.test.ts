@@ -41,9 +41,22 @@ describe('blind-box content-only contract', () => {
     expect(hostApi).toContain("'/api/inquiries/mine'");
   });
 
+  it('escapes notification text and waits for inquiry hydration before opening', () => {
+    expect(host).toContain("escapeHtml(n.text || '')");
+    expect(host).toContain("item.type === 'inquiry_adopted'");
+    expect(host).toContain('Promise.resolve(go(\'gossip\')).then');
+    expect(host).not.toContain('setTimeout(function(){ openNotificationDetail(item); }, 120)');
+  });
+
   it('preserves DEMO published task records during real task sync', () => {
     expect(host).toContain('data-demo="true"');
     expect(host).toContain("getAttribute('data-demo') !== 'true'");
+  });
+
+  it('persists blind-box school and waits for region data before restoring', () => {
+    expect(componentApp).toContain("api.updateProfile({school:");
+    expect(componentApi).toContain("request('/api/users/me'");
+    expect(readFileSync(resolve(packageRoot, 'blind-box', 'city-data.js'), 'utf8')).toContain('window.regionReady');
   });
 
   it('leaves scrolling to the host container', () => {

@@ -72,7 +72,7 @@ citySelect.addEventListener('change', () => {
   districtSelect.disabled = false;
 });
 
-fetch('region-data.json').then(response => response.json()).then(initializeRegions).catch(() => {
+window.regionReady = fetch('region-data.json').then(response => response.json()).then(initializeRegions).catch(() => {
   const fallback = Object.fromEntries(Object.entries(cityGroups).map(([province, cities]) => [province, Object.fromEntries(cities.map(city => [city, []]))]));
   initializeRegions(fallback);
 });
