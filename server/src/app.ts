@@ -844,7 +844,7 @@ export function buildApp(): FastifyInstance {
     const mine = await prisma.buddyPreference.findUnique({ where: { userId } });
     const users = await prisma.user.findMany({
       where: { id: { not: userId }, status: 'active', OR: [{ buddyPreference: null }, { buddyPreference: { stealth: false } }] },
-      select: { id: true, nickname: true, school: true, major: true, city: true, mbtiType: true, eggRarity: true, buddyPreference: true },
+      select: { id: true, nickname: true, school: true, major: true, city: true, bio: true, mbtiType: true, eggRarity: true, buddyPreference: true },
       orderBy: { createdAt: 'desc' }, take: 50,
     });
     const profileIds = users.map((user) => user.id);
@@ -891,7 +891,7 @@ export function buildApp(): FastifyInstance {
           : relationship?.status === 'rejected' && relationship.updatedAt.getTime() > Date.now() - 30 * 60 * 1000
             ? 'rejected_cooldown'
             : 'none';
-      return { id: user.id.toString(), name: user.nickname, meta: [user.school, user.major].filter(Boolean).join(' · ') || '蛋蛋校园用户', city: user.city, mbtiType: user.buddyPreference?.mbtiType ?? user.mbtiType, hobbies, todayActions, rarity: user.eggRarity, friendStatus, friendRequestId: relationship?.id.toString() ?? null, score: (sameMbti ? 3 : 0) + overlap + (actionMatch ? 4 : 0) };
+      return { id: user.id.toString(), name: user.nickname, meta: [user.school, user.major].filter(Boolean).join(' · ') || '蛋蛋校园用户', city: user.city, bio: user.bio || '', mbtiType: user.buddyPreference?.mbtiType ?? user.mbtiType, hobbies, todayActions, rarity: user.eggRarity, friendStatus, friendRequestId: relationship?.id.toString() ?? null, score: (sameMbti ? 3 : 0) + overlap + (actionMatch ? 4 : 0) };
     }).sort((a, b) => b.score - a.score).map(({ score: _score, ...profile }) => profile);
     return { profiles };
   });
@@ -939,7 +939,7 @@ export function buildApp(): FastifyInstance {
   app.post('/api/buddy-box/messages', { preHandler: app.authenticate }, async (request, reply) => {
     const input = buddyMessageSchema.parse(request.body);
     const senderId = currentUserId(request);
-    assertSafeText(input.text);
+    assertSafeText(input.text, input.source);
     if (input.recipientId === senderId) return reply.code(400).send({ error: 'INVALID_RECIPIENT', message: '不能给自己发送留言' });
     const recipient = await prisma.user.findFirst({ where: { id: input.recipientId, status: 'active' }, select: { id: true } });
     if (!recipient) return reply.code(404).send({ error: 'USER_NOT_FOUND', message: '用户不存在' });

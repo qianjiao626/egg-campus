@@ -33,6 +33,26 @@ describe('buddy box API contract', () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it('rejects a blocked message source before writing a message', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+    vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
+    const create = vi.spyOn(prisma.buddyMessage, 'create');
+    const token = await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/buddy-box/messages',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { recipientId: '2', text: '你好', source: '诈骗' },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().message).toBe('内容包含敏感词，请修改后再提交');
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('persists a user-owned advanced buddy feature action', async () => {
     process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
     process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
@@ -136,14 +156,15 @@ describe('buddy box API contract', () => {
     vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
     vi.spyOn(prisma.buddyPreference, 'findUnique').mockResolvedValue({ userId: 1n, mbtiType: 'INTP', hobbies: ['读书'], todayActions: [], province: null, city: null, district: null, stealth: false } as never);
     vi.spyOn(prisma.user, 'findMany').mockResolvedValue([
-      { id: 3n, nickname: '不匹配行动', school: '学校', major: '专业', city: '南京', mbtiType: 'INTP', eggRarity: 'common', createdAt: new Date(3), buddyPreference: { mbtiType: 'INTP', hobbies: ['读书'], todayActions: ['打游戏'], stealth: false } },
-      { id: 2n, nickname: '同频行动', school: '学校', major: '专业', city: '南京', mbtiType: 'INTP', eggRarity: 'common', createdAt: new Date(2), buddyPreference: { mbtiType: 'INTP', hobbies: ['读书'], todayActions: ['一起自习'], stealth: false } },
+      { id: 3n, nickname: '不匹配行动', school: '学校', major: '专业', city: '南京', bio: '最近在做项目', mbtiType: 'INTP', eggRarity: 'common', createdAt: new Date(3), buddyPreference: { mbtiType: 'INTP', hobbies: ['读书'], todayActions: ['打游戏'], stealth: false } },
+      { id: 2n, nickname: '同频行动', school: '学校', major: '专业', city: '南京', bio: '喜欢结伴自习', mbtiType: 'INTP', eggRarity: 'common', createdAt: new Date(2), buddyPreference: { mbtiType: 'INTP', hobbies: ['读书'], todayActions: ['一起自习'], stealth: false } },
     ] as never);
     vi.spyOn(prisma.buddyFriendRequest, 'findMany').mockResolvedValue([] as never);
     const token = await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
     const response = await app.inject({ method: 'GET', url: '/api/buddy-box/recommendations?action=' + encodeURIComponent('一起自习'), headers: { authorization: `Bearer ${token}` } });
     expect(response.statusCode).toBe(200);
     expect(response.json().profiles[0].id).toBe('2');
+    expect(response.json().profiles[0].bio).toBe('喜欢结伴自习');
   });
 
   it('restores the authenticated user feature records after reload', async () => {

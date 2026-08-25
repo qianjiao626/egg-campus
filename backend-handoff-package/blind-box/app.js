@@ -192,7 +192,7 @@ async function syncBuddyProfiles(action) {
     const result = await buddyBoxDataAdapter.getRecommendations(action);
     if (!Array.isArray(result?.profiles) || !result.profiles.length) return;
     profiles.splice(0, profiles.length, ...result.profiles.map((profile, index) => ({
-      id: String(profile.id), name: profile.name, meta: profile.meta || '蛋蛋校园用户', avatar: ['avatar-lin','avatar-man','avatar-zhou','avatar-yao','avatar-gulu','avatar-youzi'][index % 6], score: '同频推荐', mbtiType: profile.mbtiType || '', hobbies: profile.hobbies || [], todayActions: profile.todayActions || [], friendStatus: profile.friendStatus || 'none', friendRequestId: profile.friendRequestId || null, copy: '最近在做：' + ((profile.hobbies || []).join('、') || '暂未填写') + '；今天想做：' + ((profile.todayActions || []).join('、') || '暂未填写'), tags: [profile.mbtiType || '蛋蛋用户'].concat(profile.hobbies || []), reason: '根据 MBTI、最近在做和今天想做的偏好匹配'
+       id: String(profile.id), name: profile.name, meta: profile.meta || '蛋蛋校园用户', avatar: ['avatar-lin','avatar-man','avatar-zhou','avatar-yao','avatar-gulu','avatar-youzi'][index % 6], score: '同频推荐', mbtiType: profile.mbtiType || '', bio: profile.bio || '', hobbies: profile.hobbies || [], todayActions: profile.todayActions || [], friendStatus: profile.friendStatus || 'none', friendRequestId: profile.friendRequestId || null, copy: '最近在做：' + (profile.bio || (profile.hobbies || []).join('、') || '暂未填写') + '；今天想做：' + ((profile.todayActions || []).join('、') || '暂未填写'), tags: [profile.mbtiType || '蛋蛋用户'].concat(profile.hobbies || []), reason: '根据 MBTI、最近在做和今天想做的偏好匹配'
     })));
     rotation = 0;
     renderProfiles();
@@ -364,7 +364,7 @@ function openProfileDetails(profile) {
   $('#profileDetailAvatar').className = `match-avatar person-avatar ${profile.avatar}`;
   $('#profileDetailName').textContent = profile.name;
   $('#profileDetailMeta').textContent = profile.meta;
-  $('#profileDetailBody').innerHTML = `<div><b>MBTI：</b>${escapeHtml(profile.mbtiType || (profile.tags || []).find(tag => /^[EI][NS][TF][PJ]$/.test(tag)) || '暂未填写')}</div><div><b>最近在做：</b>${escapeHtml((profile.hobbies || []).join('、') || profile.copy || '暂未填写')}</div><div><b>今天想做：</b>${escapeHtml((profile.todayActions || []).join('、') || '暂未填写')}</div><div><b>匹配理由：</b>${escapeHtml(profile.reason || '服务端相似度推荐')}</div>`;
+  $('#profileDetailBody').innerHTML = `<div><b>MBTI：</b>${escapeHtml(profile.mbtiType || (profile.tags || []).find(tag => /^[EI][NS][TF][PJ]$/.test(tag)) || '暂未填写')}</div><div><b>最近在做：</b>${escapeHtml(profile.bio || (profile.hobbies || []).join('、') || profile.copy || '暂未填写')}</div><div><b>今天想做：</b>${escapeHtml((profile.todayActions || []).join('、') || '暂未填写')}</div><div><b>匹配理由：</b>${escapeHtml(profile.reason || '服务端相似度推荐')}</div>`;
   const friendButton = $('#profileDetailFriend');
   const friendStatus = profile.friendStatus || 'none';
   friendButton.disabled = friendStatus !== 'none';

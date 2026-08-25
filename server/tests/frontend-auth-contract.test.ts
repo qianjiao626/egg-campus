@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 const packageRoot = resolve(process.cwd(), '..', 'backend-handoff-package');
 const html = readFileSync(resolve(packageRoot, 'growth-school.html'), 'utf8');
 const client = readFileSync(resolve(packageRoot, 'api-client.js'), 'utf8');
+const sensitiveFilter = readFileSync(resolve(packageRoot, 'sensitive-filter.js'), 'utf8');
 
 describe('frontend password reset contract', () => {
   it('exposes reset fields and calls the password reset API', () => {
@@ -49,6 +50,13 @@ describe('frontend password reset contract', () => {
     expect(client).toContain("if (!nick || !password || !confirm)");
     expect(client).toContain("if ((email || phone) && code)");
     expect(html).toContain('邮箱和手机号均为可选；填写验证码后才会验证联系方式。');
+  });
+
+  it('uses the same bundled sensitive-word filter before every client write', () => {
+    expect(html).toContain('src="sensitive-filter.js"');
+    expect(client).toContain('window.DandanSensitiveFilter');
+    expect(sensitiveFilter).toContain('诈骗');
+    expect(sensitiveFilter).toContain('containsBlockedTerm');
   });
 });
 

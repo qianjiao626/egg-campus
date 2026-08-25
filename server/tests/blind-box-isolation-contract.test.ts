@@ -49,4 +49,8 @@ describe('blind-box page isolation contract', () => {
   it('refreshes recommendation relationship state after accepting a friend', () => {
     expect(client).toContain('item.accepted = true; item.unread = false; renderInbox(); await syncBuddyProfiles');
   });
+
+  it('renders the persisted profile bio in the match detail panel', () => {
+    expect(client).toContain('profile.bio ||');
+  });
 });

@@ -33,4 +33,12 @@ describe('blind-box content-only contract', () => {
     expect(host).toContain('scrolling="no"');
     expect(host).toContain('dandan-buddy-height');
   });
+
+  it('keeps mobile overrides after desktop base styles', () => {
+    const mobileIndex = host.lastIndexOf('@media (max-width:900px)');
+    expect(mobileIndex).toBeGreaterThan(host.indexOf('.app{'));
+    const mobileRules = host.slice(mobileIndex, host.indexOf('@media (max-width:620px)', mobileIndex));
+    expect(mobileRules).toContain('.sidebar');
+    expect(mobileRules).toContain('.main');
+  });
 });

@@ -25,6 +25,9 @@
 
   var apiClient = window.apiClient = {
     validateUserText: function (value) {
+      if (window.DandanSensitiveFilter && window.DandanSensitiveFilter.containsBlockedTerm(value)) {
+        return '内容包含敏感词，请修改后再提交';
+      }
       var terms = ['加微信', '加我微信', '手机号', '裸聊', '色情', '博彩', '刷单'];
       var text = String(value == null ? '' : value).replace(/\s+/g, '');
       return terms.some(function (term) { return text.indexOf(term) >= 0; }) ? '内容包含敏感词，请修改后再提交' : null;
