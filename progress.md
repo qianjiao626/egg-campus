@@ -232,3 +232,12 @@
 - [x] `npm test` 72/72、`npm run build`、脚本语法和 `git diff --check` 通过。
 - [x] 交付包 r14/r13 已重新生成并校验 SHA-256，排除 `.env`、密码文件、`node_modules`、`dist`。
 - [ ] 生产部署仍等待腾讯云 CVM MFA；本轮没有远端数据库、文件或 PM2 写操作。
+
+## 2026-08-26 最终本地交付
+
+- [x] 通知邀请技能与时间字段双层转义，补齐契约断言。
+- [x] 生产部署脚本校验完整 `DATABASE_URL`、HOST、CORS、短信 provider 和尾部反斜杠；认证 smoke 支持 URL 编码密码。
+- [x] `npm test` 72/72、`npm run build`、前端脚本/内联脚本语法、`git diff --check` 通过。
+- [x] Chromium 390x844、768x1024、1440x900 三视口截图通过，盲盒直达页保持纯内容组件。
+- [x] 交付包 r15/r14 已生成并校验：前端 SHA-256 `8A46347AEA8BEE056F99B9AD2E86B05A6168721E7E3B50BDDDA9ABBDD1B4D089`；后端 SHA-256 `EBAA0C87122B56C9E6D741DCD0E4E911B7CA8CE01682DD775897F2431DB2D519`。
+- [ ] CVM MFA 会话恢复后，仍须按备份 -> 迁移 -> 构建 -> PM2 日志 -> `/health` -> 三端公网 smoke 发布。

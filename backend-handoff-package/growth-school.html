@@ -3413,14 +3413,17 @@
         if(n.type === 'invite'){
           // 邀请发布任务通知
           var skillsHtml = (n.skills||[]).map(function(s){
-            return '<span class="notif-skill-tag" onclick="event.stopPropagation();publishFromNotif(\'' + s + '\')">💰 ' + s + '</span>';
+            var skillText = String(s == null ? '' : s);
+            var skillArg = skillText.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+            var clickHandler = "event.stopPropagation();publishFromNotif('" + skillArg + "')";
+            return '<span class="notif-skill-tag" onclick="' + escapeHtml(clickHandler) + '">💰 ' + escapeHtml(skillText) + '</span>';
           }).join('');
           html += '<div class="notif-item notif-invite' + (n.unread?' unread':'') + '">' +
             '<span class="dot' + (n.unread?'':' read') + '"></span>' +
             '<div class="body">' +
               '<div class="txt"><b>' + escapeHtml(n.from || '蛋蛋用户') + '</b> 邀请你发布以下技能的教学任务：</div>' +
               '<div class="notif-invite-skills">' + skillsHtml + '</div>' +
-              '<div class="tm">' + n.time + '</div>' +
+              '<div class="tm">' + escapeHtml(n.time || '') + '</div>' +
             '</div></div>';
         } else {
           html += '<div class="notif-item' + (n.unread?' unread':'') + '" onclick="openNotification(' + n.id + ')">' +

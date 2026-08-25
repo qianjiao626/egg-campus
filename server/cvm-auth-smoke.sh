@@ -11,7 +11,20 @@ NICK="smoke-${STAMP}"
 COOKIE_FILE=/tmp/dandan-auth-smoke.cookies
 trap 'MYSQL_PWD="${MYSQL_PWD:-}" mysql -h127.0.0.1 -uapp_user dandan_world -Nse "DELETE FROM users WHERE email=\"${EMAIL}\";" >/dev/null 2>&1 || true; rm -f "$COOKIE_FILE"' EXIT
 
-export MYSQL_PWD="$(sed -n 's#^DATABASE_URL="mysql://app_user:\([^@]*\)@127.0.0.1:3306/dandan_world"$#\1#p' .env)"
+export MYSQL_PWD="$(python3 - <<'PY'
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+
+raw = next((line.split('=', 1)[1].strip() for line in Path('.env').read_text().splitlines()
+            if line.startswith('DATABASE_URL=')), '')
+url = raw.strip('"')
+parsed = urlsplit(url)
+if parsed.scheme != 'mysql' or parsed.hostname != '127.0.0.1' or parsed.port != 3306 \
+        or parsed.username != 'app_user' or parsed.path != '/dandan_world' or parsed.password is None:
+    raise SystemExit('DATABASE_URL must contain app_user, password, 127.0.0.1:3306 and dandan_world')
+print(unquote(parsed.password), end='')
+PY
+)"
 
 curl -fsS "$HEALTH_URL" >/dev/null
 

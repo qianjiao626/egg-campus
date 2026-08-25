@@ -43,6 +43,9 @@ describe('blind-box content-only contract', () => {
 
   it('escapes notification text and waits for inquiry hydration before opening', () => {
     expect(host).toContain("escapeHtml(n.text || '')");
+    expect(host).toContain('escapeHtml(skillText)');
+    expect(host).toContain('escapeHtml(clickHandler)');
+    expect(host).toContain("escapeHtml(n.time || '')");
     expect(host).toContain("item.type === 'inquiry_adopted'");
     expect(host).toContain('Promise.resolve(go(\'gossip\')).then');
     expect(host).not.toContain('setTimeout(function(){ openNotificationDetail(item); }, 120)');
