@@ -113,3 +113,11 @@
 - [x] 已完成 58 项全量测试和 TypeScript 构建。
 - [x] 已生成并核验前端 r11、后端 r10 包：18/46 文件、禁入项 0，SHA-256 已写入验证记录。
 - [ ] CVM 恢复可验证会话后，严格按备份 -> 迁移状态核对 -> 构建 -> PM2 日志 -> `/health` -> 三端公网 smoke 发布。
+
+## 2026-08-26（关机恢复后的工具链修复）
+
+- [x] 恢复 Codex 本地执行宿主并确认命令执行可用。
+- [x] 修复 agent-browser Windows 冷启动配置，专用 Chrome 自动启动、连接、快照和截图均已验证。
+- [x] 清理不完整的 `animation-systems.partial-install` 遗留目录。
+- [x] 新增 `docs/skills-healthcheck.ps1`，验证 74 个 Codex skill、57 个 Agents skill、5 个官方插件 manifest 和 agent-browser 配置。
+- [x] 工具链验收输出 `SKILLS_HEALTH_OK`；生产发布状态保持未上线，避免把工具恢复误报为业务发布完成。

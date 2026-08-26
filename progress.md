@@ -252,3 +252,20 @@
 - [x] 交付包 r15/r14 已生成并校验：前端 SHA-256 `8A46347AEA8BEE056F99B9AD2E86B05A6168721E7E3B50BDDDA9ABBDD1B4D089`；后端 SHA-256 `EBAA0C87122B56C9E6D741DCD0E4E911B7CA8CE01682DD775897F2431DB2D519`。
 - [ ] CVM MFA 会话恢复后，仍须按备份 -> 迁移 -> 构建 -> PM2 日志 -> `/health` -> 三端公网 smoke 发布。
 - [x] 最终提交 `aed62ef` 已推送至 GitHub `qianjiao626/egg-campus:main`。
+
+## 2026-08-26（关机恢复与 Skills 可用性修复）
+
+- [x] 恢复 Codex 本地执行宿主，确认 `codex-code-mode-host.exe` 存在且可执行。
+- [x] 清理关机中断遗留的空 `animation-systems.partial-install` 目录，避免技能发现器误判。
+- [x] 修复 `C:\Users\梁惠\.agent-browser\config.json`，使用字符串形式的 `--no-sandbox` 参数并禁用空闲回收，适配 Windows 冷启动。
+- [x] `agent-browser` 冷启动验证通过：自动启动 Chrome、打开 `about:blank` 和 `https://example.com`，标题、URL、快照和截图均正常；截图：`output/skills-cold-start.png`。
+- [x] 技能健康检查通过：Codex skill 74 份、Agents skill 57 份；官方 documents/pdf/presentations/spreadsheets/template-creator 5 个插件 manifest 均可解析。
+- [x] 新增可重复检查脚本：`docs/skills-healthcheck.ps1`，输出 `SKILLS_HEALTH_OK`。
+- [ ] 腾讯云生产发布仍按原门禁继续：数据库备份和 Prisma 迁移已完成，后端构建、PM2 切换、日志、`/health` 和公网 smoke 尚未完成。
+
+## 2026-08-26（重试复核）
+
+- [x] 健康检查重跑通过：74 个 Codex skill、57 个 Agents skill、5 个官方插件 manifest、执行宿主和 agent-browser 配置均正常。
+- [x] `agent-browser skills get core` 及浏览器连接、导航、标题/URL、无障碍快照、截图调用均正常；临时输出已清理。
+- [x] `git diff --check` 通过。
+- [ ] CVM 发布仍等待重新登录和 MFA；未将工具链健康误报为生产上线。
