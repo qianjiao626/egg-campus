@@ -241,3 +241,4 @@
 - [x] Chromium 390x844、768x1024、1440x900 三视口截图通过，盲盒直达页保持纯内容组件。
 - [x] 交付包 r15/r14 已生成并校验：前端 SHA-256 `8A46347AEA8BEE056F99B9AD2E86B05A6168721E7E3B50BDDDA9ABBDD1B4D089`；后端 SHA-256 `EBAA0C87122B56C9E6D741DCD0E4E911B7CA8CE01682DD775897F2431DB2D519`。
 - [ ] CVM MFA 会话恢复后，仍须按备份 -> 迁移 -> 构建 -> PM2 日志 -> `/health` -> 三端公网 smoke 发布。
+- [x] 最终提交 `aed62ef` 已推送至 GitHub `qianjiao626/egg-campus:main`。
