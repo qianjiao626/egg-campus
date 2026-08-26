@@ -52,6 +52,11 @@ model User {
   lastLoginAt     DateTime?  @map("last_login_at")
   verifiedPhoneAt DateTime?  @map("verified_phone_at")
   verifiedEmailAt DateTime?  @map("verified_email_at")
+  nicknameChangedAt DateTime? @map("nickname_changed_at")
+  mustChangePassword Boolean  @default(false) @map("must_change_password")
+  protectedAdminKey String?   @unique @map("protected_admin_key") @db.VarChar(40)
+  interests        Json?
+  skills           Json?
 
   account                     PointAccount?
   characters                  UserCharacter[]
@@ -75,6 +80,14 @@ model User {
   taskClaims                  TaskClaim[]          @relation("TaskClaimer")
   ratingsGiven                Rating[]             @relation("RatingFromUser")
   ratingsReceived             Rating[]             @relation("RatingToUser")
+  roleGrants                  UserRoleGrant[]       @relation("RoleGrantUser")
+  roleGrantsIssued            UserRoleGrant[]       @relation("RoleGrantGrantor")
+  roleGrantsRevoked           UserRoleGrant[]       @relation("RoleGrantRevoker")
+  roleGrantAudits             RoleGrantAudit[]
+  feedbackMessages            FeedbackMessage[]
+  feedbackAttachmentsUploaded FeedbackAttachment[] @relation("FeedbackAttachmentUploader")
+  feedbackAttachmentsHidden   FeedbackAttachment[] @relation("FeedbackAttachmentHider")
+  resourceReadStates          ResourceReadState[]
 
   @@map("users")
 }
@@ -198,6 +211,98 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([targetType, targetId])
   @@map("audit_logs")
+}
+
+model Role {
+  id              BigInt   @id @default(autoincrement())
+  code            String   @unique @db.VarChar(80)
+  name            String   @db.VarChar(80)
+  description     String?  @db.VarChar(500)
+  enabled         Boolean  @default(true)
+  systemProtected Boolean  @default(false) @map("system_protected")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  permissions RolePermission[]
+  grants      UserRoleGrant[]
+
+  @@index([enabled, createdAt])
+  @@map("roles")
+}
+
+model Permission {
+  id          BigInt   @id @default(autoincrement())
+  key         String   @unique @db.VarChar(100)
+  resource    String   @db.VarChar(50)
+  action      String   @db.VarChar(80)
+  description String   @db.VarChar(500)
+  risk        String   @default("normal") @db.VarChar(20)
+  protected   Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  roles RolePermission[]
+
+  @@index([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       BigInt   @map("role_id")
+  permissionId BigInt   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model UserRoleGrant {
+  id           BigInt    @id @default(autoincrement())
+  userId       BigInt    @map("user_id")
+  roleId       BigInt    @map("role_id")
+  grantedBy    BigInt?   @map("granted_by")
+  startsAt     DateTime  @default(now()) @map("starts_at")
+  expiresAt    DateTime? @map("expires_at")
+  isPermanent  Boolean   @default(false) @map("is_permanent")
+  revokedAt    DateTime? @map("revoked_at")
+  revokedBy    BigInt?   @map("revoked_by")
+  revokeReason String?   @map("revoke_reason") @db.VarChar(500)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user          User             @relation("RoleGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+  role          Role             @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  grantedByUser User?            @relation("RoleGrantGrantor", fields: [grantedBy], references: [id], onDelete: SetNull)
+  revokedByUser User?            @relation("RoleGrantRevoker", fields: [revokedBy], references: [id], onDelete: SetNull)
+  audits        RoleGrantAudit[]
+
+  @@index([userId, revokedAt, startsAt, expiresAt])
+  @@index([roleId, revokedAt])
+  @@index([grantedBy])
+  @@index([revokedBy])
+  @@map("user_role_grants")
+}
+
+model RoleGrantAudit {
+  id         BigInt    @id @default(autoincrement())
+  grantId    BigInt?   @map("grant_id")
+  actorId    BigInt?   @map("actor_id")
+  action     String    @db.VarChar(40)
+  beforeData Json?     @map("before_data")
+  afterData  Json?     @map("after_data")
+  reason     String?   @db.VarChar(500)
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  grant UserRoleGrant? @relation(fields: [grantId], references: [id], onDelete: SetNull)
+  actor User?          @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([grantId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@map("role_grant_audits")
 }
 
 model BuddyPreference {
@@ -334,13 +439,77 @@ model Feedback {
   source      String?  @db.VarChar(100)
   status      String   @default("open") @db.VarChar(20)
   adminRemark String?  @map("admin_remark") @db.Text
+  closedAt    DateTime? @map("closed_at")
+  reopenedAt  DateTime? @map("reopened_at")
+  reopenCount Int       @default(0) @map("reopen_count")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    FeedbackMessage[]
+  attachments FeedbackAttachment[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@map("feedback")
+}
+
+model FeedbackMessage {
+  id         BigInt   @id @default(autoincrement())
+  feedbackId BigInt   @map("feedback_id")
+  authorId   BigInt?  @map("author_id")
+  authorType String   @map("author_type") @db.VarChar(20)
+  content    String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  feedback   Feedback             @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  author     User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  attachments FeedbackAttachment[]
+
+  @@index([feedbackId, createdAt])
+  @@index([authorId, createdAt])
+  @@map("feedback_messages")
+}
+
+model FeedbackAttachment {
+  id           BigInt    @id @default(autoincrement())
+  feedbackId   BigInt    @map("feedback_id")
+  messageId    BigInt?   @map("message_id")
+  uploaderId   BigInt    @map("uploader_id")
+  storageKey   String    @unique @map("storage_key") @db.VarChar(120)
+  originalName String    @map("original_name") @db.VarChar(255)
+  mimeType     String    @map("mime_type") @db.VarChar(80)
+  sizeBytes    Int       @map("size_bytes")
+  hiddenAt     DateTime? @map("hidden_at")
+  hiddenBy     BigInt?   @map("hidden_by")
+  hiddenReason String?   @map("hidden_reason") @db.VarChar(500)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  feedback     Feedback         @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  message      FeedbackMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  uploader     User             @relation("FeedbackAttachmentUploader", fields: [uploaderId], references: [id], onDelete: Restrict)
+  hiddenByUser User?            @relation("FeedbackAttachmentHider", fields: [hiddenBy], references: [id], onDelete: SetNull)
+
+  @@index([feedbackId, createdAt])
+  @@index([messageId])
+  @@index([uploaderId])
+  @@index([hiddenBy])
+  @@map("feedback_attachments")
+}
+
+model ResourceReadState {
+  id            BigInt   @id @default(autoincrement())
+  userId        BigInt   @map("user_id")
+  resourceType  String   @map("resource_type") @db.VarChar(40)
+  resourceId    String   @map("resource_id") @db.VarChar(100)
+  lastMessageId BigInt?  @map("last_message_id")
+  lastReadAt    DateTime @default(now()) @map("last_read_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceType, resourceId])
+  @@index([userId, resourceType, lastReadAt])
+  @@map("resource_read_states")
 }
 
 model Inquiry {
