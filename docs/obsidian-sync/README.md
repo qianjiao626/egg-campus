@@ -1,7 +1,7 @@
 ---
 title: 蛋蛋校园 Obsidian 同步库
 type: index
-updated: 2026-08-24
+updated: 2026-08-26
 tags:
   - dandan-campus
   - obsidian
@@ -23,6 +23,7 @@ tags:
 - [[06-变更日志]]：按日期记录重要变更
 - [[07-WorkBuddy协作提示词]]：可直接发送给 WorkBuddy 的项目提示词
 - [[08-WorkBuddy实时协作协议]]：GitHub、Obsidian 与 Codex 的交接方式
+- [[09-资料反馈与权限重构]]：个人资料、任务中心、反馈时间线与细粒度 RBAC 设计
 - [[10-TRAEWORK精简提示词]]：可直接发送给 TRAEWORK 的精简协作提示词
 
 ## 同步约定
