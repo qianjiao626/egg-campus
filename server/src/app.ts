@@ -37,6 +37,7 @@ import {
 } from './auth/validation.js';
 import { InMemoryRateLimiter } from './rate-limit.js';
 import { assertSafeJsonText, assertSafeText, CONTENT_BLOCKED_MESSAGE } from './content-filter.js';
+import { DAILY_TASK_PUBLISH_LIMIT, isSameUtcDay, publishRewardForAttempt } from './task-rules.js';
 
 const categories = ['study', 'job', 'side', 'hobby', 'game', 'life'] as const;
 
@@ -49,6 +50,12 @@ class VerificationTokenError extends Error {
 class BuddyPrestigeError extends Error {
   constructor(message: string) {
     super(message);
+  }
+}
+
+class DailyTaskPublishLimitError extends Error {
+  constructor() {
+    super('TASK_DAILY_LIMIT_REACHED');
   }
 }
 
@@ -290,8 +297,29 @@ export function buildApp(): FastifyInstance {
   app.post('/api/tasks', { preHandler: app.authenticate }, async (request, reply) => {
     const input = taskCreateSchema.parse(request.body);
     assertSafeText(input.title, input.description, input.remark, input.contact, input.requirements);
-    const task = await prisma.task.create({ data: { userId: currentUserId(request), title: input.title, description: input.description, remark: input.remark ?? null, taskType: input.taskType, claimMode: input.claimMode, reward: input.reward, maxClaimers: input.maxClaimers, contact: input.contact ?? null, requirements: input.requirements ?? null } });
-    return reply.code(201).send({ task: serializeTask(task) });
+    const userId = currentUserId(request);
+    try {
+      const task = await prisma.$transaction(async (tx) => {
+        const now = new Date();
+        // Lock the stats row so concurrent publishes cannot consume the same daily slot.
+        await tx.$queryRaw(Prisma.sql`SELECT user_id FROM user_stats WHERE user_id = ${userId} FOR UPDATE`);
+        const stats = await tx.userStats.findUnique({ where: { userId } });
+        const sameDay = isSameUtcDay(stats?.dailyPublishDate, now);
+        const currentCount = sameDay ? (stats?.dailyPublishCount ?? 0) : 0;
+        const attempt = currentCount + 1;
+        const publishExpReward = publishRewardForAttempt(attempt);
+        if (!publishExpReward) throw new DailyTaskPublishLimitError();
+        await tx.userStats.update({
+          where: { userId },
+          data: { dailyPublishDate: now, dailyPublishCount: attempt, publishedTasks: { increment: 1 } },
+        });
+        return tx.task.create({ data: { userId, title: input.title, description: input.description, remark: input.remark ?? null, taskType: input.taskType, claimMode: input.claimMode, reward: input.reward, publishExpReward, maxClaimers: input.maxClaimers, contact: input.contact ?? null, requirements: input.requirements ?? null } });
+      });
+      return reply.code(201).send({ task: serializeTask(task) });
+    } catch (error) {
+      if (error instanceof DailyTaskPublishLimitError) return reply.code(429).send({ error: error.message, message: `每日最多发布 ${DAILY_TASK_PUBLISH_LIMIT} 次任务` });
+      throw error;
+    }
   });
 
   app.get('/api/tasks/mine', { preHandler: app.authenticate }, async (request) => {
@@ -311,12 +339,16 @@ export function buildApp(): FastifyInstance {
     let task;
     try {
       task = await prisma.$transaction(async (tx) => {
-        if (input.status === 'approved' && existing.userId !== currentUserId(request) && existing.reward > 0 && (existing.taskType === 'help' || existing.taskType === 'team' || existing.taskType === 'reward')) {
-          const units = existing.taskType === 'team' ? existing.maxClaimers : 1;
-          await applyBuddyPointDelta(tx, existing.userId, -(existing.reward * units), `task-review-freeze:${existing.id.toString()}`, 'task_reward_frozen', `任务审核冻结蛋蛋币:${existing.id.toString()}`);
+        const current = await tx.task.findUnique({ where: { id: params.id } });
+        if (!current) throw new Error('TASK_NOT_FOUND');
+        const awardingExperience = input.status === 'approved' && current.status !== 'approved' && current.publishExpReward > 0;
+        if (input.status === 'approved' && current.userId !== currentUserId(request) && current.reward > 0 && (current.taskType === 'help' || current.taskType === 'team' || current.taskType === 'reward')) {
+          const units = current.taskType === 'team' ? current.maxClaimers : 1;
+          await applyBuddyPointDelta(tx, current.userId, -(current.reward * units), `task-review-freeze:${current.id.toString()}`, 'task_reward_frozen', `任务审核冻结蛋蛋币:${current.id.toString()}`);
         }
-        const updated = await tx.task.update({ where: { id: params.id }, data: { status: input.status, reviewReason: input.reviewReason ?? null, reviewedAt: input.status === 'approved' || input.status === 'needs_revision' ? now : existing.reviewedAt, completedAt: input.status === 'completed' ? now : existing.completedAt } });
-        await tx.notification.create({ data: { userId: existing.userId, type: input.status === 'approved' ? 'task_review_approved' : 'task_review_needs_revision', refId: existing.id.toString(), payload: { taskId: existing.id.toString(), status: input.status, reviewReason: input.reviewReason ?? null } } });
+        if (awardingExperience) await tx.userStats.update({ where: { userId: current.userId }, data: { experience: { increment: current.publishExpReward } } });
+        const updated = await tx.task.update({ where: { id: params.id }, data: { status: input.status, reviewReason: input.reviewReason ?? null, reviewedAt: input.status === 'approved' || input.status === 'needs_revision' ? now : current.reviewedAt, completedAt: input.status === 'completed' ? now : current.completedAt } });
+        await tx.notification.create({ data: { userId: current.userId, type: input.status === 'approved' ? 'task_review_approved' : 'task_review_needs_revision', refId: current.id.toString(), payload: { taskId: current.id.toString(), status: input.status, reviewReason: input.reviewReason ?? null, experienceReward: awardingExperience ? current.publishExpReward : 0 } } });
         return updated;
       });
     } catch (error) {
@@ -1434,6 +1466,66 @@ export function buildApp(): FastifyInstance {
       take: query.limit,
     });
     return { transactions: transactions.map((transaction) => ({ ...transaction, id: transaction.id.toString(), userId: transaction.userId.toString(), taskId: transaction.taskId?.toString() ?? null, operatorId: transaction.operatorId?.toString() ?? null })) };
+  });
+
+  app.get('/api/users/leaderboard', async (request) => {
+    const query = z.object({ category: z.string().default('all') }).parse(request.query);
+    if (query.category === 'gossip') {
+      const replies = await prisma.inquiryReply.findMany({
+        where: { kind: 'answer', user: { status: 'active', role: 'student' } },
+        include: { user: true, likes: true, inquiry: { select: { adoptedReplyId: true } } },
+      });
+      const byUser = new Map<string, { user: typeof replies[number]['user']; gossipLikes: number; answerCount: number; adoptedCount: number }>();
+      replies.forEach((reply) => {
+        const key = reply.userId.toString();
+        const current = byUser.get(key) ?? { user: reply.user, gossipLikes: 0, answerCount: 0, adoptedCount: 0 };
+        current.gossipLikes += reply.likes.length;
+        current.answerCount += 1;
+        if (reply.inquiry.adoptedReplyId === reply.id) current.adoptedCount += 1;
+        byUser.set(key, current);
+      });
+      return {
+        users: Array.from(byUser.values()).sort((a, b) => b.gossipLikes - a.gossipLikes || b.adoptedCount - a.adoptedCount).map((item) => ({
+          id: item.user.id.toString(), nickname: item.user.nickname, mbtiType: item.user.mbtiType, eggCategory: item.user.eggCategory, eggRarity: item.user.eggRarity,
+          likes: item.user.likes, reputation: Number(item.user.reputation), experience: 0, gossipLikes: item.gossipLikes, answerCount: item.answerCount, adoptedCount: item.adoptedCount,
+          stats: { knowledge: 0, skills: 0, charm: 0, money: 0, reputation: Number(item.user.reputation) }, coins: 0, createdAt: item.user.createdAt,
+        })),
+      };
+    }
+    const users = await prisma.user.findMany({
+      where: { status: 'active', role: 'student' },
+      include: { stats: true, account: true },
+    });
+    const categoryMap: Record<string, string | undefined> = {
+      study: 'study', job: 'job', side: 'side', hobby: 'hobby', game: 'game', life: 'life',
+    };
+    const filtered = query.category === 'all' || query.category === 'rich' || query.category === 'gossip'
+      ? users
+      : users.filter((user) => user.eggCategory === categoryMap[query.category]);
+    const result = filtered.map((user) => ({
+      id: user.id.toString(),
+      nickname: user.nickname,
+      mbtiType: user.mbtiType,
+      eggCategory: user.eggCategory,
+      eggRarity: user.eggRarity,
+      likes: user.likes,
+      reputation: Number(user.reputation),
+      experience: user.stats?.experience ?? 0,
+      stats: user.stats ? {
+        knowledge: Number(user.stats.knowledge), skills: Number(user.stats.skills), charm: Number(user.stats.charm), money: Number(user.stats.money), reputation: Number(user.stats.reputation),
+      } : { knowledge: 0, skills: 0, charm: 0, money: 0, reputation: 0 },
+      coins: user.account?.availableBalance ?? 0,
+      createdAt: user.createdAt,
+    })).sort((a, b) => {
+      if (query.category === 'rich') return b.coins - a.coins || b.experience - a.experience;
+      if (query.category === 'gossip') return 0;
+      if (query.category === 'study') return b.stats.knowledge - a.stats.knowledge || b.experience - a.experience;
+      if (query.category === 'job') return b.stats.skills - a.stats.skills || b.experience - a.experience;
+      if (query.category === 'side') return b.stats.money - a.stats.money || b.experience - a.experience;
+      if (query.category === 'hobby' || query.category === 'game' || query.category === 'life') return b.stats.charm - a.stats.charm || b.experience - a.experience;
+      return b.experience - a.experience || b.likes - a.likes;
+    });
+    return { users: result };
   });
 
   app.get('/api/users/:id/public-profile', async (request, reply) => {

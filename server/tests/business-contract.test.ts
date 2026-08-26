@@ -2,9 +2,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { prisma } from '../src/prisma.js';
+import { DAILY_TASK_PUBLISH_LIMIT, publishRewardForAttempt } from '../src/task-rules.js';
 
 describe('business API contracts', () => {
   let app: FastifyInstance;
+
+  it('defines the ten-attempt descending task reward schedule', () => {
+    expect(DAILY_TASK_PUBLISH_LIMIT).toBe(10);
+    expect(Array.from({ length: 10 }, (_, index) => publishRewardForAttempt(index + 1))).toEqual([10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    expect(publishRewardForAttempt(11)).toBe(0);
+  });
 
   afterEach(async () => {
     await app?.close();
@@ -19,6 +26,7 @@ describe('business API contracts', () => {
     await app.ready();
     vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
     vi.spyOn(prisma.task, 'create').mockResolvedValue({ id: 1n, userId: 1n, title: '找搭子', description: '一起自习', remark: null, status: 'pending_review', reviewReason: null, createdAt: new Date(), updatedAt: new Date(), reviewedAt: null, completedAt: null } as never);
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback({ $queryRaw: vi.fn(), userStats: { findUnique: vi.fn().mockResolvedValue({ userId: 1n, dailyPublishDate: new Date(), dailyPublishCount: 0 }), update: vi.fn().mockResolvedValue({}) }, task: prisma.task } as never) as never);
     vi.spyOn(prisma.task, 'findMany').mockResolvedValue([{ id: 1n, userId: 1n, title: '找搭子', description: '一起自习', remark: null, status: 'pending_review', reviewReason: null, createdAt: new Date(), updatedAt: new Date(), reviewedAt: null, completedAt: null }] as never);
     const token = await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
     const created = await app.inject({ method: 'POST', url: '/api/tasks', headers: { authorization: `Bearer ${token}` }, payload: { title: '找搭子', description: '一起自习' } });
@@ -134,5 +142,37 @@ describe('business API contracts', () => {
     expect(first.statusCode).toBe(201);
     expect(second.statusCode).toBe(409);
     expect(second.json().error).toBe('RATING_ALREADY_EXISTS');
+  });
+
+  it('limits task publishing to ten attempts and exposes a descending reward', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+    vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
+    vi.spyOn(prisma.userStats, 'findUnique').mockResolvedValue({ userId: 1n, dailyPublishDate: new Date(), dailyPublishCount: 9, experience: 0 } as never);
+    vi.spyOn(prisma.userStats, 'update').mockResolvedValue({ userId: 1n, dailyPublishDate: new Date(), dailyPublishCount: 10, experience: 0 } as never);
+    vi.spyOn(prisma.task, 'create').mockResolvedValue({ id: 1n, userId: 1n, title: '找搭子', description: '一起自习', remark: null, status: 'pending_review', reviewReason: null, createdAt: new Date(), updatedAt: new Date(), reviewedAt: null, completedAt: null, publishExpReward: 1 } as never);
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback({ $queryRaw: vi.fn(), userStats: prisma.userStats, task: prisma.task } as never) as never);
+    const token = await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
+    const response = await app.inject({ method: 'POST', url: '/api/tasks', headers: { authorization: `Bearer ${token}` }, payload: { title: '找搭子', description: '一起自习' } });
+    expect(response.statusCode).toBe(201);
+    expect(response.json().task.publishExpReward).toBe(1);
+  });
+
+  it('serves a leaderboard from active registered users only', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+    vi.spyOn(prisma.user, 'findMany').mockResolvedValue([{
+      id: 7n, nickname: '真实用户', role: 'student', status: 'active', mbtiType: 'INTJ', mbtiGroup: 'NT', eggCategory: 'study', eggRarity: 'N', likes: 2, reputation: 4.5, createdAt: new Date(), updatedAt: new Date(), passwordHash: 'hash', email: null, phone: null, school: null, major: null, city: null, grade: null, age: null, bio: null, inviteCode: null, lastLoginAt: null, verifiedPhoneAt: null, verifiedEmailAt: null,
+      stats: { experience: 12, knowledge: 1, skills: 2, charm: 3, money: 4, reputation: 4.5 }, account: { availableBalance: 123 },
+    }] as never);
+    const response = await app.inject({ method: 'GET', url: '/api/users/leaderboard?category=all' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().users).toEqual([expect.objectContaining({ id: '7', nickname: '真实用户', experience: 12 })]);
   });
 });

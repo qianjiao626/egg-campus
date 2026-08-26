@@ -5,9 +5,7 @@
   var API_ORIGIN = window.DANDAN_API_ORIGIN || (isLocalPreview ? 'http://127.0.0.1:3310' : '/dd');
   var accessToken = null;
   var refreshToken = null;
-  var registrationVerification = null;
   var resetVerification = null;
-  var countdownTimer = null;
   var resetCountdownTimer = null;
 
   async function request(path, options, retry) {
@@ -86,6 +84,7 @@
     pointAccount: function () { return request('/api/users/me/point-account'); },
     pointTransactions: function (limit) { return request('/api/users/me/point-transactions' + (limit ? '?limit=' + encodeURIComponent(limit) : '')); },
     characters: function () { return request('/api/users/me/characters'); },
+    leaderboard: function (category) { return request('/api/users/leaderboard?category=' + encodeURIComponent(category || 'all')); },
     refresh: async function () {
       var result = await request('/api/auth/refresh', { method: 'POST', body: JSON.stringify(refreshToken ? { refreshToken: refreshToken } : {}) }, true);
       accessToken = result.accessToken; refreshToken = result.refreshToken || refreshToken;
@@ -116,35 +115,12 @@
         refreshToken = null;
       }
     },
-    get registrationVerification() { return registrationVerification; },
-    set registrationVerification(value) { registrationVerification = value; },
     get resetVerification() { return resetVerification; },
     set resetVerification(value) { resetVerification = value; }
   };
   window.validateDandanText = function (value) { return apiClient.validateUserText(value) === null; };
 
   function setLoading(button, loading, label) { if (!button) return; button.disabled = loading; button.textContent = loading ? '处理中…' : label; }
-  function startCountdown(seconds) {
-    var button = document.getElementById('regSendCodeBtn');
-    var hint = document.getElementById('regCodeHint');
-    clearInterval(countdownTimer);
-    var remaining = seconds;
-    function tick() { if (button) { button.disabled = remaining > 0; button.textContent = remaining > 0 ? remaining + ' 秒后重发' : '重新获取'; } if (hint) hint.textContent = remaining > 0 ? '验证码有效期 5 分钟，请勿泄露给他人' : ''; remaining -= 1; if (remaining < 0) clearInterval(countdownTimer); }
-    tick(); countdownTimer = setInterval(tick, 1000);
-  }
-
-  window.sendRegistrationCode = async function () {
-    var phone = (document.getElementById('regPhone').value || '').trim();
-    var email = (document.getElementById('regEmail').value || '').trim();
-    var channel = phone ? 'sms' : 'email';
-    var target = phone || email;
-    if (!target) { toast('请先填写手机号或邮箱'); return; }
-    var button = document.getElementById('regSendCodeBtn');
-    setLoading(button, true, '获取验证码');
-    try { var result = await apiClient.sendCode(channel, target, 'register'); startCountdown(result.resendAfterSeconds || 60); toast('验证码已发送'); }
-    catch (error) { setLoading(button, false, '获取验证码'); toast(error.message || '验证码发送失败'); }
-  };
-
   function resetChannel(target) { return /^1\d{10}$/.test(target.replace(/[\s-]/g, '')) ? 'sms' : 'email'; }
   function startResetCountdown(seconds) {
     var button = document.getElementById('resetSendCodeBtn');
@@ -223,7 +199,10 @@
   async function hydrateUserState() {
     var results = await Promise.allSettled([apiClient.me(), apiClient.stats(), apiClient.pointAccount(), apiClient.characters()]);
     if (results[0].status === 'fulfilled' && results[0].value.user) USER = Object.assign({}, USER, results[0].value.user);
-    if (results[1].status === 'fulfilled' && results[1].value.stats) USER.stats = results[1].value.stats;
+    if (results[1].status === 'fulfilled' && results[1].value.stats) {
+      USER.stats = results[1].value.stats;
+      USER.exp = Number(results[1].value.stats.experience || 0);
+    }
     if (results[2].status === 'fulfilled' && results[2].value.account) USER.points = results[2].value.account.availableBalance;
     if (results[3].status === 'fulfilled' && results[3].value.characters) {
       results[3].value.characters.forEach(function (character) {
@@ -234,17 +213,14 @@
       });
     }
   }
+  window.hydrateUserState = hydrateUserState;
 
   window.doRegister = async function () {
     var nick = document.getElementById('regNickname').value.trim();
     var email = document.getElementById('regEmail').value.trim();
-    var phone = document.getElementById('regPhone').value.trim();
     var password = document.getElementById('regPwd').value;
     var confirm = document.getElementById('regPwdConfirm').value;
-    var code = document.getElementById('regCode').value.trim();
     if (!nick || !password || !confirm) { toast('请填写昵称和密码'); return; }
-    if (phone && !/^1\d{10}$/.test(phone.replace(/[\s-]/g, ''))) { toast('手机号格式不正确'); return; }
-    if (code && !/^\d{6}$/.test(code)) { toast('验证码应为 6 位数字'); return; }
     if (password !== confirm) { toast('两次密码不一致'); return; }
     if (!regMbtiType) { toast('请选择 MBTI 类型'); return; }
     if (!regDrawResult) { toast('请先抽取你的初始蛋'); return; }
@@ -259,15 +235,9 @@
       var profileError = apiClient.validateUserText(profileTextFields[fieldIndex][1]);
       if (profileError) { toast(profileError); return; }
     }
-    var channel = phone ? 'sms' : 'email'; var target = phone || email;
     var button = document.getElementById('regSubmitBtn'); setLoading(button, true, '注册并登录');
     try {
-      var verificationToken = null;
-      if ((email || phone) && code) {
-        var verified = await apiClient.verifyCode(channel, target, 'register', code);
-        verificationToken = verified.verificationToken;
-      }
-      var result = await apiClient.register({ nickname: nick, email: email || null, phone: phone || undefined, password: password, verificationToken: verificationToken, school: document.getElementById('regSchool').value.trim() || null, major: document.getElementById('regMajor').value.trim() || null, city: document.getElementById('regCity').value.trim() || null, grade: document.getElementById('regGrade').value.trim() || null, age: Number(document.getElementById('regAge').value) || null, mbtiType: regMbtiType, mbtiGroup: regMbtiGroup, eggCategory: regSelectedCat });
+      var result = await apiClient.register({ nickname: nick, email: email || null, password: password, school: document.getElementById('regSchool').value.trim() || null, major: document.getElementById('regMajor').value.trim() || null, city: document.getElementById('regCity').value.trim() || null, grade: document.getElementById('regGrade').value.trim() || null, age: Number(document.getElementById('regAge').value) || null, mbtiType: regMbtiType, mbtiGroup: regMbtiGroup, eggCategory: regSelectedCat });
       USER = Object.assign({}, USER, result.user, { registered: true, isAdmin: false, points: 100, exp: 0 });
       await hydrateUserState();
       closeRegModal(); login('student'); toast('注册成功，欢迎来到蛋蛋世界');

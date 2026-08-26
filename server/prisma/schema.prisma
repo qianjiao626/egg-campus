@@ -126,6 +126,9 @@ model UserStats {
   reputation     Decimal  @default(0) @db.Decimal(3, 2)
   completedTasks Int      @default(0) @map("completed_tasks")
   publishedTasks Int      @default(0) @map("published_tasks")
+  experience     Int      @default(0)
+  dailyPublishDate DateTime? @map("daily_publish_date")
+  dailyPublishCount Int    @default(0) @map("daily_publish_count")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -266,6 +269,7 @@ model Task {
   taskType     String      @default("teach") @map("task_type") @db.VarChar(20)
   claimMode    String      @default("single") @map("claim_mode") @db.VarChar(20)
   reward       Int         @default(0)
+  publishExpReward Int     @default(0) @map("publish_exp_reward")
   maxClaimers  Int         @default(1) @map("max_claimers")
   contact      String?     @db.VarChar(160)
   requirements String?     @db.Text

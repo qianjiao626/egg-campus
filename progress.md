@@ -1,5 +1,15 @@
 # 进度记录
 
+## 2026-08-26（四项 Bug 修复）
+
+- [x] 注册页移除手机号/注册验证码字段；无手机号用户可直接注册，后端手机号兼容保留。
+- [x] 任务发布每日最多 10 次，经验奖励固定为 `10..1`，审核重复不重复结算。
+- [x] 新用户认领任务列表不读取静态 DEMO 数据，保留 DEMO 素材用于开发展示。
+- [x] 排行榜切换为 active 真实学生数据源，八卦榜使用真实回复聚合，不展示虚假用户。
+- [x] 本地 `npm test`：12 个测试文件、78 项通过；`npm run build` 通过。
+- [ ] CVM 生产迁移与上线：需在 MFA 会话恢复后执行备份、迁移、构建、PM2 日志、health 和公网 smoke。
+- 交付包：`output/releases/dandan-frontend-dd-20260826-task-bugfix-r1.zip`、`output/releases/dandan-server-deploy-20260826-task-bugfix-r1.zip`，已完成边界检查与 SHA-256 计算。
+
 ## 2026-08-23
 
 - 已阅读 `backend-handoff.md` 与 `growth-school-task-flows.md`。

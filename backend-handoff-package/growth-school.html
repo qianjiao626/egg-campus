@@ -1480,8 +1480,6 @@
         <div class="reg-left">
           <div><div class="field-lbl">昵称 <span style="color:var(--orange)">*</span></div><input class="input" id="regNickname" placeholder="你的昵称"></div>
           <div><div class="field-lbl">邮箱 <span style="color:var(--faint)">可选，用于找回密码</span></div><input class="input" id="regEmail" type="email" placeholder="可选：name@example.com"></div>
-          <div><div class="field-lbl">手机号 <span style="color:var(--faint)">可选，用于验证或找回密码</span></div><input class="input" id="regPhone" inputmode="numeric" placeholder="可选：11 位手机号"></div>
-          <div><div class="field-lbl">验证码 <span style="color:var(--faint)">可选，用于验证联系方式</span></div><div style="display:flex;gap:8px"><input class="input" id="regCode" inputmode="numeric" maxlength="6" placeholder="可选：6 位验证码" style="flex:1"><button class="btn" id="regSendCodeBtn" type="button" onclick="sendRegistrationCode()" style="white-space:nowrap;padding:0 12px">获取验证码</button></div><div id="regCodeHint" style="font-size:11px;color:var(--muted);margin-top:5px">邮箱和手机号均为可选；填写验证码后才会验证联系方式。</div></div>
           <div><div class="field-lbl">密码 <span style="color:var(--orange)">*</span></div><input class="input" id="regPwd" type="password" placeholder="设置密码（至少 8 位）"></div>
           <div><div class="field-lbl">确认密码 <span style="color:var(--orange)">*</span></div><input class="input" id="regPwdConfirm" type="password" placeholder="再次输入密码"></div>
           <div><div class="field-lbl">学校 <span style="color:var(--faint)">选填</span></div><input class="input" id="regSchool" placeholder="如：某某大学"></div>
@@ -2141,7 +2139,7 @@
           <div class="mytask-tab-panel active" id="mytask-tab-teach">
             <div class="sec-head"><h3>我认领的任务</h3></div>
             <div id="myClaimedListTeach" style="display:flex;flex-direction:column;gap:16px">
-              <div style="font-size:13px;color:var(--muted);padding:24px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border)">暂无认领的教学任务</div>
+              <div style="font-size:13px;color:var(--muted);padding:24px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border)">没有已认领的任务（教学）</div>
             </div>
 
             <div class="sec-head"><h3>我发布的任务</h3></div>
@@ -2163,7 +2161,7 @@
           <div class="mytask-tab-panel" id="mytask-tab-team">
             <div class="sec-head"><h3>我认领的任务</h3></div>
             <div id="myClaimedListTeam" style="display:flex;flex-direction:column;gap:16px">
-              <div style="font-size:13px;color:var(--muted);padding:24px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border)">暂无认领的组队任务</div>
+              <div style="font-size:13px;color:var(--muted);padding:24px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border)">没有已认领的组队任务</div>
             </div>
 
             <div class="sec-head"><h3>我发布的任务</h3></div>
@@ -2185,7 +2183,7 @@
           <div class="mytask-tab-panel" id="mytask-tab-help">
             <div class="sec-head"><h3>我认领的任务</h3></div>
             <div id="myClaimedListHelp" style="display:flex;flex-direction:column;gap:16px">
-              <div style="font-size:13px;color:var(--muted);padding:24px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border)">暂无认领的求助任务</div>
+              <div style="font-size:13px;color:var(--muted);padding:24px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border)">没有已认领的求助任务</div>
             </div>
 
             <div class="sec-head"><h3>我发布的任务</h3></div>
@@ -5346,6 +5344,8 @@
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('guestCard').style.display = 'none';
     document.getElementById('userCard').style.display = 'flex';
+    /* 真实用户的认领列表只由后端记录填充，隐藏历史演示卡片。 */
+    document.querySelectorAll('#myClaimedListTeach [data-demo="true"], #myClaimedListTeam [data-demo="true"], #myClaimedListHelp [data-demo="true"]').forEach(function(card){ card.remove(); });
     /* 登录后恢复显示所有导航项 */
     document.querySelectorAll('.student-item').forEach(function(item){
       item.style.display = '';
@@ -5702,6 +5702,10 @@
     if(id === 'feedback' || id === 'myfeedback'){ syncFeedbackTickets(); updateFeedbackBadge(); }
     if(id === 'profile'){ renderChar(); renderCharUnlocked(); }
     if(id === 'gossip'){ renderGossipWall(); renderGossipTopList(); return syncGossipInquiries(); }
+    if(id === 'rankhall'){
+      var activeRankTab = document.querySelector('#rankTabs .rank-tab.active');
+      syncRanking(activeRankTab ? activeRankTab.getAttribute('data-cat') : 'all');
+    }
     if(id === 'myinquiries') syncGossipInquiries();
     if(id === 'mytasks') syncMyTasks();
   }
@@ -7882,25 +7886,16 @@
         addNotif('你发布的「' + name + '」已通过审核，任务已上线', 'review');
         toast('审核通过，任务已上线');
       } else {
-        USER.exp += 5;
-        expLogs.unshift({ type:'task_publish', label:'发布任务', delta:5, time:'刚刚', balance: USER.exp });
+        /* 本地演示任务不写入真实经验或蛋蛋币，真实结算只接受服务端结果。 */
         if(isHelp){
-          var rewardVal = parseInt(card.getAttribute('data-reward')) || 10;
-          USER.points -= rewardVal;
-          pointLogs.unshift({ type:'help_publish', label:'发布求助任务（悬赏支出）', delta:-rewardVal, time:'刚刚', balance: USER.points });
-          addNotif('你发布的「' + name + '」已通过审核，消耗 ' + rewardVal + ' 蛋蛋币悬赏，+5 经验值', 'review');
-          toast('审核通过！悬赏 ' + rewardVal + ' 蛋蛋币已扣除，+5 经验值，已加入蛋蛋要求助');
+          addNotif('演示任务「' + name + '」已通过审核（不计入真实账户）', 'review');
+          toast('演示任务已通过（不计入真实账户）');
         } else if(isTeam){
-          var rewardVal = parseInt(card.getAttribute('data-reward')) || 10;
-          var maxClaim = parseInt(card.getAttribute('data-max-claimers')) || 1;
-          var totalFrozen = rewardVal * maxClaim;
-          USER.points -= totalFrozen;
-          pointLogs.unshift({ type:'team_publish', label:'发布组队任务（悬赏冻结）', delta:-totalFrozen, time:'刚刚', balance: USER.points });
-          addNotif('你发布的「' + name + '」已通过审核，冻结 ' + totalFrozen + ' 蛋蛋币（' + rewardVal + '×' + maxClaim + '人），+5 经验值', 'review');
-          toast('审核通过！' + totalFrozen + ' 蛋蛋币已冻结（' + rewardVal + '/人×' + maxClaim + '人），+5 经验值，已加入蛋蛋要组队');
+          addNotif('演示任务「' + name + '」已通过审核（不计入真实账户）', 'review');
+          toast('演示任务已通过（不计入真实账户）');
         } else {
-          addNotif('你发布的「' + name + '」已通过审核，+5 经验值', 'review');
-          toast('审核通过！+5 经验值，已加入蛋蛋要收徒');
+          addNotif('演示任务「' + name + '」已通过审核（不计入真实账户）', 'review');
+          toast('演示任务已通过（不计入真实账户）');
         }
       }
       refreshProfile();
@@ -8427,8 +8422,10 @@
     '生活互助':'char-eggy-life-v2.jpg'
   };
   var RANK_EGG_EMOJI = {'学业技术':'📖','就业技能':'💼','副业技能':'💰','兴趣爱好':'🎯','游戏搭子':'🎮','生活互助':'🤝'};
-  var RANK_USERS = [
-    {id:1,name:'李雨晴',mbti:'INFJ',nick:'绿老头',egg:'学业技术',stats:{knowledge:9,skills:2,charm:3,money:1,reputation:4.9},matches:38,rarity:'SSR',likes:87,bio:'连续三年拿奖学金，高数线代满分，擅长一对一讲题，讲到你懂为止。'},
+  var RANK_USERS;
+  RANK_USERS = [];
+  /* 开发演示用户资料保留在历史素材中，但不再作为排行榜数据源。 */
+  /*
     {id:2,name:'张博文',mbti:'ENTJ',nick:'大姐头',egg:'就业技能',stats:{knowledge:3,skills:9,charm:4,money:3,reputation:4.8},matches:42,rarity:'SSR',likes:95,bio:'字节实习转正，帮20+同学改简历拿offer，模拟面试专业户。'},
     {id:3,name:'孙悦',mbti:'ESTP',nick:'墨镜哥',egg:'副业技能',stats:{knowledge:2,skills:3,charm:4,money:9,reputation:4.7},matches:35,rarity:'SSR',likes:72,bio:'大二开始做电商副业，月入5k+，教你从0到1开店选品运营。'},
     {id:4,name:'吴婷婷',mbti:'ISFP',nick:'小画家',egg:'兴趣爱好',stats:{knowledge:2,skills:2,charm:9,money:2,reputation:4.8},matches:33,rarity:'SSR',likes:68,bio:'校园摄影社社长，拍过百组证件照和毕业照，审美在线出片快。'},
@@ -8444,7 +8441,19 @@
     {id:14,name:'赵敏',mbti:'ENFJ',nick:'大剑哥',egg:'就业技能',stats:{knowledge:3,skills:6,charm:5,money:2,reputation:4.4},matches:22,rarity:'R',likes:25,bio:'HR实习经历，帮你优化简历关键词，模拟群面控场能力一流。'},
     {id:15,name:'周杰伦',mbti:'ISTP',nick:'电钻哥',egg:'副业技能',stats:{knowledge:3,skills:4,charm:2,money:7,reputation:4.2},matches:20,rarity:'R',likes:22,bio:'闲鱼月销200+，教你货源选择+图片优化+客服话术，副业入门首选。'},
     {id:16,name:'马化腾',mbti:'INTP',nick:'药水姐',egg:'游戏搭子',stats:{knowledge:4,skills:3,charm:6,money:4,reputation:4.3},matches:24,rarity:'R',likes:19,bio:'瓦罗兰特超凡段位，CSGO大老鹰，FPS教练型选手，帮你练枪练意识。'}
-  ];
+  */
+  function syncRanking(cat){
+    if(!window.apiClient || !window.apiClient.leaderboard){ renderRanking(cat); return; }
+    /* apiClient.leaderboard 使用真实 active 用户数据。 */
+    window.apiClient.leaderboard(cat).then(function(result){
+      RANK_USERS = (result.users || []).map(function(user){
+        var eggNames = {study:'学业技术',job:'就业技能',side:'副业技能',hobby:'兴趣爱好',game:'游戏搭子',life:'生活互助'};
+        var egg = eggNames[user.eggCategory] || '学业技术';
+        return {id:user.id,name:user.nickname,mbti:user.mbtiType || '—',nick:user.mbtiType || '蛋蛋用户',egg:egg,stats:user.stats || {knowledge:0,skills:0,charm:0,money:0,reputation:0},matches:user.experience || 0,rarity:user.eggRarity || 'N',likes:user.likes || 0,bio:'',coins:user.coins || 0,gossipLikes:user.gossipLikes || 0,answerCount:user.answerCount || 0,adoptedCount:user.adoptedCount || 0};
+      });
+      renderRanking(cat);
+    }).catch(function(){ RANK_USERS = []; renderRanking(cat); });
+  }
   function getMBTIColor(mbti){
     if(!mbti) return '#999';
     var g = mbti[1];
@@ -8475,7 +8484,7 @@
     document.querySelectorAll('#rankTabs .rank-tab').forEach(function(tab){
       tab.classList.toggle('active', tab.getAttribute('data-cat') === cat);
     });
-    renderRanking(cat);
+    syncRanking(cat);
   }
   function renderRanking(cat){
     var info = RANK_CAT_MAP[cat] || RANK_CAT_MAP['all'];
@@ -8507,6 +8516,8 @@
       users = Object.values(userStats).sort(function(a,b){
         return b.gossipLikes - a.gossipLikes;
       });
+      /* 八卦榜只接受后端真实用户聚合；旧演示回答者不再进入排行榜。 */
+      users = RANK_USERS.slice();
     } else {
       users = RANK_USERS.filter(function(u){
         if(cat === 'all' || cat === 'rich') return true;
@@ -8635,8 +8646,8 @@
     }
     /* Your ranking (仅非八卦帮显示) */
     if(cat !== 'gossip'){
-    var myId = 5;
-    var myUser = RANK_USERS.find(function(r){ return r.id === myId; });
+    var myId = USER && USER.id != null ? String(USER.id) : '';
+    var myUser = RANK_USERS.find(function(r){ return String(r.id) === myId; });
     if(myUser){
       var myIdx = users.indexOf(myUser);
       var myRank = myIdx >= 0 ? myIdx + 1 : users.length + 1;
@@ -8817,7 +8828,7 @@
     var activeTab = document.querySelector('#rankTabs .rank-tab.active');
     if(activeTab) renderRanking(activeTab.getAttribute('data-cat'));
   }
-  renderRanking('all');
+  syncRanking('all');
 
   /* ===== Filter submissions (待批改列表筛选) ===== */
   function filterSubmissions(filter){

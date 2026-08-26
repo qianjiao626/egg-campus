@@ -46,10 +46,19 @@ describe('frontend password reset contract', () => {
     expect(html).not.toMatch(/localStorage|sessionStorage/);
   });
 
-  it('allows nickname/password registration with optional contact verification', () => {
+  it('allows nickname/password registration without contact fields', () => {
     expect(client).toContain("if (!nick || !password || !confirm)");
-    expect(client).toContain("if ((email || phone) && code)");
-    expect(html).toContain('邮箱和手机号均为可选；填写验证码后才会验证联系方式。');
+    expect(client).not.toContain("document.getElementById('regPhone')");
+    expect(client).not.toContain("document.getElementById('regCode')");
+    expect(html).toContain('邮箱');
+  });
+
+  it('keeps registration free of phone and verification-code fields', () => {
+    expect(html).not.toContain('id="regPhone"');
+    expect(html).not.toContain('id="regCode"');
+    expect(html).not.toContain('sendRegistrationCode()');
+    expect(client).not.toContain("document.getElementById('regPhone')");
+    expect(client).not.toContain("document.getElementById('regCode')");
   });
 
   it('uses the same bundled sensitive-word filter before every client write', () => {
@@ -98,5 +107,17 @@ describe('real task publishing contract', () => {
   it('keeps development point-log records alongside server transactions', () => {
     expect(html).toContain('var DEMO_POINT_LOGS =');
     expect(html).toContain('DEMO_POINT_LOGS.concat(realRecords)');
+  });
+
+  it('does not use static claimed-task records for a newly registered user', () => {
+    expect(html).toContain('apiClient.myTasks');
+    expect(html).toContain('没有已认领的任务');
+    expect(html).not.toMatch(/DB\.userTasks\[USER\.id\]/);
+  });
+
+  it('uses the server leaderboard instead of bundled placeholder users', () => {
+    expect(client).toContain("'/api/users/leaderboard?category='");
+    expect(html).toContain('apiClient.leaderboard');
+    expect(html).not.toContain('var RANK_USERS = [');
   });
 });
