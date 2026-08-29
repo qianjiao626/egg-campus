@@ -53,3 +53,8 @@ Desktop.ini
 .parcel-cache/
 .vite/
 docs/obsidian-sync/.obsidian/workspace.json
+
+# Local multi-agent workflow queue, reports, and disposable worktrees
+workflow/runtime/
+workflow/worktrees/
+workflow/__pycache__/
