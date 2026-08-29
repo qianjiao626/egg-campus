@@ -210,7 +210,7 @@ describe('task persistence API contract', () => {
   it('writes assignment notifications in one batch', async () => {
     const token = await authenticatedApp(1n);
     vi.spyOn(prisma.task, 'findUnique').mockResolvedValue({ id: 10n, userId: 1n, maxClaimers: 3 } as never);
-    vi.spyOn(prisma.taskClaim, 'findMany').mockResolvedValue([
+    const findMany = vi.spyOn(prisma.taskClaim, 'findMany').mockResolvedValue([
       { id: 20n, taskId: 10n, claimerId: 2n, status: 'pending' },
       { id: 21n, taskId: 10n, claimerId: 3n, status: 'submitted' },
     ] as never);
@@ -230,6 +230,9 @@ describe('task persistence API contract', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ assigned: 2 });
+    expect(findMany).toHaveBeenCalledWith({
+      where: { taskId: 10n, id: { in: [20n, 21n] }, status: { in: ['pending', 'submitted', 'assigned'] } },
+    });
     expect(createMany).toHaveBeenCalledWith({
       data: [
         { userId: 2n, type: 'task_assigned', refId: '10', payload: { taskId: '10' } },
