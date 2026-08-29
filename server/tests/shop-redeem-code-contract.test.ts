@@ -75,4 +75,10 @@ describe('shop redeem code API contract', () => {
     expect(schema).toContain('codeCiphertext String');
     expect(migration).toContain('`code_ciphertext` TEXT NOT NULL');
   });
+
+  it('keeps redeem-code checkout updates batched', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src', 'app.ts'), 'utf8');
+    expect(source).toContain("productRedeemCode.updateMany({ where: { id: { in: codes.map((code) => code.id) }, status: 'available' }");
+    expect(source).not.toContain('for (const code of codes)');
+  });
 });
