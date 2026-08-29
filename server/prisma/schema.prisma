@@ -662,6 +662,7 @@ model InquiryLike {
 
   @@unique([inquiryId, userId])
   @@index([userId, createdAt])
+  @@index([userId, inquiryId])
   @@map("inquiry_likes")
 }
 
