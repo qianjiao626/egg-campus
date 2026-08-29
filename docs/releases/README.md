@@ -1,7 +1,7 @@
 # Release Boundaries
 
 本目录保存可审计的发布清单，不保存整份源码副本。每个 JSON 清单都代表一个不可混用的代码版本，不把工作树当成发布包。
-当前活动版本以 `status: isolated-test-only` 且版本号最高的清单为准；`superseded` 清单只用于历史追溯，禁止部署。只有单独验收并标为 `production-approved` 且 `productionDeployable: true` 的清单，才允许走生产部署。
+当前活动版本为 `2026-08-29-production-r3`，已通过本地测试、构建和生产边界校验。`superseded` 清单只用于历史追溯，隔离版禁止部署；只有单独验收并标为 `production-approved` 且 `productionDeployable: true` 的清单，才允许走生产部署。
 每个 JSON 清单都必须明确：
 
 - `sourceOfTruth` / `componentSources`：前端与后端分别声明唯一源目录，不能用一个前端目录概括整个版本。
@@ -13,7 +13,7 @@
 - `supersedes`：本版本替代的清单 ID；首个版本可为 `null`。
 - `generatedAt`：生成清单时的 UTC 时间，用于审计工作树是否已换代。
 
-当前 `2026-08-28-auth-profile-task-ui-r2.json` 仅适用于本地和隔离测试，禁止直接上传到 `/var/www/dd`。
+`2026-08-28-auth-profile-task-ui-r2.json` 仅适用于本地和隔离测试，禁止直接上传到 `/var/www/dd`。
 旧的 `2026-08-28-auth-profile-task-ui.json` 已标记为 `superseded`，不得再作为发布或回滚输入。
 生产发布必须新建一个经过验收的清单，填写生产基线、回滚源、迁移清单和验证证据，并通过：
 

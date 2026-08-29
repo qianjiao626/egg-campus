@@ -5,7 +5,8 @@ import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const root = resolve(process.cwd(), '..');
-const manifest = JSON.parse(readFileSync(resolve(root, 'docs/releases/2026-08-28-auth-profile-task-ui-r2.json'), 'utf8'));
+const manifest = JSON.parse(readFileSync(resolve(root, 'docs/releases/2026-08-29-production-r3.json'), 'utf8'));
+const isolatedManifest = JSON.parse(readFileSync(resolve(root, 'docs/releases/2026-08-28-auth-profile-task-ui-r2.json'), 'utf8'));
 const supersededManifest = JSON.parse(readFileSync(resolve(root, 'docs/releases/2026-08-28-auth-profile-task-ui.json'), 'utf8'));
 const releaseIndex = JSON.parse(readFileSync(resolve(root, 'docs/releases/index.json'), 'utf8'));
 const frontendDeployScript = readFileSync(resolve(root, 'deploy-frontend.sh'), 'utf8');
@@ -31,21 +32,22 @@ const expectedFrontendTargets = [
 ];
 
 describe('release boundary manifest', () => {
-  it('keeps this work isolated and points to explicit source files', () => {
-    expect(manifest.status).toBe('isolated-test-only');
-    expect(manifest.version).toBe('r2');
-    expect(manifest.releaseId).toBe('2026-08-28-auth-profile-task-ui-r2');
-    expect(manifest.productionDeployable).toBe(false);
+  it('tracks the approved release and points to explicit source files', () => {
+    expect(manifest.status).toBe('production-approved');
+    expect(manifest.version).toBe('r3');
+    expect(manifest.releaseId).toBe('2026-08-29-production-r3');
+    expect(manifest.productionDeployable).toBe(true);
     expect(manifest.sourceOfTruth).toBe('component-scoped');
     expect(manifest.componentSources).toEqual({
       frontend: 'backend-handoff-package',
       backend: 'server/src',
     });
-    expect(manifest.rollbackSource).toBeNull();
-    expect(manifest.supersedes).toBe('2026-08-28-auth-profile-task-ui-r1');
+    expect(manifest.rollbackSource).toEqual(expect.objectContaining({ releaseId: 'production-baseline-20260829' }));
+    expect(manifest.supersedes).toBe('2026-08-28-auth-profile-task-ui-r2');
     expect(releaseIndex.activeReleaseId).toBe(manifest.releaseId);
     expect(releaseIndex.releases).toEqual(expect.arrayContaining([
-      expect.objectContaining({ releaseId: manifest.releaseId, manifest: '2026-08-28-auth-profile-task-ui-r2.json', status: 'isolated-test-only' }),
+      expect.objectContaining({ releaseId: manifest.releaseId, manifest: '2026-08-29-production-r3.json', status: 'production-approved' }),
+      expect.objectContaining({ releaseId: isolatedManifest.releaseId, manifest: '2026-08-28-auth-profile-task-ui-r2.json', status: 'isolated-test-only' }),
       expect.objectContaining({ releaseId: supersededManifest.releaseId, manifest: '2026-08-28-auth-profile-task-ui.json', status: 'superseded' }),
     ]));
     expect(manifest.files).toEqual(expect.arrayContaining([
@@ -63,7 +65,7 @@ describe('release boundary manifest', () => {
     expect(supersededManifest.status).toBe('superseded');
     expect(supersededManifest.productionDeployable).toBe(false);
     expect(supersededManifest.releaseId).toBe('2026-08-28-auth-profile-task-ui-r1');
-    expect(supersededManifest.supersededBy).toBe(manifest.releaseId);
+    expect(supersededManifest.supersededBy).toBe(isolatedManifest.releaseId);
   });
 
   it('rejects superseded releases and isolated-only releases as deployment candidates', () => {
