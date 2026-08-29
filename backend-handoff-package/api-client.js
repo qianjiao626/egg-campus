@@ -244,8 +244,11 @@
     characters: function () { return request('/api/users/me/characters'); },
     setCurrentCharacter: function (category) { return request('/api/users/me/characters/current', { method: 'PUT', body: JSON.stringify({ category: category }) }); },
     leaderboard: function (category, query) {
-      var params = Object.assign({ category: category || 'all' }, query || {});
-      return request('/api/users/leaderboard' + buildQuery(params));
+      var base = '/api/users/leaderboard?category=' + encodeURIComponent(category || 'all');
+      if (!query || typeof query !== 'object') return request(base);
+      var extra = Object.assign({}, query);
+      delete extra.category;
+      return request(base + buildQuery(extra).replace(/^\?/, '&'));
     },
     blacklistMetrics: function () { return request('/api/blacklist/metrics'); },
     blacklistStats: function () { return request('/api/blacklist/stats'); },
