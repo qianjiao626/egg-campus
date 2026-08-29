@@ -97,6 +97,16 @@ import {
 } from './blacklist.js';
 
 const categories = ['study', 'job', 'side', 'hobby', 'game', 'life'] as const;
+const ADMIN_AVATAR_DEFAULT = 'char-eggy-hermit.jpg';
+const ADMIN_AVATAR_ASSETS = [
+  'char-eggy-hermit.jpg',
+  'char-eggy-study-v2.jpg',
+  'char-eggy-job-v2.jpg',
+  'char-eggy-side.jpg',
+  'char-eggy-hobby-v2.jpg',
+  'char-eggy-game.jpg',
+  'char-eggy-life-v2.jpg',
+] as const;
 
 class BuddyPrestigeError extends Error {
   constructor(message: string) {
@@ -576,7 +586,7 @@ export function buildApp(): FastifyInstance {
     return {
       _count: { select: { claims: { where: { status: { in: [...activeTaskClaimStatuses] } } } } },
       claims: { where: { claimerId: userId }, select: { status: true }, take: 1 },
-      user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true } },
+      user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true, role: true } },
     };
   }
   function serializeTask(task: any) {
@@ -590,6 +600,7 @@ export function buildApp(): FastifyInstance {
         nickname: user.nickname,
         eggCategory: user.eggCategory,
         eggRarity: user.eggRarity,
+        isAdministrator: user.role === 'admin',
       } : null,
       activeClaimCount: _count?.claims ?? 0,
       claimStatus: claims?.[0]?.status ?? null,
@@ -1678,7 +1689,7 @@ export function buildApp(): FastifyInstance {
   app.post('/api/tasks/:id/submit', { preHandler: app.authenticate }, async (request, reply) => {
     const params = notificationParamsSchema.parse(request.params);
     const userId = currentUserId(request);
-    const claim = await prisma.taskClaim.findFirst({ where: { taskId: params.id, claimerId: userId, status: { in: ['pending', 'assigned'] } } });
+    const claim = await prisma.taskClaim.findFirst({ where: { taskId: params.id, claimerId: userId, status: 'assigned' } });
     if (!claim) return reply.code(404).send({ error: 'TASK_CLAIM_NOT_FOUND', message: '没有可提交的任务认领' });
     const updated = await prisma.taskClaim.update({ where: { id: claim.id }, data: { status: 'submitted', submittedAt: new Date() } });
     const task = await prisma.task.findUnique({ where: { id: params.id }, select: { userId: true } });
@@ -1730,8 +1741,12 @@ export function buildApp(): FastifyInstance {
       const result = await prisma.$transaction(async (tx) => {
         const completed = await tx.taskClaim.update({ where: { id: claim.id }, data: { status: 'completed', completedAt: new Date() } });
         if (task.reward > 0) {
-          if (task.taskType === 'teach') await applyBuddyPointDelta(tx, task.userId, task.reward, `task-complete-pay:${task.id.toString()}:${claim.claimerId.toString()}`, 'task_tuition_paid', `教学任务完成结算:${task.id.toString()}`);
-          else await applyBuddyPointDelta(tx, claim.claimerId, task.reward, `task-complete-reward:${task.id.toString()}:${claim.claimerId.toString()}`, 'task_reward_paid', `任务完成奖励:${task.id.toString()}`);
+          if (task.taskType === 'teach') {
+            await applyBuddyPointDelta(tx, task.userId, task.reward, `task-complete-pay:${task.id.toString()}:${claim.claimerId.toString()}`, 'task_tuition_paid', `教学任务完成结算:${task.id.toString()}`);
+          } else {
+            await applyBuddyPointDelta(tx, task.userId, -task.reward, `task-complete-spend:${task.id.toString()}:${claim.claimerId.toString()}`, 'task_reward_spent', `任务完成扣除发布者蛋蛋币:${task.id.toString()}`);
+            await applyBuddyPointDelta(tx, claim.claimerId, task.reward, `task-complete-reward:${task.id.toString()}:${claim.claimerId.toString()}`, 'task_reward_paid', `任务完成奖励:${task.id.toString()}`);
+          }
         }
         const updatedTask = await tx.task.update({ where: { id: task.id }, data: { status: 'completed', completedAt: new Date() } });
         await tx.notification.create({ data: { userId: claim.claimerId, type: 'task_completed', refId: task.id.toString(), payload: { taskId: task.id.toString(), claimId: claim.id.toString() } } });
@@ -2968,6 +2983,32 @@ export function buildApp(): FastifyInstance {
         isProtectedAdmin: authorization.isProtectedAdmin,
       },
     };
+  });
+
+  app.get('/api/admin/avatar', { preHandler: app.authenticate }, async (request) => {
+    const setting = await prisma.adminAvatarSetting.findUnique({
+      where: { singleton: 'default' },
+      select: { assetPath: true, updatedAt: true },
+    });
+    return {
+      assetPath: setting?.assetPath ?? ADMIN_AVATAR_DEFAULT,
+      isDefault: !setting,
+      updatedAt: setting?.updatedAt ?? null,
+    };
+  });
+
+  app.put('/api/admin/avatar', { preHandler: app.authenticate }, async (request, reply) => {
+    if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.adminAvatarManage)) return;
+    const input = z.object({ assetPath: z.string().trim().refine((value): value is typeof ADMIN_AVATAR_ASSETS[number] => (ADMIN_AVATAR_ASSETS as readonly string[]).includes(value), { message: '管理员头像素材无效' }) }).parse(request.body);
+    const actorId = currentUserId(request);
+    const setting = await prisma.adminAvatarSetting.upsert({
+      where: { singleton: 'default' },
+      create: { singleton: 'default', assetPath: input.assetPath, updatedBy: actorId },
+      update: { assetPath: input.assetPath, updatedBy: actorId },
+      select: { assetPath: true, updatedAt: true },
+    });
+    await recordAudit({ actorId, action: 'admin.avatar.update', targetType: 'admin_avatar', targetId: 'default', ip: request.ip, afterData: { assetPath: setting.assetPath } });
+    return { assetPath: setting.assetPath, isDefault: false, updatedAt: setting.updatedAt };
   });
 
   app.put('/api/users/me', { preHandler: app.authenticate }, async (request, reply) => {

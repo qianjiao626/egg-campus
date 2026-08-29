@@ -186,6 +186,8 @@
     me: function () { return request('/api/users/me'); },
     updateMe: function (payload) { return request('/api/users/me', { method: 'PUT', body: JSON.stringify(payload || {}) }); },
     publicProfile: function (id) { return request('/api/users/' + encodeURIComponent(id) + '/public-profile'); },
+    adminAvatar: function () { return request('/api/admin/avatar'); },
+    updateAdminAvatar: function (assetPath) { return request('/api/admin/avatar', { method: 'PUT', body: JSON.stringify({ assetPath: assetPath }) }); },
     adminPermissions: function () { return request('/api/admin/permissions'); },
     adminRoles: function () { return request('/api/admin/roles'); },
     createAdminRole: function (payload) { return request('/api/admin/roles', { method: 'POST', body: JSON.stringify(payload) }); },

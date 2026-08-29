@@ -2051,6 +2051,10 @@
           <div id="plazaUserList" style="grid-auto-rows:1fr">
             <div class="empty-state">暂无可展示的任务</div>
           </div>
+          <div class="sec-head reward-task-section"><h3>蛋总奖励任务</h3><span class="tag tag-gold">完成赚蛋蛋币</span></div>
+          <div id="rewardUserList" style="grid-auto-rows:1fr">
+            <div class="empty-state">暂无奖励任务</div>
+          </div>
         </section>
 
         <!-- ===== STUDENT: 蛋蛋要求助 ===== -->
@@ -2253,6 +2257,11 @@
               <div class="tab-label">蛋蛋求助</div>
               <div class="tab-sub">寻求帮助</div>
             </div>
+            <div class="mytask-tab" data-tab="reward" onclick="switchMyTaskTab('reward')">
+              <div class="tab-icon">💰</div>
+              <div class="tab-label">奖励任务</div>
+              <div class="tab-sub">完成赚币</div>
+            </div>
           </div>
           <div id="myTaskStatusFilters" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px">
             <button class="btn btn-sm btn-primary" data-task-status="all" onclick="filterMyPublishedTasks('all')">全部</button>
@@ -2299,6 +2308,12 @@
             <div class="task-published-block" id="myPublishedListHelp" style="display:flex;flex-direction:column;gap:16px">
               <div class="empty-state">暂无发布记录</div>
             </div>
+          </div>
+          <div class="mytask-tab-panel" id="mytask-tab-reward">
+            <div class="sec-head task-claimed-block"><h3>我认领的奖励任务</h3></div>
+            <div class="task-claimed-block" id="myClaimedListReward" style="display:flex;flex-direction:column;gap:16px"><div class="empty-state">没有已认领的奖励任务</div></div>
+            <div class="sec-head task-published-block"><h3>我发布的奖励任务</h3></div>
+            <div class="task-published-block" id="myPublishedListReward" style="display:flex;flex-direction:column;gap:16px"><div class="empty-state">暂无发布记录</div></div>
           </div>
           </div>
           <div class="task-hub-panel" id="myTaskInquiryHub" hidden>
@@ -3029,6 +3044,11 @@
     if(diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
     var date = new Date(timestamp);
     return (date.getMonth() + 1) + '.' + date.getDate();
+  }
+  function formatDateYmd(value){
+    var date = new Date(value);
+    if(isNaN(date.valueOf())) return '—';
+    return date.getFullYear() + '年' + (date.getMonth() + 1) + '月' + date.getDate() + '日';
   }
 
   /* 五维属性映射：任务分类 → 属性key */
@@ -4816,6 +4836,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   function normalizePublishedTaskStatus(raw){
     raw = String(raw || '').trim();
     if(raw === 'completed' || raw === '已完成') return 'completed';
+    if(raw === 'cancelled' || raw === 'expired' || raw === 'abandoned') return 'cancelled';
+    if(raw === 'submitted' || raw === 'assigned' || raw === 'pending') return 'approved';
     if(raw === 'approved' || raw === '已审核' || raw === '已通过') return 'approved';
     if(raw === 'needs_revision' || raw === '待修改' || raw === '已驳回' || raw === 'rejected' || raw === 'returned') return 'revision';
     return 'pending';
@@ -4835,7 +4857,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var list = document.getElementById('myPublishedList' + type.charAt(0).toUpperCase() + type.slice(1));
     if(!list) list = document.getElementById('myPublishedListTeach');
     var group = normalizePublishedTaskStatus(task.status);
-    var label = group === 'completed' ? '已完成' : group === 'approved' ? '已审核' : group === 'revision' ? '待修改' : '待审核';
+    var label = group === 'completed' ? '已完成' : group === 'cancelled' ? '已取消' : group === 'approved' ? '进行中' : group === 'revision' ? '待修改' : '待审核';
     var card = document.createElement('div');
     card.className = 'card pub-' + type;
     card.setAttribute('data-task-id', String(task.id));
@@ -4847,13 +4869,12 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : '');
     card.setAttribute('data-claimed', '0');
     card.style.cssText = 'padding:20px;display:flex;flex-direction:column;gap:10px';
-    card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag ' + (group === 'completed' ? 'tag-green' : group === 'revision' ? 'tag-red' : 'tag-orange') + '">' + label + '</span><span style="font-size:12px;color:var(--muted)">' + new Date(task.createdAt).toLocaleString() + '</span></div>' +
+    card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag ' + (group === 'completed' ? 'tag-green' : group === 'cancelled' || group === 'revision' ? 'tag-red' : 'tag-orange') + '">' + label + '</span><span style="font-size:12px;color:var(--muted)">发布于 ' + formatDateYmd(task.createdAt) + '</span></div>' +
       '<div style="font-size:15px;font-weight:600">' + escapeHtml(task.title) + '</div>' +
       '<div class="done-txt" style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description) + '</div>' +
       (task.reviewReason ? '<div style="font-size:12px;color:var(--red)">修改意见：' + escapeHtml(task.reviewReason) + '</div>' : '') +
       ((group === 'pending' || group === 'approved') ? '<div style="display:flex;justify-content:flex-end;gap:8px">' +
         (group === 'approved' ? '<button class="btn btn-ghost btn-sm" onclick="openClaimerManager(this)">认领管理</button><button class="btn btn-primary btn-sm" onclick="reviewMyTask(this)">确认完成</button>' : '') +
-        (type === 'teach' && group === 'approved' ? '<button class="btn btn-ghost btn-sm" onclick="publisherCancelTask(this)">申请协商取消</button>' : '') +
         '<button class="btn btn-ghost btn-sm" onclick="cancelPublishedTask(this)">取消任务</button></div>' : '');
     list.appendChild(card);
   }
@@ -4877,8 +4898,10 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var completedRatingAction = claim.status === 'completed' && !claim.ratedByCurrentUser && task.id && task.userId
       ? '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-primary btn-sm" onclick="openClaimerRating(this)">评价发布者</button></div>' : '';
     var controls = canSubmit && !(cancellationRequest && cancellationRequest.status === 'pending')
-      ? '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-primary btn-sm" onclick="submitClaimedTask(\'' + task.id + '\')">提交完成</button>' + (task.taskType === 'teach' ? '<button class="btn btn-ghost btn-sm" onclick="openCancelReqModal(this)">申请协商取消</button>' : '') + '</div>' : '';
-    card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag tag-lilac">' + escapeHtml(claim.status || '已认领') + '</span><span style="font-size:12px;color:var(--muted)">' + new Date(claim.createdAt).toLocaleString('zh-CN') + '</span></div><div style="font-size:15px;font-weight:600">' + escapeHtml(task.title || '任务') + '</div><div style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description || '') + '</div>' + cancellationActions + controls + completedRatingAction;
+      ? '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-primary btn-sm" onclick="submitClaimedTask(\'' + task.id + '\')">提交完成</button></div>' : '';
+    var claimLabel = claim.status === 'completed' ? '已完成' : claim.status === 'submitted' ? '待确认' : claim.status === 'assigned' ? '进行中' : claim.status === 'abandoned' || claim.status === 'cancelled' ? '已取消' : '待配对';
+    var rewardLabel = type === 'reward' ? '<span class="tag tag-gold">完成奖励 ' + Number(task.reward || 0) + ' 蛋蛋币</span>' : '';
+    card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag tag-lilac">' + claimLabel + '</span><span style="font-size:12px;color:var(--muted)">发布于 ' + formatDateYmd(task.createdAt) + '</span></div><div style="font-size:15px;font-weight:600">' + escapeHtml(task.title || '任务') + '</div><div style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description || '') + '</div>' + rewardLabel + cancellationActions + controls + completedRatingAction;
     list.appendChild(card);
   }
   function openClaimerRating(button){
@@ -4909,14 +4932,14 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       var result = results[0]; var claimedResult = results[1];
       taskCancellationRequests = {};
       (results[2].requests || []).filter(function(item){ return item.status === 'pending'; }).forEach(function(item){ taskCancellationRequests[String(item.taskId)] = item; });
-      var lists = ['myPublishedListTeach','myPublishedListTeam','myPublishedListHelp'];
+      var lists = ['myPublishedListTeach','myPublishedListTeam','myPublishedListHelp','myPublishedListReward'];
       lists.forEach(function(id){
         var list = document.getElementById(id);
         if(!list) return;
         Array.prototype.slice.call(list.querySelectorAll('[data-task-id]')).forEach(function(card){ card.remove(); });
         Array.prototype.slice.call(list.children).forEach(function(card){ if(!card.getAttribute('data-task-id')) card.remove(); });
       });
-      ['myClaimedListTeach','myClaimedListTeam','myClaimedListHelp'].forEach(function(id){
+      ['myClaimedListTeach','myClaimedListTeam','myClaimedListHelp','myClaimedListReward'].forEach(function(id){
         var list = document.getElementById(id); if(!list) return;
         Array.prototype.slice.call(list.querySelectorAll('[data-claim-id]')).forEach(function(card){ card.remove(); });
         Array.prototype.slice.call(list.children).forEach(function(card){ if(!card.getAttribute('data-claim-id')) card.remove(); });
@@ -4928,7 +4951,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   }
   var publicTaskPlazaSyncPromise = null;
   function renderServerPlazaTask(task){
-    var type = task.taskType === 'help' || task.taskType === 'team' ? task.taskType : 'teach';
+    var type = task.taskType === 'help' || task.taskType === 'team' || task.taskType === 'reward' ? task.taskType : 'teach';
     var publisher = task.publisher || null;
     var publisherEggCategory = publisher && publisher.eggCategory ? publisher.eggCategory : '';
     var publisherEggRarity = publisher && publisher.eggRarity ? publisher.eggRarity : '';
@@ -4955,10 +4978,10 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.setAttribute('data-requirements', task.requirements || '');
     var status = task.status === 'approved' ? '已审核' : '待审核';
     var mode = task.claimMode === 'multiple' ? '多人' : '单人';
-    var kind = type === 'help' ? '求助型' : type === 'team' ? '组队型' : '教学型';
+    var kind = type === 'help' ? '求助型' : type === 'team' ? '组队型' : type === 'reward' ? '奖励型' : '教学型';
     var taskTags = [task.skillCategory, task.skillSubcategory, kind, mode].filter(Boolean);
     card.innerHTML = '<div class="head task-card-title-row"><span class="nm">' + escapeHtml(task.title || '未命名任务') + '</span><div class="gap6 task-card-tags">' + taskTags.slice(0, 4).map(function(tag){ return '<span class="claim-mode">' + escapeHtml(tag) + '</span>'; }).join('') + '<span class="tag tag-green">' + status + '</span></div></div>' +
-      '<div class="publisher task-card-publisher"><span class="task-card-avatar" style="background:' + publisherColor + '">' + escapeHtml(publisherInitial) + '</span><span class="pname">发布者 ' + escapeHtml(publisherName) + '</span><span class="tag tag-lilac">' + escapeHtml(publisherCategoryLabel) + ' · ' + escapeHtml(publisherRarityLabel) + '</span><span class="tag tag-gold">蛋蛋币 ' + Number(task.reward || 0) + '</span><span class="tag tag-blue">经验值 ' + publishExpReward + '</span></div>' +
+      '<div class="publisher task-card-publisher"><span class="task-card-avatar" style="background:' + publisherColor + '">' + escapeHtml(publisherInitial) + '</span><span class="pname">发布者 ' + escapeHtml(publisherName) + '</span><span class="tag tag-lilac">' + escapeHtml(publisherCategoryLabel) + ' · ' + escapeHtml(publisherRarityLabel) + '</span><span class="tag tag-gold">' + (type === 'reward' ? '完成奖励 ' : '蛋蛋币 ') + Number(task.reward || 0) + '</span><span class="tag tag-blue">经验值 ' + publishExpReward + '</span></div>' +
       '<div class="desc">' + escapeHtml(task.description || '') + '</div>' +
       '<div class="foot task-card-rewards task-card-progress"><span class="claim-info"><span class="claim-count">' + Number(task.activeClaimCount || 0) + (task.maxClaimers ? '/' + Number(task.maxClaimers) : '') + '</span></span><button class="btn btn-primary btn-sm claim-btn">查看详情</button></div>';
     return card;
@@ -4969,8 +4992,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     publicTaskPlazaSyncPromise = (async function(){
     try {
       var result = await window.apiClient.publicTasks();
-      var lists = { teach:document.getElementById('plazaUserList'), help:document.getElementById('helpUserList'), team:document.getElementById('teamUserList') };
-      Object.keys(lists).forEach(function(key){ if(lists[key]) lists[key].innerHTML = '<div class="empty-state">暂无可展示的任务</div>'; });
+      var lists = { teach:document.getElementById('plazaUserList'), help:document.getElementById('helpUserList'), team:document.getElementById('teamUserList'), reward:document.getElementById('rewardUserList') };
+      Object.keys(lists).forEach(function(key){ if(lists[key]) lists[key].innerHTML = '<div class="empty-state">' + (key === 'reward' ? '暂无奖励任务' : '暂无可展示的任务') + '</div>'; });
       (result.tasks || []).forEach(function(task){
         var type = task.taskType === 'help' || task.taskType === 'team' ? task.taskType : 'teach';
         var list = lists[type]; if(!list) return;
@@ -4981,7 +5004,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       });
       applyPlazaFilters(); applyHelpFilters(); applyTeamFilters();
     } catch(error) {
-      ['plazaUserList','helpUserList','teamUserList'].forEach(function(id){ var list = document.getElementById(id); if(list) list.innerHTML = '<div class="empty-state">任务加载失败，请稍后重试</div>'; });
+      ['plazaUserList','helpUserList','teamUserList','rewardUserList'].forEach(function(id){ var list = document.getElementById(id); if(list) list.innerHTML = '<div class="empty-state">任务加载失败，请稍后重试</div>'; });
     } finally { publicTaskPlazaSyncPromise = null; }
     })();
     return publicTaskPlazaSyncPromise;

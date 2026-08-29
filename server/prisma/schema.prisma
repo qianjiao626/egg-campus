@@ -99,6 +99,7 @@ model User {
   invitationsSent             Invitation[]        @relation("InvitationInviter")
   invitationReceived          Invitation?         @relation("InvitationInvitee")
   blacklistComments           BlacklistComment[]
+  adminAvatarSettingsUpdated  AdminAvatarSetting[] @relation("AdminAvatarSettingUpdater")
 
   @@map("users")
 }
@@ -117,6 +118,19 @@ model BlacklistSchool {
 
   @@index([name])
   @@map("schools")
+}
+
+model AdminAvatarSetting {
+  id         BigInt   @id @default(autoincrement())
+  singleton  String   @unique @default("default") @db.VarChar(20)
+  assetPath  String   @map("asset_path") @db.VarChar(160)
+  updatedBy  BigInt   @map("updated_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  updater User @relation("AdminAvatarSettingUpdater", fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@map("admin_avatar_settings")
 }
 
 model BlacklistComment {
