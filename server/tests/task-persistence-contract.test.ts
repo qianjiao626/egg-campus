@@ -207,6 +207,37 @@ describe('task persistence API contract', () => {
     });
   });
 
+  it('writes assignment notifications in one batch', async () => {
+    const token = await authenticatedApp(1n);
+    vi.spyOn(prisma.task, 'findUnique').mockResolvedValue({ id: 10n, userId: 1n, maxClaimers: 3 } as never);
+    vi.spyOn(prisma.taskClaim, 'findMany').mockResolvedValue([
+      { id: 20n, taskId: 10n, claimerId: 2n, status: 'pending' },
+      { id: 21n, taskId: 10n, claimerId: 3n, status: 'submitted' },
+    ] as never);
+    const updateMany = vi.fn().mockResolvedValue({ count: 2 });
+    const createMany = vi.fn().mockResolvedValue({ count: 2 });
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback({
+      taskClaim: { updateMany },
+      notification: { createMany },
+    }) as never);
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/api/tasks/10/claims/assign',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { claimIds: ['20', '21'] },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ assigned: 2 });
+    expect(createMany).toHaveBeenCalledWith({
+      data: [
+        { userId: 2n, type: 'task_assigned', refId: '10', payload: { taskId: '10' } },
+        { userId: 3n, type: 'task_assigned', refId: '10', payload: { taskId: '10' } },
+      ],
+    });
+  });
+
   it('persists a teaching-task cancellation request for the matched participant', async () => {
     const token = await authenticatedApp(2n);
     vi.spyOn(prisma.task, 'findUnique').mockResolvedValue(task({ taskType: 'teach', userId: 1n, createdAt: new Date() }) as never);
