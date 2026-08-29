@@ -27,4 +27,10 @@ describe('blacklist frontend contract', () => {
   it('does not treat click events as school-name prefill values', () => {
     expect(controller).toContain("if (typeof prefill !== 'string') prefill = '';");
   });
+
+  it('keeps blind-box entry temporarily hidden without deleting its implementation', () => {
+    expect(page).toContain('html:not([data-buddybox-enabled="true"]) [data-page="buddybox"]');
+    expect(page).toContain("document.documentElement.dataset.buddyboxEnabled !== 'true' && id === 'buddybox'");
+    expect(page).toContain('id="page-buddybox"');
+  });
 });

@@ -99,6 +99,7 @@ model User {
   invitationsSent             Invitation[]        @relation("InvitationInviter")
   invitationReceived          Invitation?         @relation("InvitationInvitee")
   blacklistComments           BlacklistComment[]
+  blacklistSchoolsAdded       BlacklistSchool[]   @relation("BlacklistSchoolAddedBy")
   adminAvatarSettingsUpdated  AdminAvatarSetting[] @relation("AdminAvatarSettingUpdater")
 
   @@map("users")
@@ -109,14 +110,32 @@ enum BlacklistCommentStatus {
   deleted
 }
 
+enum BlacklistSchoolStatus {
+  approved
+  pending
+  rejected
+}
+
 model BlacklistSchool {
-  id        BigInt            @id @default(autoincrement())
-  name      String            @unique @db.VarChar(200)
-  createdAt DateTime          @default(now()) @map("created_at")
-  updatedAt DateTime          @updatedAt @map("updated_at")
-  comments  BlacklistComment[]
+  id                 BigInt                @id @default(autoincrement())
+  name               String                @unique @db.VarChar(200)
+  type               String?               @db.VarChar(30)
+  province           String?               @db.VarChar(30)
+  city               String?               @db.VarChar(50)
+  is985              Boolean               @default(false) @map("is_985")
+  is211              Boolean               @default(false) @map("is_211")
+  isDoubleFirstClass Boolean               @default(false) @map("is_double_first_class")
+  isUserAdded        Boolean               @default(false) @map("is_user_added")
+  addedBy            BigInt?               @map("added_by")
+  status             BlacklistSchoolStatus @default(approved)
+  createdAt          DateTime              @default(now()) @map("created_at")
+  updatedAt          DateTime              @updatedAt @map("updated_at")
+  comments           BlacklistComment[]
+  addedByUser        User?                 @relation("BlacklistSchoolAddedBy", fields: [addedBy], references: [id], onDelete: SetNull)
 
   @@index([name])
+  @@index([status, name])
+  @@index([addedBy])
   @@map("schools")
 }
 

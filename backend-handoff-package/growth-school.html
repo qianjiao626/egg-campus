@@ -24,6 +24,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   html[data-shop-enabled="false"] [data-shop-ui]{display:none!important}
+  html:not([data-buddybox-enabled="true"]) [data-page="buddybox"],html:not([data-buddybox-enabled="true"]) #page-buddybox{display:none!important}
   body{font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;background:linear-gradient(180deg,#F5F1E8 0%,#F0EBE0 35%,#F8F5EE 70%,#FBF3D9 100%);color:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden}
   #stage{width:1440px;height:1024px;transform-origin:top left;position:absolute;top:0;left:0;visibility:visible}
   @media (max-width: 900px){
@@ -5203,6 +5204,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   });
   function go(id){
     if(!SHOP_FRONTEND_ENABLED && SHOP_PAGE_IDS.indexOf(id) >= 0) id = USER.isAdmin ? 'dashboard' : 'plaza';
+    if(document.documentElement.dataset.buddyboxEnabled !== 'true' && id === 'buddybox') id = USER.isAdmin ? 'dashboard' : 'plaza';
     if(id === 'myinquiries'){ id = 'mytasks'; switchTaskHub('inquiries'); }
     if(id === 'myfeedback'){ id = 'mytasks'; switchTaskHub('feedback'); }
     if(id === 'profile' && !USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
