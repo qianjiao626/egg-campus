@@ -1715,7 +1715,7 @@ export function buildApp(): FastifyInstance {
     const result = await prisma.$transaction(async (tx) => {
       await tx.taskClaim.updateMany({ where: { taskId: task.id, status: { in: ['pending', 'submitted', 'assigned'] }, id: { notIn: selected.map((claim) => claim.id) } }, data: { status: 'rejected' } });
       const assigned = await tx.taskClaim.updateMany({ where: { id: { in: selected.map((claim) => claim.id) } }, data: { status: 'assigned' } });
-      for (const claim of selected) await tx.notification.create({ data: { userId: claim.claimerId, type: 'task_assigned', refId: task.id.toString(), payload: { taskId: task.id.toString() } } });
+      await tx.notification.createMany({ data: selected.map((claim) => ({ userId: claim.claimerId, type: 'task_assigned', refId: task.id.toString(), payload: { taskId: task.id.toString() } })) });
       return assigned.count;
     });
     publishRealtime(() => realtime.publishPrivate([task.userId, ...selected.map((claim) => claim.claimerId)], realtimeEvent('task.assigned', task.id, 'private')));
