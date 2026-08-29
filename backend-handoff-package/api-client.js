@@ -243,7 +243,10 @@
     hideAdminShopReview: function (id, reason) { return request('/api/admin/shop/reviews/' + encodeURIComponent(id) + '/hide', { method: 'POST', body: JSON.stringify({ reason: reason }) }); },
     characters: function () { return request('/api/users/me/characters'); },
     setCurrentCharacter: function (category) { return request('/api/users/me/characters/current', { method: 'PUT', body: JSON.stringify({ category: category }) }); },
-    leaderboard: function (category) { return request('/api/users/leaderboard?category=' + encodeURIComponent(category || 'all')); },
+    leaderboard: function (category, query) {
+      var params = Object.assign({ category: category || 'all' }, query || {});
+      return request('/api/users/leaderboard' + buildQuery(params));
+    },
     blacklistMetrics: function () { return request('/api/blacklist/metrics'); },
     blacklistStats: function () { return request('/api/blacklist/stats'); },
     blacklistExtremes: function () { return request('/api/blacklist/extremes'); },
