@@ -80,7 +80,7 @@ describe('task persistence API contract', () => {
 
     expect(response.statusCode).toBe(200);
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
-      include: expect.objectContaining({ user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true } } }),
+      include: expect.objectContaining({ user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true, role: true } } }),
     }));
     expect(response.json().tasks[0]).toMatchObject({
       publisher: { id: '1', nickname: '真实发布者', eggCategory: 'study', eggRarity: 'SR' },

@@ -20,6 +20,7 @@ const expectedFrontendTargets = [
   'blind-box/region-data.json',
   'blind-box/styles.css',
   'char-eggy-game.jpg',
+  'char-eggy-hermit.jpg',
   'char-eggy-hobby-v2.jpg',
   'char-eggy-job-v2.jpg',
   'char-eggy-life-v2.jpg',
@@ -135,7 +136,7 @@ describe('release boundary manifest', () => {
     const stagingDir = mkdtempSync(resolve(tmpdir(), 'dandan-frontend-stage-'));
     try {
       const stager = resolve(process.cwd(), 'scripts/stage-release-frontend.mjs');
-      const result = spawnSync(process.execPath, [stager, 'docs/releases/2026-08-28-auth-profile-task-ui-r2.json', stagingDir], { encoding: 'utf8' });
+      const result = spawnSync(process.execPath, [stager, 'docs/releases/2026-08-29-production-r3.json', stagingDir], { encoding: 'utf8' });
       expect(result.status, result.stderr).toBe(0);
 
       for (const entry of frontendFiles) {

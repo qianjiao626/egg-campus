@@ -41,11 +41,10 @@ describe('frontend UX regressions', () => {
     expect(html).toContain('@keyframes plazaCardIn');
   });
 
-  it('describes cancellation refund as going to the publisher', () => {
+  it('describes cancellation refund as returning to the original payer', () => {
     expect(html).toContain('蛋蛋币将退回发布者账户余额');
     expect(server).toContain('applyBuddyPointDelta(tx, task.userId, refund');
-    expect(server).toContain('applyBuddyPointDelta(tx, task.userId, claim.frozenAmount');
-    expect(server).not.toContain('task-cancel-claim-refund:${task.id.toString()}:${claim.id.toString()}`, \'task_tuition_refund\'');
+    expect(server).toContain('applyBuddyPointDelta(tx, claim.claimerId, claim.frozenAmount');
     expect(server).not.toContain('applyBuddyPointDelta(tx, currentUserId(request), refund');
   });
 

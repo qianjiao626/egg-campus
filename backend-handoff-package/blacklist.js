@@ -3,6 +3,7 @@
 
   var metrics = [];
   var state = { metric: 'all', page: 1, pageSize: 50, search: '' };
+  var searchSequence = 0;
   var unsubscribe = null;
   var bound = false;
   var esc = window.escapeHtml || function (value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]; }); };
@@ -103,8 +104,9 @@
 
   async function searchSchool(query, showDropdown) {
     query = String(query || '').trim();
+    var requestSequence = ++searchSequence;
     if (!query) { if (showDropdown) { renderSchoolDropdown([], '', 'blSearchDropdown'); renderSchoolDropdown([], '', 'blSchoolDropdown'); } return; }
-    try { var result = await window.apiClient.blacklistSearch(query); if (showDropdown) { var form = root('tousuFormModal'); var pageDropdown = root('blSearchDropdown'); var targetId = form && form.style.display === 'flex' && root('blSchoolDropdown') ? 'blSchoolDropdown' : (pageDropdown ? 'blSearchDropdown' : 'blSchoolDropdown'); renderSchoolDropdown(result.schools || result.list || [], query, targetId); } } catch (error) { if (window.toast) window.toast(error.message || '搜索失败'); }
+    try { var result = await window.apiClient.blacklistSearch(query); if (requestSequence !== searchSequence) return; if (showDropdown) { var form = root('tousuFormModal'); var pageDropdown = root('blSearchDropdown'); var targetId = form && form.style.display === 'flex' && root('blSchoolDropdown') ? 'blSchoolDropdown' : (pageDropdown ? 'blSearchDropdown' : 'blSchoolDropdown'); renderSchoolDropdown(result.schools || result.list || [], query, targetId); } } catch (error) { if (requestSequence === searchSequence && window.toast) window.toast(error.message || '搜索失败'); }
   }
 
   function renderFormMetrics() {
@@ -122,7 +124,12 @@
     var closeSubmit = root('tousuClose'); if (closeSubmit) closeSubmit.addEventListener('click', closeSubmitForm);
     var submit = root('tousuSubmit'); if (submit) submit.addEventListener('click', submitForm);
     var schoolSearch = root('blSchoolSearch'); if (schoolSearch) schoolSearch.addEventListener('input', function () { searchSchool(schoolSearch.value, true); });
-    var rankList = root('blRankList'); if (rankList) rankList.addEventListener('click', function (event) { var button = event.target.closest('[data-blacklist-detail]'); if (button) { event.preventDefault(); openSchool(button.getAttribute('data-blacklist-detail')); } });
+    var rankList = root('blRankList'); if (rankList) rankList.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-blacklist-detail]');
+      var row = event.target.closest('[data-blacklist-school-id]');
+      var schoolId = button ? button.getAttribute('data-blacklist-detail') : (row ? row.getAttribute('data-blacklist-school-id') : '');
+      if (schoolId) { event.preventDefault(); openSchool(schoolId); }
+    });
     var metricClose = root('blMetricRankClose'); if (metricClose) metricClose.addEventListener('click', closeMetricRank);
     var detailClose = root('blSchoolDetailClose'); if (detailClose) detailClose.addEventListener('click', closeSchoolDetail);
     ['tousuFormModal', 'blMetricRankModal', 'blSchoolDetailModal'].forEach(function (id) { var modal = root(id); if (modal) modal.addEventListener('click', function (event) { if (event.target === modal) hideModal(modal); }); });

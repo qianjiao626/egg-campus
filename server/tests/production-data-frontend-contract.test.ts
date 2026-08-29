@@ -109,9 +109,9 @@ describe('production frontend data contract', () => {
   it('does not fabricate publisher identities or profile statistics in a public task detail', () => {
     const taskDetailBody = html.match(/function showTaskDetail\(btn\)\{([\s\S]*?)\n  \}\n  function closeTaskDetail/);
 
-    expect(taskDetailBody?.[1]).not.toContain('char-eggy-hermit.jpg');
     expect(taskDetailBody?.[1]).not.toContain('隐士蛋·蛋总');
-    expect(taskDetailBody?.[1]).not.toContain('knowledge:10,skills:10,charm:10,money:10,reputation:5');
+    expect(taskDetailBody?.[1]).not.toContain("knowledge:10,skills:10,charm:10,money:10,reputation:5");
+    expect(taskDetailBody?.[1]).toContain('data-admin-avatar');
     expect(taskDetailBody?.[1]).toContain("data-publisher-id");
   });
 
@@ -178,7 +178,8 @@ describe('production frontend data contract', () => {
   it('does not infer publisher identity, level, or rarity from front-end text', () => {
     expect(html).not.toContain('function renderPubEggs(');
     expect(html).not.toContain('isAdminPub');
-    expect(html).not.toContain('char-eggy-hermit.jpg');
+    expect(html).toContain("var ADMIN_AVATAR_DEFAULT = 'char-eggy-hermit.jpg';");
+    expect(html).toContain('var ADMIN_AVATAR_ASSETS =');
     expect(html).not.toContain('knowledge:10');
     expect(html).not.toContain("rarity = 'UR'");
     expect(html).not.toContain("var mbtiType = USER.mbtiType || 'INFJ'");
