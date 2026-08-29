@@ -429,11 +429,12 @@
   .claim-bar-fill.full{background:var(--orange)}
   .claim-count{font-size:11px;font-weight:600;color:var(--ink2);white-space:nowrap}
 
-  .profile-identity-summary{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;min-width:120px;max-width:240px;line-height:1.3}
+  .profile-identity-summary{display:flex;flex-direction:row;align-items:center;gap:8px;justify-content:flex-end;min-width:160px;max-width:280px;line-height:1.3}
+  .profile-identity-text{display:flex;flex-direction:column;min-width:0;align-items:flex-end}
   .profile-identity-summary .name{max-width:100%;font-size:14px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .profile-identity-summary .school{max-width:100%;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .profile-top-actions{display:flex;align-items:center;gap:12px;min-width:0}
-  @media(max-width:620px){.profile-identity-summary{align-items:flex-start;max-width:150px}.profile-top-actions{gap:6px;flex-wrap:wrap;justify-content:flex-end}}
+  @media(max-width:620px){.profile-identity-summary{justify-content:flex-start;max-width:180px}.profile-identity-text{align-items:flex-start}.profile-top-actions{gap:6px;flex-wrap:wrap;justify-content:flex-end}}
   .rank-card{background:linear-gradient(135deg,#4ECDC4,#45B7D1);border-radius:16px;color:#fff;padding:28px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-md)}
   .rank-card .big{font-size:32px;font-weight:700;line-height:1.2}
   .rank-card .sub{font-size:14px;opacity:.95}
@@ -1638,7 +1639,15 @@
   .bl-detail-comment-text{font-size:13px;color:rgba(93,64,55,.7);line-height:1.7;white-space:pre-wrap}
   .bl-detail-comment-time{font-size:11px;color:rgba(93,64,55,.4);margin-top:6px;font-weight:600}
   .bl-loading{padding:28px;text-align:center;color:rgba(93,64,55,.45)}
-  .task-card-avatar{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;background:#64748B;color:#fff;font-size:13px;font-weight:800;box-shadow:0 0 0 3px rgba(255,255,255,.8)}
+  .task-card-avatar{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;background:#64748B;color:#fff;font-size:13px;font-weight:800;box-shadow:0 0 0 3px rgba(255,255,255,.8);overflow:hidden}
+  .task-card-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+  .admin-avatar-options{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .admin-avatar-option{width:64px;height:64px;border-radius:14px;border:2px solid transparent;background:var(--bg);padding:3px;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s}
+  .admin-avatar-option:hover{transform:translateY(-2px);box-shadow:0 5px 14px rgba(108,92,228,.18)}
+  .admin-avatar-option.active{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-tint)}
+  .admin-avatar-option img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block}
+  .profile-identity-avatar{width:34px;height:34px;border-radius:50%;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;background:var(--primary-tint);color:var(--primary);font-weight:800;flex:none}
+  .profile-identity-avatar img{width:100%;height:100%;object-fit:cover;display:block}
   #plazaUserList .plaza-card,#helpUserList .plaza-card,#teamUserList .plaza-card{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.8);animation:plazaCardIn .35s ease both}
   #plazaUserList .plaza-card::before,#helpUserList .plaza-card::before,#teamUserList .plaza-card::before{content:'';position:absolute;inset:0 0 auto;height:4px;background:var(--plaza-berry);opacity:.85}
   #helpUserList .plaza-card[data-task-type="help"]{background:linear-gradient(145deg,#fff 0%,#fff8f3 100%)}
@@ -1964,12 +1973,7 @@
         <!-- ===== ADMIN: 反馈工单 ===== -->
         <section class="page" id="page-feedback">
           <div class="topbar"><span class="crumb">蛋蛋世界 / 反馈工单</span><div class="right"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="M20 20L16.5 16.5" stroke-linecap="round"/></svg><span>搜索反馈</span></div></div></div>
-          <div class="title-row"><div class="t"><h2>反馈工单</h2><p>收集用户的 Bug 反馈、功能建议和内容举报，及时处理提升用户体验</p></div>
-            <div class="gap8">
-              <span class="tag tag-red" id="fbPendingTag">待处理 0</span>
-              <span class="tag tag-green" id="fbRepliedTag">已回复 0</span>
-            </div>
-          </div>
+          <div class="title-row"><div class="t"><h2>反馈工单</h2><p>收集用户的 Bug 反馈、功能建议和内容举报，及时处理提升用户体验</p></div></div>
           <div class="filter-row" style="margin-bottom:16px">
             <span class="chip active" data-group="fb-filter" onclick="filterFbTickets('all')">全部</span>
             <span class="chip" data-group="fb-filter" onclick="filterFbTickets('pending')">待处理</span>
@@ -1988,6 +1992,10 @@
         <section class="page" id="page-permissions">
           <div class="topbar"><span class="crumb">蛋蛋世界 / 用户与权限</span><button class="btn btn-ghost btn-sm" onclick="loadPermissionWorkspace()">刷新</button></div>
           <div class="title-row"><div class="t"><h2>用户与权限</h2><p>按角色分配细化权限，授权期限到达后自动失效</p></div></div>
+          <div class="card" id="adminAvatarPanel" style="display:none;padding:18px 20px;background:linear-gradient(135deg,#FFF7ED,#F5F3FF);border:1px solid rgba(108,92,228,.12)">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:14px;font-weight:700">管理员头像素材库</div><div style="font-size:12px;color:var(--muted);margin-top:4px">仅管理员可修改，普通用户不能将管理员素材设为个人头像</div></div><button class="btn btn-primary btn-sm" id="adminAvatarSave" onclick="saveAdminAvatarSetting()">保存头像</button></div>
+            <div class="admin-avatar-options" id="adminAvatarOptions"></div>
+          </div>
           <div class="task-hub-tabs" id="permissionTabs">
             <button class="task-hub-tab active" data-permission-tab="grants" onclick="switchPermissionTab('grants')">用户授权</button>
             <button class="task-hub-tab" data-permission-tab="roles" onclick="switchPermissionTab('roles')">角色管理</button>
@@ -2384,7 +2392,7 @@
 
         <!-- ===== STUDENT: 个人中心 ===== -->
         <section class="page" id="page-profile">
-          <div class="topbar"><span class="crumb">蛋蛋世界 / 个人中心</span><div class="profile-top-actions"><div class="profile-identity-summary" id="profileIdentitySummary"><span class="name" id="profileNickname">登录后加载</span><span class="school" id="profileSchool">学校未填写</span></div><div class="gap8"><button class="btn btn-ghost btn-sm" onclick="openProfileEditor()">编辑资料</button><button class="btn btn-ghost btn-sm" onclick="openCharModal()">切换角色</button></div></div></div>
+          <div class="topbar"><span class="crumb">蛋蛋世界 / 个人中心</span><div class="profile-top-actions"><div class="profile-identity-summary" id="profileIdentitySummary"><span class="profile-identity-avatar" id="profileIdentityAvatar">蛋</span><span class="profile-identity-text"><span class="name" id="profileNickname">登录后加载</span><span class="school" id="profileSchool">学校未填写</span></span></div><button class="btn btn-ghost btn-sm" onclick="openCharModal()">切换角色</button></div></div>
 
           <!-- 蛋仔角色展示区 -->
           <div class="char-section" id="charSection">
@@ -2461,7 +2469,7 @@
               <div class="invite-row-btn">去邀请 →</div>
             </div>
           </div>
-          <div class="sec-head"><h3>个人资料</h3></div>
+          <div class="sec-head"><h3>个人资料</h3><button class="btn btn-ghost btn-sm" onclick="openProfileEditor()">编辑资料</button></div>
           <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:12px">
             <div style="display:flex"><span style="width:90px;color:var(--muted);font-size:13px">邮箱</span><span style="font-size:13px" id="infoEmail">未填写</span></div>
             <div style="display:flex"><span style="width:90px;color:var(--muted);font-size:13px">学校</span><span style="font-size:13px" id="infoSchool">未填写</span></div>
@@ -2840,14 +2848,6 @@
         </div>
 
         <div class="invite-link-section">
-          <div class="invite-section-title">📋 你的专属邀请码</div>
-          <div class="invite-code-box">
-            <div class="invite-code" id="inviteCode">登录后加载</div>
-            <div class="invite-copy-btn" onclick="copyInviteCode()">复制邀请码</div>
-          </div>
-        </div>
-
-        <div class="invite-link-section">
           <div class="invite-section-title">🔗 邀请链接</div>
           <div class="invite-link-box">
             <input type="text" class="invite-link-input" id="inviteLink" readonly>
@@ -3032,6 +3032,19 @@
 <script src="identity-view.js"></script>
 <script>
   var USER = { id:0, nickname:'', role:'guest', registered:false, isAdmin:false, points:0, exp:0, stats:{knowledge:0,skills:0,charm:0,money:0,reputation:0}, invites:[], notifications:[] };
+  var ADMIN_AVATAR_DEFAULT = 'char-eggy-hermit.jpg';
+  var ADMIN_AVATAR_ASSETS = ['char-eggy-hermit.jpg','char-eggy-study-v2.jpg','char-eggy-job-v2.jpg','char-eggy-side.jpg','char-eggy-hobby-v2.jpg','char-eggy-game.jpg','char-eggy-life-v2.jpg'];
+  var adminAvatarPath = ADMIN_AVATAR_DEFAULT;
+  function isAdminAvatarAsset(path){ return ADMIN_AVATAR_ASSETS.indexOf(String(path || '')) >= 0; }
+  function hasAdminAvatarPermission(){
+    var keys = Array.isArray(USER.permissionKeys) ? USER.permissionKeys : [];
+    return Boolean(USER.isAdministrator) && (keys.length === 0 || keys.indexOf('admin.avatar.manage') >= 0);
+  }
+  function adminAvatarMarkup(size, pathOverride){
+    var px = Number(size) || 30;
+    var path = isAdminAvatarAsset(pathOverride) ? pathOverride : (isAdminAvatarAsset(adminAvatarPath) ? adminAvatarPath : ADMIN_AVATAR_DEFAULT);
+    return '<img src="' + escapeHtml(path) + '" alt="管理员头像" style="width:' + px + 'px;height:' + px + 'px;object-fit:cover;border-radius:50%;display:block">';
+  }
   /* Inquiry records are hydrated from the API after login; start with no bundled records. */
   var GOSSIP_POSTS = [];
   var currentGossipCat = 'all';
@@ -3719,8 +3732,8 @@
     if(!modal) return;
     modal.style.display = 'flex';
     var code = USER.inviteCode || '';
-    document.getElementById('inviteCode').textContent = code || '暂无邀请码';
-    document.getElementById('inviteLink').value = code ? window.location.origin + window.location.pathname + '?invite=' + code : '';
+    var link = document.getElementById('inviteLink');
+    if(link) link.value = code ? window.location.origin + window.location.pathname + '?invite=' + code : '';
     renderInviteHistory();
   }
   function closeInviteModal(){
@@ -3751,16 +3764,6 @@
         '<div class="invite-history-status ' + statusClass + '">' + statusText + '</div>' +
       '</div>';
     }).join('');
-  }
-  function copyInviteCode(){
-    var code = USER.inviteCode || '';
-    if(!code){ toast('邀请码尚未加载'); return; }
-    var ta = document.createElement('textarea');
-    ta.value = code;
-    document.body.appendChild(ta);
-    ta.select();
-    try{ document.execCommand('copy'); showToast('邀请码已复制：' + code); }catch(e){ showToast('复制失败，请手动复制'); }
-    document.body.removeChild(ta);
   }
   function copyInviteLink(){
     var link = document.getElementById('inviteLink').value;
@@ -4110,8 +4113,8 @@
     if(!list) return;
     if(!tasks.length){ list.innerHTML = '<div class="empty-state">暂无待审核任务</div>'; return; }
     list.innerHTML = tasks.map(function(task){
-      var type = task.taskType === 'help' || task.taskType === 'team' ? task.taskType : 'teach';
-      var typeLabel = type === 'help' ? '求助型' : type === 'team' ? '组队型' : '教学型';
+      var type = ['help','team','reward'].indexOf(task.taskType) >= 0 ? task.taskType : 'teach';
+      var typeLabel = type === 'help' ? '求助型' : type === 'team' ? '组队型' : type === 'reward' ? '奖励型' : '教学型';
       var modeLabel = task.claimMode === 'multiple' ? '多人' : '单人';
       var publisher = task.publisher && task.publisher.nickname ? task.publisher.nickname : '用户 #' + String(task.userId);
       var requirements = task.requirements ? '<div style="padding:8px 12px;background:#EDF2F7;border-radius:8px;font-size:12px;color:var(--ink2);line-height:1.5;margin-top:4px"><b>任务要求及参与方式：</b><br>' + escapeHtml(task.requirements).replace(/\n/g,'<br>') + '</div>' : '';
@@ -4309,7 +4312,8 @@
     if(!messages.length) return '';
     return '<div class="fb-ticket-reply">' + messages.map(function(message){
       var author = message.authorType === 'admin' ? '管理员回复' : '我的补充';
-      return '<div style="margin-top:6px"><b>' + author + '：</b>' + escapeHtml(message.content || '') + '</div>';
+      var avatar = message.authorType === 'admin' ? '<span style="display:inline-flex;vertical-align:middle;width:22px;height:22px;border-radius:50%;overflow:hidden;margin-right:5px" data-admin-avatar data-avatar-size="22">' + adminAvatarMarkup(22) + '</span>' : '';
+      return '<div style="margin-top:6px">' + avatar + '<b>' + author + '：</b>' + escapeHtml(message.content || '') + '</div>';
     }).join('') + '</div>';
   }
   function feedbackAttachmentsMarkup(record){
@@ -4451,6 +4455,7 @@
       bindRealtimeForPage('dashboard');
       renderDashboard();
       if(window.apiClient){ syncAdminReviewQueue(); syncFeedbackTickets(); }
+      loadAdminAvatarSetting();
     } else {
       adminNav.style.display = 'none'; studentNav.style.display = 'flex';
       document.getElementById('userRole').textContent = USER.isAdmin ? '管理员 · 普通界面' : ((CHAR_CATS.find(function(c){return c.cat===CHAR_STATE.current;})||{name:'蛋蛋'}).name + ' · ' + getLevel(USER.exp).lv);
@@ -4459,6 +4464,7 @@
       bindRealtimeForPage('plaza');
       refreshProfile();
       syncPublicTaskPlazas();
+      loadAdminAvatarSetting();
     }
   }
   function login(role){
@@ -4480,6 +4486,7 @@
     });
     USER.isAdmin = Boolean(USER.isAdministrator);
     applyRole(USER.isAdmin && role !== 'student' ? 'admin' : 'student');
+    loadAdminAvatarSetting();
     syncNotifications();
     syncPublicTaskPlazas();
   }
@@ -4809,6 +4816,43 @@ return imageUrl?'<img src="'+escapeHtml(imageUrl)+'" alt="'+escapeHtml(product.n
 async function createPublisherProduct(){var type=document.getElementById('publisherProductType').value;var fileInput=document.getElementById('publisherProductImages');var payload={name:document.getElementById('publisherProductName').value.trim(),type:type,category:document.getElementById('publisherProductCategory').value.trim()||null,description:document.getElementById('publisherProductDescription').value.trim(),price:Number(document.getElementById('publisherProductPrice').value),stock:type==='physical'?Number(document.getElementById('publisherProductStock').value):null,minQuantity:1,maxQuantity:1,imageUrls:[]};try{if(fileInput&&fileInput.files&&fileInput.files.length){var upload=await window.apiClient.uploadShopImages(fileInput.files);payload.imageUrls=(upload.images||[]).map(function(image){return image.url;});}await window.apiClient.createPublisherShopProduct(payload);if(fileInput)fileInput.value='';toast('草稿已保存');loadPublisherProducts();}catch(error){toast(error.message||'保存失败');}}
   async function submitPublisherProduct(id){try{await window.apiClient.submitPublisherShopProduct(id);toast('已提交审核');loadPublisherProducts();}catch(error){toast(error.message||'提交失败');}}
   function hasShopPermission(key){return Array.isArray(USER.permissionKeys)&&USER.permissionKeys.indexOf(key)>=0;}
+  function renderAdminAvatarOptions(){
+    var panel = document.getElementById('adminAvatarPanel');
+    var options = document.getElementById('adminAvatarOptions');
+    if(!panel || !options) return;
+    var canEdit = hasAdminAvatarPermission();
+    panel.style.display = canEdit ? '' : 'none';
+    if(!canEdit) return;
+    options.innerHTML = ADMIN_AVATAR_ASSETS.map(function(path){
+      return '<button type="button" class="admin-avatar-option' + (path === adminAvatarPath ? ' active' : '') + '" data-avatar-path="' + escapeHtml(path) + '" title="' + escapeHtml(path) + '" onclick="selectAdminAvatarOption(this)">' + adminAvatarMarkup(56, path) + '</button>';
+    }).join('');
+  }
+  function selectAdminAvatarOption(button){
+    if(!hasAdminAvatarPermission()) return;
+    var path = button && button.getAttribute('data-avatar-path');
+    if(!isAdminAvatarAsset(path)) return;
+    adminAvatarPath = path;
+    document.querySelectorAll('.admin-avatar-option').forEach(function(option){ option.classList.toggle('active', option.getAttribute('data-avatar-path') === path); });
+    applyAdminAvatarToVisibleUi();
+  }
+  async function saveAdminAvatarSetting(){
+    if(!hasAdminAvatarPermission() || !window.apiClient || !window.apiClient.updateAdminAvatar){ toast('当前账号没有管理员头像权限'); return; }
+    var button = document.getElementById('adminAvatarSave');
+    if(button) { button.disabled = true; button.textContent = '保存中…'; }
+    try { var result = await window.apiClient.updateAdminAvatar(adminAvatarPath); adminAvatarPath = isAdminAvatarAsset(result.assetPath) ? result.assetPath : ADMIN_AVATAR_DEFAULT; applyAdminAvatarToVisibleUi(); renderAdminAvatarOptions(); toast('管理员头像已更新'); }
+    catch(error){ toast(error.message || '管理员头像保存失败'); }
+    finally { if(button){ button.disabled = false; button.textContent = '保存头像'; } }
+  }
+  async function loadAdminAvatarSetting(){
+    if(!USER.registered || !window.apiClient || !window.apiClient.adminAvatar) return;
+    try { var result = await window.apiClient.adminAvatar(); if(isAdminAvatarAsset(result.assetPath)) adminAvatarPath = result.assetPath; renderAdminAvatarOptions(); applyAdminAvatarToVisibleUi(); }
+    catch(_) { renderAdminAvatarOptions(); }
+  }
+  function applyAdminAvatarToVisibleUi(){
+    var avatar = document.getElementById('userAvatar');
+    if(avatar && USER.isAdministrator){ avatar.innerHTML = '<defs><clipPath id="userAvatarClip"><circle cx="16" cy="16" r="16"/></clipPath></defs><image href="' + escapeHtml(adminAvatarPath) + '" width="32" height="32" preserveAspectRatio="xMidYMid slice" clip-path="url(#userAvatarClip)"/>'; }
+    document.querySelectorAll('[data-admin-avatar]').forEach(function(node){ node.innerHTML = adminAvatarMarkup(Number(node.getAttribute('data-avatar-size')) || 30); });
+  }
   async function loadAdminShop(){var root=document.getElementById('adminShopProductList');if(!root)return;try{var result=await window.apiClient.adminShopProducts({status:document.getElementById('adminShopStatus').value});var rows=result.products||[];root.innerHTML=rows.length?rows.map(function(p){var actions=[];if(p.status==='pending_review'&&hasShopPermission('shop.product.review'))actions.push('<button class="btn btn-primary btn-sm" data-testid="admin-shop-review" onclick="reviewAdminProduct(\''+p.id+'\',true)">通过</button><button class="btn btn-ghost btn-sm" onclick="reviewAdminProduct(\''+p.id+'\',false)">驳回</button>');if(['approved','off_sale','sold_out'].indexOf(p.status)>=0&&hasShopPermission('shop.product.publish'))actions.push('<button class="btn btn-primary btn-sm" onclick="publishAdminProduct(\''+p.id+'\')">上架</button>');if(p.status==='on_sale'&&hasShopPermission('shop.product.publish'))actions.push('<button class="btn btn-ghost btn-sm" onclick="offSaleAdminProduct(\''+p.id+'\')">下架</button>');return '<div class="shop-list-row"><div><b>'+escapeHtml(p.name)+'</b><div style="font-size:12px;color:var(--muted);margin-top:4px">'+escapeHtml(p.publisherNickname||'平台')+'</div></div><span class="shop-status">'+shopStatusLabel(p.status)+'</span><span class="shop-price">'+Number(p.price)+' 币</span><div class="shop-row">'+actions.join('')+'</div></div>';}).join(''):'<div class="shop-empty">当前状态下没有商品</div>';}catch(error){root.innerHTML='<div class="shop-empty">'+escapeHtml(error.message||'商城后台加载失败')+'</div>';}}
   async function reviewAdminProduct(id,approve){var reason=approve?'':window.prompt('请输入驳回原因');if(!approve&&!reason)return;try{await window.apiClient.reviewAdminShopProduct(id,{decision:approve?'approved':'rejected',reason:reason||null});toast(approve?'审核通过':'已驳回');loadAdminShop();}catch(error){toast(error.message||'审核失败');}}
   async function publishAdminProduct(id){try{await window.apiClient.publishAdminShopProduct(id);toast('商品已上架');loadAdminShop();}catch(error){toast(error.message||'上架失败');}}
@@ -4844,7 +4888,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   }
   function filterMyPublishedTasks(status){
     currentMyPublishedStatus = status || 'all';
-    document.querySelectorAll('#myPublishedListTeach [data-task-id],#myPublishedListTeam [data-task-id],#myPublishedListHelp [data-task-id]').forEach(function(card){
+    document.querySelectorAll('#myPublishedListTeach [data-task-id],#myPublishedListTeam [data-task-id],#myPublishedListHelp [data-task-id],#myPublishedListReward [data-task-id]').forEach(function(card){
       card.style.display = currentMyPublishedStatus === 'all' || card.getAttribute('data-status-group') === currentMyPublishedStatus ? 'flex' : 'none';
     });
     document.querySelectorAll('#myTaskStatusFilters [data-task-status]').forEach(function(btn){
@@ -4866,6 +4910,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.setAttribute('data-status-group', group);
     card.setAttribute('data-task-type', type);
     card.setAttribute('data-task-cost', String(task.reward || 0));
+    card.setAttribute('data-max-claimers', task.maxClaimers == null ? '' : String(task.maxClaimers));
     card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : '');
     card.setAttribute('data-claimed', '0');
     card.style.cssText = 'padding:20px;display:flex;flex-direction:column;gap:10px';
@@ -4960,6 +5005,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var publisherName = publisher && publisher.nickname ? publisher.nickname : '发布者资料不可用';
     var publisherInitial = publisherName.charAt(0) || '蛋';
     var publisherColor = publisherEggCategory === '学业技术' ? '#E91E63' : publisherEggCategory === '就业技能' ? '#2196F3' : publisherEggCategory === '副业技能' ? '#F59E0B' : publisherEggCategory === '兴趣爱好' ? '#8B5CF6' : publisherEggCategory === '游戏搭子' ? '#10B981' : '#64748B';
+    var publisherAvatar = publisher && publisher.isAdministrator ? adminAvatarMarkup(30) : escapeHtml(publisherInitial);
+    var publisherClick = publisher && publisher.id ? ' onclick="event.stopPropagation();showUserEggModal(\'' + escapeInlineString(publisherName) + '\',\'' + escapeInlineString(publisher.id) + '\')"' : '';
     var publishExpReward = Number(task.publishExpReward || 0);
     var card = document.createElement('div');
     card.className = 'plaza-card';
@@ -4981,7 +5028,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var kind = type === 'help' ? '求助型' : type === 'team' ? '组队型' : type === 'reward' ? '奖励型' : '教学型';
     var taskTags = [task.skillCategory, task.skillSubcategory, kind, mode].filter(Boolean);
     card.innerHTML = '<div class="head task-card-title-row"><span class="nm">' + escapeHtml(task.title || '未命名任务') + '</span><div class="gap6 task-card-tags">' + taskTags.slice(0, 4).map(function(tag){ return '<span class="claim-mode">' + escapeHtml(tag) + '</span>'; }).join('') + '<span class="tag tag-green">' + status + '</span></div></div>' +
-      '<div class="publisher task-card-publisher"><span class="task-card-avatar" style="background:' + publisherColor + '">' + escapeHtml(publisherInitial) + '</span><span class="pname">发布者 ' + escapeHtml(publisherName) + '</span><span class="tag tag-lilac">' + escapeHtml(publisherCategoryLabel) + ' · ' + escapeHtml(publisherRarityLabel) + '</span><span class="tag tag-gold">' + (type === 'reward' ? '完成奖励 ' : '蛋蛋币 ') + Number(task.reward || 0) + '</span><span class="tag tag-blue">经验值 ' + publishExpReward + '</span></div>' +
+      '<div class="publisher task-card-publisher"><span class="task-card-avatar" style="background:' + publisherColor + '"' + (publisher && publisher.isAdministrator ? ' data-admin-avatar data-avatar-size="30"' : '') + publisherClick + '>' + publisherAvatar + '</span><span class="pname"' + publisherClick + '>发布者 ' + escapeHtml(publisherName) + '</span><span class="tag tag-lilac">' + escapeHtml(publisherCategoryLabel) + ' · ' + escapeHtml(publisherRarityLabel) + '</span><span class="tag tag-gold">' + (type === 'reward' ? '完成奖励 ' : '蛋蛋币 ') + Number(task.reward || 0) + '</span><span class="tag tag-blue">经验值 ' + publishExpReward + '</span></div>' +
       '<div class="desc">' + escapeHtml(task.description || '') + '</div>' +
       '<div class="foot task-card-rewards task-card-progress"><span class="claim-info"><span class="claim-count">' + Number(task.activeClaimCount || 0) + (task.maxClaimers ? '/' + Number(task.maxClaimers) : '') + '</span></span><button class="btn btn-primary btn-sm claim-btn">查看详情</button></div>';
     return card;
@@ -4995,7 +5042,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       var lists = { teach:document.getElementById('plazaUserList'), help:document.getElementById('helpUserList'), team:document.getElementById('teamUserList'), reward:document.getElementById('rewardUserList') };
       Object.keys(lists).forEach(function(key){ if(lists[key]) lists[key].innerHTML = '<div class="empty-state">' + (key === 'reward' ? '暂无奖励任务' : '暂无可展示的任务') + '</div>'; });
       (result.tasks || []).forEach(function(task){
-        var type = task.taskType === 'help' || task.taskType === 'team' ? task.taskType : 'teach';
+        var type = task.taskType === 'help' || task.taskType === 'team' || task.taskType === 'reward' ? task.taskType : 'teach';
         var list = lists[type]; if(!list) return;
         var empty = list.querySelector('.empty-state'); if(empty) empty.remove();
         var card = renderServerPlazaTask(task);
@@ -5057,6 +5104,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       permissionCatalog = results[0].permissions || [];
       permissionRoles = (results[1].roles || []).filter(function(role){ return role.enabled && !role.systemProtected; });
       renderPermissionChecklist(); renderPermissionRoles(); renderPermissionUsers(results[2].users || []);
+      renderAdminAvatarOptions();
     }catch(error){ if(error.status === 403) handlePermissionLoss(); else toast(error.message || '权限工作区加载失败'); }
   }
   async function loadPermissionUsers(query){
@@ -5729,13 +5777,20 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var nameEl = card.querySelector('div[style*="font-weight:600"]');
     var taskName = nameEl ? nameEl.textContent : '该任务';
     var cost = parseInt(card.getAttribute('data-task-cost') || '0', 10);
-    cancelTaskCtx = { card: card, taskName: taskName, cost: cost };
+    var taskType = card.getAttribute('data-task-type') || 'teach';
+    var maxClaimers = parseInt(card.getAttribute('data-max-claimers') || '1', 10) || 1;
+    var refund = taskType === 'team' ? cost * maxClaimers : cost;
+    cancelTaskCtx = { card: card, taskName: taskName, cost: refund, taskType: taskType };
 
     var modal = document.getElementById('cancelTaskModal');
     var nameSpan = document.getElementById('cancelTaskName');
     var refundSpan = document.getElementById('cancelTaskRefund');
     if(nameSpan) nameSpan.textContent = taskName;
-    if(refundSpan) refundSpan.textContent = cost;
+    if(refundSpan) refundSpan.textContent = refund;
+    var hint = document.getElementById('cancelTaskRefundHint');
+    if(hint) hint.innerHTML = taskType === 'teach'
+      ? '· 已认领该任务的用户将收到取消通知<br>· 认领者冻结的蛋蛋币将原路退回认领者账户'
+      : '· 已认领该任务的用户将收到取消通知<br>· 蛋蛋币将退回发布者账户余额';
     if(modal){ modal.style.display = 'flex'; requestAnimationFrame(function(){ modal.classList.add('show'); }); }
   }
   function closeCancelTaskModal(){
@@ -5904,7 +5959,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
 
   /* ===== 发布者视角：刷新已发布任务的取消状态 ===== */
   function syncPublishedCancellationUi(){
-    var pubCards = document.querySelectorAll('#myPublishedListTeach .card, #myPublishedListTeam .card, #myPublishedListHelp .card');
+    var pubCards = document.querySelectorAll('#myPublishedListTeach .card, #myPublishedListTeam .card, #myPublishedListHelp .card, #myPublishedListReward .card');
     pubCards.forEach(function(card){
       var nameEl = card.querySelector('div[style*="font-weight:600"]');
       if(!nameEl) return;
@@ -6127,14 +6182,20 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     if(publisher){
       var pnameEl = publisher.querySelector('.pname');
       var pname = pnameEl ? pnameEl.textContent.replace('发布者 ','') : '发布者资料不可用';
+      var avatarEl = publisher.querySelector('.task-card-avatar');
+      var avatarHtml = avatarEl ? avatarEl.innerHTML : escapeHtml(pname.charAt(0) || '蛋');
+      var avatarAttrs = avatarEl && avatarEl.hasAttribute('data-admin-avatar') ? ' data-admin-avatar data-avatar-size="44"' : '';
+      var publisherIdForClick = card.getAttribute('data-publisher-id') || '';
+      var publisherClick = publisherIdForClick ? ' onclick="showUserEggModal(\'' + escapeInlineString(pname) + '\',\'' + escapeInlineString(publisherIdForClick) + '\')"' : '';
       var pubTagsHtml = '';
       publisher.querySelectorAll('.tag').forEach(function(t){
         pubTagsHtml += '<span class="' + t.className + '">' + t.textContent + '</span>';
       });
       pubHtml = '<div class="td-section-title" style="margin-top:14px">发布者</div><div class="td-pub">' +
         '<div class="td-pub-header">' +
+        '<div class="td-pub-avatar-wrap"' + avatarAttrs + publisherClick + ' style="width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-weight:700">' + avatarHtml + '</div>' +
         '<div class="td-pub-info">' +
-          '<div class="td-pub-name">' + escapeHtml(pname) + '</div>' +
+          '<div class="td-pub-name"' + publisherClick + '>' + escapeHtml(pname) + '</div>' +
         '<div class="td-pub-tags">' + pubTagsHtml + '</div></div></div>' +
       '</div>';
     } else {
@@ -6186,6 +6247,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   }
   function claimFromDetail(){
     if(!currentDetailCard) return;
+    if(!USER.registered){ toast('请先登录后认领任务'); openLoginModal(); return; }
     var card = currentDetailCard;
     var name = card.querySelector('.nm').textContent;
     var pubEl = card.querySelector('.pname');
@@ -6264,7 +6326,6 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   function bindDetailBtn(btn){
     btn.addEventListener('click', function(e){
       e.stopPropagation();
-      if(!USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
       showTaskDetail(btn);
     });
   }
@@ -7410,6 +7471,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     if(nickEl) nickEl.textContent = USER.nickname || '登录后加载';
     var schoolEl = document.getElementById('profileSchool');
     if(schoolEl) schoolEl.textContent = USER.school || '学校未填写';
+    var identityAvatar = document.getElementById('profileIdentityAvatar');
+    if(identityAvatar){ identityAvatar.innerHTML = USER.isAdministrator ? adminAvatarMarkup(34) : escapeHtml((USER.nickname || '蛋').charAt(0)); }
     document.getElementById('infoEmail').textContent = USER.email || '未填写';
     document.getElementById('infoSchool').textContent = USER.school || '未填写';
     document.getElementById('infoCity').textContent = USER.city || '未填写';
@@ -8302,7 +8365,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
           <div style="font-size:18px;font-weight:800;color:var(--gold);margin-top:2px">💰 退回 <span id="cancelTaskRefund">0</span> 蛋蛋币</div>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px">· 已认领该任务的用户将收到取消通知<br>· 蛋蛋币将退回发布者账户余额</div>
+      <div id="cancelTaskRefundHint" style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px">· 已认领该任务的用户将收到取消通知<br>· 蛋蛋币将退回发布者账户余额</div>
       <div style="display:flex;gap:10px">
         <button class="btn btn-ghost" style="flex:1" onclick="closeCancelTaskModal()">再想想</button>
         <button class="btn btn-primary" style="flex:1;background:var(--coral)" onclick="confirmCancelTask()">确认取消</button>
@@ -8353,6 +8416,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     if(adminShopNav) adminShopNav.style.display = SHOP_FRONTEND_ENABLED && permissionKeys.some(function(key){ return key.indexOf('shop.') === 0 && !/_own$/.test(key); }) ? 'flex' : 'none';
     USER.isAdmin = Boolean(USER.isAdministrator);
     if (typeof login === 'function') login(USER.isAdmin ? 'admin' : 'student');
+    loadAdminAvatarSetting();
     revealStage();
     if (typeof hydrateUserState === 'function') hydrateUserState().then(function(){ USER.isAdmin = Boolean(USER.isAdministrator); refreshProfile(); });
   });
