@@ -132,12 +132,14 @@ describe('RBAC API contract', () => {
       userRoleGrant: { findFirst: vi.fn().mockResolvedValue(existing), update, create },
       roleGrantAudit: { create: audit },
     }) as never);
+    const invalidatePermissions = vi.spyOn(app!.realtime, 'invalidatePermissions');
     const token = await app!.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
     const response = await app!.inject({ method: 'POST', url: '/api/admin/role-grants', headers: { authorization: `Bearer ${token}` }, payload: { userId: '2', roleId: '5', preset: '7d', reason: '续期' } });
     expect(response.statusCode).toBe(201);
     expect(update).toHaveBeenCalledOnce();
     expect(create).not.toHaveBeenCalled();
     expect(audit).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: 'renew' }) }));
+    expect(invalidatePermissions).toHaveBeenCalledWith([2n]);
   });
 
   it('returns a stable 403 when changing a protected administrators grants', async () => {
@@ -213,6 +215,7 @@ describe('RBAC API contract', () => {
       shopProduct: { updateMany: offSale },
       notification: { create: vi.fn().mockResolvedValue({}) },
     }) as never);
+    const invalidatePermissions = vi.spyOn(app!.realtime, 'invalidatePermissions');
     const token = await app!.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
 
     const response = await app!.inject({
@@ -228,6 +231,7 @@ describe('RBAC API contract', () => {
       where: { publisherId: 2n, status: 'on_sale' },
       data: { status: 'off_sale' },
     });
+    expect(invalidatePermissions).toHaveBeenCalledWith([2n]);
   });
 
   it('off-sales affected products when a publishing role is disabled', async () => {
@@ -245,6 +249,7 @@ describe('RBAC API contract', () => {
       notification: { create: vi.fn().mockResolvedValue({}) },
     }) as never);
     vi.spyOn(prisma.auditLog, 'create').mockResolvedValue({} as never);
+    const invalidatePermissions = vi.spyOn(app!.realtime, 'invalidatePermissions');
     const token = await app!.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
 
     const response = await app!.inject({
@@ -259,5 +264,6 @@ describe('RBAC API contract', () => {
       where: { publisherId: 2n, status: 'on_sale' },
       data: { status: 'off_sale' },
     });
+    expect(invalidatePermissions).toHaveBeenCalledWith();
   });
 });
