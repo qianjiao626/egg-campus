@@ -11,6 +11,7 @@ export interface AuthorizationGrant {
 }
 
 export type ProtectedAdminMutation = 'delete' | 'suspend' | 'change_nickname' | 'change_grants';
+export type GrantDurationPreset = '1h' | '7d' | '1m' | '1q' | 'permanent' | 'custom';
 export type AppAbility = MongoAbility<[string, string]>;
 
 export interface AuthorizationContext {
@@ -29,6 +30,29 @@ export class AuthorizationError extends Error {
     this.name = 'AuthorizationError';
     this.code = code;
   }
+}
+
+export function resolveGrantWindow(
+  input: { preset: GrantDurationPreset; customExpiresAt?: Date },
+  now = new Date(),
+): { startsAt: Date; expiresAt: Date | null; isPermanent: boolean } {
+  if (input.preset === 'permanent') return { startsAt: now, expiresAt: null, isPermanent: true };
+  let expiresAt: Date;
+  if (input.preset === 'custom') {
+    if (!input.customExpiresAt) throw new Error('INVALID_GRANT_DURATION');
+    expiresAt = input.customExpiresAt;
+  } else if (input.preset === '1m' || input.preset === '1q') {
+    expiresAt = new Date(now);
+    expiresAt.setUTCMonth(expiresAt.getUTCMonth() + (input.preset === '1m' ? 1 : 3));
+  } else {
+    const milliseconds = input.preset === '1h' ? 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+    expiresAt = new Date(now.getTime() + milliseconds);
+  }
+  const duration = expiresAt.getTime() - now.getTime();
+  if (duration < 60 * 60 * 1000 || duration > 365 * 24 * 60 * 60 * 1000) {
+    throw new Error('INVALID_GRANT_DURATION');
+  }
+  return { startsAt: now, expiresAt, isPermanent: false };
 }
 
 export function isGrantEffective(grant: AuthorizationGrant, now = new Date()): boolean {

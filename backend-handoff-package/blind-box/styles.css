@@ -25,3 +25,9 @@ html,body{height:auto;min-height:100%;overflow:visible}
 .interest-choices,.board-list{max-height:none;overflow:visible}
 .feature-modal{max-height:none;overflow:visible}
 @media(max-width:620px){.feature-modal{max-height:none;overflow:visible}.feature-modal-actions{position:static}}
+
+/* Reduce first-paint work and isolate panel repaints. */
+.preference-workbench{contain:layout paint}
+.match-section,.feature-section,.board-section{content-visibility:auto;contain-intrinsic-size:420px}
+.buddy-stage{contain:paint}
+html{scroll-behavior:auto}

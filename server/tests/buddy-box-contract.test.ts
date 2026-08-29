@@ -19,10 +19,20 @@ describe('buddy box API contract', () => {
     await app.ready();
     const preference = { userId: 1n, mbtiType: 'INTP', hobbies: ['玩游戏'], todayActions: ['一起自习'], province: '江苏省', city: '南京市', district: '鼓楼区' };
     vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
-    vi.spyOn(prisma.buddyPreference, 'upsert').mockResolvedValue(preference as never);
+    const updateUser = vi.fn().mockResolvedValue({ id: 1n });
+    const upsertPreference = vi.fn().mockResolvedValue(preference);
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback({
+      user: { update: updateUser },
+      buddyPreference: { upsert: upsertPreference },
+    }) as never);
     const response = await app.inject({ method: 'PUT', url: '/api/buddy-box/preferences', headers: { authorization: 'Bearer ' + await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' }) }, payload: { mbtiType: 'INTP', hobbies: ['玩游戏'], todayActions: ['一起自习'], province: '江苏省', city: '南京市', district: '鼓楼区' } });
     expect(response.statusCode).toBe(200);
     expect(response.json().preference.mbtiType).toBe('INTP');
+    expect(updateUser).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 1n },
+      data: expect.objectContaining({ mbtiType: 'INTP', mbtiGroup: 'NT', interests: ['玩游戏'] }),
+    }));
+    expect(upsertPreference).toHaveBeenCalledOnce();
   });
 
   it('rejects buddy messages without authentication', async () => {

@@ -49,12 +49,7 @@ describe('registration and cookie session flow', () => {
     app = buildApp();
     await app.ready();
 
-    const verificationToken = 'v'.repeat(48);
     const tx = {
-      verificationCode: {
-        findFirst: vi.fn().mockResolvedValue({ id: 7n }),
-        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-      },
       user: { create: vi.fn().mockResolvedValue(user) },
       pointTransaction: { create: vi.fn().mockResolvedValue({}) },
     };
@@ -69,9 +64,14 @@ describe('registration and cookie session flow', () => {
         nickname: user.nickname,
         email: user.email,
         password: 'correct-password',
-        verificationToken,
+        school: user.school,
+        major: '计算机科学',
+        city: user.city,
+        grade: '大二',
+        age: user.age,
         mbtiType: user.mbtiType,
         mbtiGroup: user.mbtiGroup,
+        eggCategory: user.eggCategory,
       },
     });
 
@@ -81,12 +81,14 @@ describe('registration and cookie session flow', () => {
     expect(register.headers['set-cookie']).toContain('Path=/api');
     expect(tx.user.create).toHaveBeenCalledOnce();
     expect(tx.pointTransaction.create).toHaveBeenCalledOnce();
+    expect(tx).not.toHaveProperty('verificationCode');
 
     const cookie = String(register.headers['set-cookie']).split(';')[0];
     const session = { id: 'session-42', userId: 42n, revokedAt: null, expiresAt: new Date(Date.now() + 60_000) };
     vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue(session as never);
     vi.spyOn(prisma.authSession, 'update').mockResolvedValue(session as never);
     vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(user as never);
+    vi.spyOn(prisma.userRoleGrant, 'findMany').mockResolvedValue([] as never);
 
     const refresh = await app.inject({ method: 'POST', url: '/api/auth/refresh', headers: { cookie } });
     expect(refresh.statusCode).toBe(200);
@@ -145,12 +147,13 @@ describe('registration and cookie session flow', () => {
     expect(register.json().user.email).toBeNull();
     expect(register.headers['set-cookie']).toContain('dandan_refresh=');
     expect(tx.user.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ email: undefined, phone: undefined, verifiedEmailAt: null, verifiedPhoneAt: null }),
+      data: expect.objectContaining({ email: undefined, verifiedEmailAt: null, verifiedPhoneAt: null }),
     }));
+    expect(tx.user.create.mock.calls[0]?.[0]?.data).not.toHaveProperty('phone');
     expect(tx.pointTransaction.create).toHaveBeenCalledOnce();
   });
 
-  it('allows optional email or phone contact without a registration code', async () => {
+  it('allows optional email contact without a registration code', async () => {
     process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
     process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
     process.env.VERIFICATION_PROVIDER = 'mock';
@@ -181,6 +184,43 @@ describe('registration and cookie session flow', () => {
       data: expect.objectContaining({ email: contactUser.email, verifiedEmailAt: null, verifiedPhoneAt: null }),
     }));
     expect(tx.pointTransaction.create).toHaveBeenCalledOnce();
+  });
+
+  it('does not authenticate with a phone number', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+
+    const phoneUser = { ...user, id: 45n, email: null, phone: '13800000000' };
+    const findFirst = vi.spyOn(prisma.user, 'findFirst').mockResolvedValue(null);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { identifier: phoneUser.phone, password: 'correct-password' },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(findFirst).toHaveBeenCalledOnce();
+    expect(findFirst.mock.calls[0]?.[0]?.where?.OR).toEqual([
+      { email: phoneUser.phone },
+      { nickname: phoneUser.phone },
+    ]);
+  });
+
+  it('does not consume email verification records during registration', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src', 'app.ts'), 'utf8');
+    const start = source.indexOf("app.post('/api/auth/register'");
+    const end = source.indexOf("app.post('/api/auth/login'", start);
+    const registrationRoute = source.slice(start, end);
+
+    expect(registrationRoute).not.toContain('registrationChannel');
+    expect(registrationRoute).not.toContain('registrationTarget');
+    expect(registrationRoute).not.toContain('VerificationTokenError');
+    expect(registrationRoute).not.toContain('verificationCode');
+    expect(registrationRoute).toContain('verifiedEmailAt: null');
   });
 
   it('keeps the public cookie path broad enough for buddy-box requests', () => {

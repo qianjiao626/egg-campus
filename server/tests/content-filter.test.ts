@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertSafeJsonText, validateUserText } from '../src/content-filter.js';
+import { assertSafeJsonText, assertSafeSkillTags, validateSkillTag, validateUserText } from '../src/content-filter.js';
 
 describe('shared content filter', () => {
   it('rejects blocked text without exposing the matched term', () => {
@@ -26,5 +26,13 @@ describe('shared content filter', () => {
 
   it('walks nested JSON payloads without exposing the matched term', () => {
     expect(() => assertSafeJsonText({ fields: [{ answer: '请加微信' }] })).toThrow('内容包含敏感词，请修改后再提交');
+  });
+
+  it('keeps ordinary skill tags usable while blocking only high-signal abuse terms', () => {
+    expect(validateSkillTag('英语四六级').blocked).toBe(false);
+    expect(validateSkillTag('教师资格证').blocked).toBe(false);
+    expect(validateSkillTag('Python').blocked).toBe(false);
+    expect(validateSkillTag('代考四六级').blocked).toBe(true);
+    expect(() => assertSafeSkillTags('英语四六级', 'Python')).not.toThrow();
   });
 });

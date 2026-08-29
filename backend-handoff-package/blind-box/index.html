@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="icon" href="data:,">
   <title>盲盒交友内容组件</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260821-2" />
+  <link rel="stylesheet" href="styles.css?v=20260829-2" />
 </head>
 <body>
   <main class="buddy-content" data-buddy-component="content-only" aria-label="盲盒交友">
@@ -33,6 +34,6 @@
   <div class="modal-overlay compose-overlay" id="profileDetailOverlay" aria-hidden="true"><section class="compose-modal" role="dialog" aria-modal="true" aria-labelledby="profileDetailTitle"><button class="modal-close" id="closeProfileDetail" aria-label="关闭资料面板">×</button><div class="compose-person"><span id="profileDetailAvatar" class="match-avatar"></span><div><p id="profileDetailTitle"><b id="profileDetailName"></b></p><small id="profileDetailMeta"></small></div></div><div id="profileDetailBody" style="display:flex;flex-direction:column;gap:10px;line-height:1.6;font-size:13px;color:var(--ink2)"></div><div class="form-footer"><button type="button" class="cancel-button" id="profileDetailChat">发起聊天</button><button type="button" class="send-message" id="profileDetailFriend">添加好友</button></div></section></div>
   <div class="modal-overlay compose-overlay" id="conversationOverlay" aria-hidden="true"><section class="compose-modal" role="dialog" aria-modal="true" aria-labelledby="conversationTitle"><button class="modal-close" id="closeConversation" aria-label="关闭聊天窗口">×</button><div class="compose-person"><span id="conversationAvatar" class="match-avatar"></span><div><p id="conversationTitle">与 <b id="conversationName"></b> 聊天</p><small id="conversationMeta"></small></div></div><div id="conversationMessages" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto;padding:8px 0"></div><form id="conversationForm"><textarea id="conversationText" maxlength="180" placeholder="输入消息"></textarea><div class="form-footer"><span id="conversationCount">0 / 180</span><button type="submit" class="send-message">发送</button></div></form></section></div>
   <div class="modal-overlay feature-overlay" id="featureOverlay" aria-hidden="true"><section class="feature-modal" role="dialog" aria-modal="true" aria-labelledby="featureModalTitle"><button class="modal-close" id="closeFeature" aria-label="关闭玩法面板">×</button><div class="feature-modal-kicker" id="featureModalKicker">玩法中心</div><h2 id="featureModalTitle">选择一种玩法</h2><p id="featureModalDescription"></p><div id="featureModalBody"></div><div class="feature-modal-actions"><button type="button" class="cancel-button" id="cancelFeature">稍后再说</button><button type="button" class="send-message" id="featurePrimaryAction">开始设置</button></div></section></div>
-  <script defer src="city-data.js?v=20260821-2"></script><script defer src="../sensitive-filter.js?v=20260826-2"></script><script defer src="buddy-box-api.js?v=20260826-1"></script><script defer src="app.js?v=20260826-3"></script>
+  <script defer src="city-data.js?v=20260821-2"></script><script defer src="../sensitive-filter.js?v=20260826-2"></script><script defer src="buddy-box-api.js?v=20260826-1"></script><script defer src="app.js?v=20260829-2"></script>
 </body>
 </html>

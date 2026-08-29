@@ -1,0 +1,60 @@
+{
+  "releaseId": "2026-08-28-auth-profile-task-ui-r1",
+  "version": "r1",
+  "status": "superseded",
+  "productionDeployable": false,
+  "supersededBy": "2026-08-28-auth-profile-task-ui-r2",
+  "generatedAt": "2026-08-28T00:00:00.000Z",
+  "sourceOfTruth": "backend-handoff-package",
+  "targetEnvironments": [
+    "local",
+    "isolated-test"
+  ],
+  "productionPath": "/var/www/dd",
+  "isolatedApi": "127.0.0.1:3311 via SSH tunnel",
+  "rollbackSource": null,
+  "files": [
+    {
+      "path": "backend-handoff-package/growth-school.html",
+      "sha256": "84077eb09f4975867190d0409ac3fd0885381d0181bc74c129bad38ba83d9fde"
+    },
+    {
+      "path": "backend-handoff-package/api-client.js",
+      "sha256": "f59afa849ea89e9d998866810cb3ee76a0f8a4b2a19ea1e03417d3b275bd9225"
+    },
+    {
+      "path": "backend-handoff-package/realtime-client.js",
+      "sha256": "af54052e511b0067a6922095ce1a8b4baec670c488a7dfbcc8e8c1429678533d"
+    },
+    {
+      "path": "backend-handoff-package/sensitive-filter.js",
+      "sha256": "12dfe523907c9239e3abacefe1ba18a43a82191de090c21c02476cd2f136fe25"
+    },
+    {
+      "path": "backend-handoff-package/blind-box/app.js",
+      "sha256": "d26e77789203edff62cb292f71e86e0ef8b46a5c3e5873c897a7565c23d77475"
+    },
+    {
+      "path": "backend-handoff-package/blind-box/buddy-box-api.js",
+      "sha256": "28590b3a332826e1620a5b05431da4b16701bae2cf2a420fe580bf54713561d4"
+    },
+    {
+      "path": "server/src/app.ts",
+      "sha256": "48c7a128b2f7dd0212dade72ce38c7818b55713eda5c588b8095f769d0621119"
+    }
+  ],
+  "forbiddenInRelease": [
+    ".env",
+    "node_modules",
+    "*.rollback-*",
+    "*.screenshot.*",
+    "output/playwright",
+    "server/.vitest-full-result.json"
+  ],
+  "verification": [
+    "node server/scripts/verify-release-boundary.mjs docs/releases/2026-08-28-auth-profile-task-ui.json",
+    "cd server && npm test",
+    "cd server && npm run build",
+    "curl http://127.0.0.1:3310/health"
+  ]
+}

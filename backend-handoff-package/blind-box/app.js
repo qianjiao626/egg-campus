@@ -1,12 +1,4 @@
-/*仅页面预览，上线删除，数据由数据库返回*/
-const profiles = []; /*
-  {id:'lin-shen',name:'林深',meta:'大二 · 计算机科学 · 本科',avatar:'avatar-lin',score:'98% 同频',copy:'最近在研究独立游戏，也想找个人一起交换奇怪但好听的歌。',tags:['写代码','玩游戏','分享歌单'],reason:'都选择了「玩游戏 + 分享歌单」'},
-  {id:'xiao-man',name:'小满',meta:'大一 · 视觉传达 · 本科',avatar:'avatar-man',score:'94% 同频',copy:'喜欢拍校园里的小角落，周末想去逛一家没去过的咖啡店。',tags:['拍照','探店','周末出门'],reason:'都把「拍照」放进了最近在做的事'},
-  {id:'zhou-zhou',name:'周周',meta:'大三 · 新闻传播 · 本科',avatar:'avatar-zhou',score:'91% 同频',copy:'INTP 友好型选手，正在找一位可以安静自习、偶尔聊天的朋友。',tags:['看书','一起自习','INTP'],reason:'你们都选了「一起自习」'},
-  {id:'a-yao',name:'阿遥',meta:'研一 · 心理学 · 硕士',avatar:'avatar-yao',score:'89% 同频',copy:'下班后喜欢玩合作解谜，最近想认真认识一个新朋友。',tags:['玩游戏','找人聊天','INFJ'],reason:'都期待「找人聊天」'},
-  {id:'gu-lu',name:'咕噜',meta:'大二 · 建筑学 · 本科',avatar:'avatar-gulu',score:'87% 同频',copy:'收集城市里的声音和旧海报，欢迎交换你的私藏歌单。',tags:['听歌','拍照','分享歌单'],reason:'你们有两项兴趣相同'},
-  {id:'you-zi',name:'柚子',meta:'大四 · 经济学 · 本科',avatar:'avatar-youzi',score:'85% 同频',copy:'正在准备毕业论文，想找一个互相监督又不尴尬的搭子。',tags:['写代码','一起自习','找人聊天'],reason:'都想找一个轻松的学习搭子'}
-]; */
+const profiles = [];
 
 //【数据库接入插头：对接数据库后补全此处，上层页面渲染代码无需修改】
 const api = window.buddyBoxApi;
@@ -81,7 +73,6 @@ let conversationProfile = null;
 let selectedTodayAction = '';
 let inboxPollTimer = null;
 let conversationPollTimer = null;
-/*仅页面预览，上线删除，数据由数据库返回*/
 let inbox = [];
 const requestedProfiles = new Set();
 const blockedTerms = ['加微信','加我微信','手机号','裸聊','色情','博彩','刷单'];
@@ -130,10 +121,9 @@ function updatePreferenceStatus(state) {
 
 async function saveBuddyPreferences() {
   if (typeof buddyBoxDataAdapter.savePreferences !== 'function') return;
-  const textFields = [$('#school').value, $('#province').value, $('#city').value, $('#district').value];
+  const textFields = [$('#province').value, $('#city').value, $('#district').value];
   if (!textFields.every(validateUserText)) return;
   try {
-    if (typeof api.updateProfile === 'function') await api.updateProfile({school: $('#school').value.trim() || null});
     await buddyBoxDataAdapter.savePreferences({
       mbtiType: activeText('mbti')[0] || null,
       hobbies: activeText('hobby'),
@@ -143,6 +133,17 @@ async function saveBuddyPreferences() {
       district: $('#district').value || null,
     });
   } catch (_) { reportSyncFailure('偏好保存失败，请稍后重试'); }
+}
+
+async function saveProfileSchool() {
+  const school = $('#school').value.trim();
+  if (!validateUserText(school) || typeof api.updateProfile !== 'function') return;
+  try {
+    const result = await api.updateProfile({school: school || null});
+    if (window.parent !== window) {
+      window.parent.postMessage({type: 'dandan-buddy-profile-updated', user: result?.user || null}, window.location.origin);
+    }
+  } catch (_) { reportSyncFailure('学校保存失败，请稍后重试'); }
 }
 
 function applyBuddyPreferences(preference) {
@@ -336,24 +337,37 @@ function runDraw() {
   drawOverlay.classList.remove('revealed');
   drawOverlay.setAttribute('aria-hidden', 'false');
   lockPage(true);
-  buddyBoxDataAdapter.drawBox({source:'main-stage', actionPool: options, action:selectedTodayAction || null}).catch(() => reportSyncFailure('盲盒抽取结果同步失败，请稍后重试'));
+  const drawRequest = buddyBoxDataAdapter.drawBox({source:'main-stage', actionPool: options, action:selectedTodayAction || null})
+    .catch(() => null);
   let tick = 0;
   drawTimer = window.setInterval(() => {
     $('#drawResult').textContent = `${options[tick % options.length]} · 随机中`;
     tick += 1;
     if (tick < 12) return;
     clearDrawTimer();
-    selectedTodayAction = options[Math.floor(Math.random() * options.length)];
-    drawState = 'revealed';
-    $('#drawResult').textContent = `今日行动：${selectedTodayAction}`;
-    syncBuddyProfiles(selectedTodayAction);
-    $('#drawTitle').textContent = '今天就做这件事吧';
-    //【数据库接入插头】抽盒后的声望变动由服务端返回；前端只保留“待同步”展示。
-    $('#experienceCount').textContent = '待同步';
-    drawOverlay.classList.remove('drawing');
-    drawOverlay.classList.add('revealed');
-    $('#openBox').disabled = false;
-    $('#closeDraw').focus();
+    drawRequest.then(result => {
+      const action = result && typeof result.action === 'string' ? result.action.trim() : '';
+      if (!action) {
+        drawState = 'ready';
+        drawOverlay.classList.remove('open', 'drawing', 'revealed');
+        $('#openBox').disabled = false;
+        reportSyncFailure('盲盒抽取结果暂未同步，请稍后重试');
+        lockPage(false);
+        restoreFocus();
+        return;
+      }
+      selectedTodayAction = action;
+      drawState = 'revealed';
+      $('#drawResult').textContent = `今日行动：${selectedTodayAction}`;
+      syncBuddyProfiles(selectedTodayAction);
+      $('#drawTitle').textContent = '今天就做这件事吧';
+      //【数据库接入插头】抽盒后的声望变动由服务端返回；前端只保留“待同步”展示。
+      $('#experienceCount').textContent = '待同步';
+      drawOverlay.classList.remove('drawing');
+      drawOverlay.classList.add('revealed');
+      $('#openBox').disabled = false;
+      $('#closeDraw').focus();
+    });
   }, 125);
 }
 
@@ -543,18 +557,17 @@ document.querySelectorAll('.choice-row').forEach(row => row.addEventListener('cl
 $('#education').addEventListener('change', event => {
   const level = event.target.value;
   const school = $('#school');
-  school.value = '';
   school.disabled = !level;
   $('#schoolToggle').disabled = !level;
   $('#schoolHint').textContent = level ? `已按${level}筛选推荐学校，也支持手动输入` : '先选学历，学校选项会自动匹配';
   setSchoolMenu(false);
   if (level) showToast(`已切换为${level}学校选项`);
   updatePreferenceStatus();
-  saveBuddyPreferences();
 });
 $('#schoolToggle').addEventListener('click', () => setSchoolMenu($('#schoolMenu').hidden));
 $('#school').addEventListener('focus', () => setSchoolMenu(true));
 $('#school').addEventListener('input', event => { schoolOptions(event.target.value); $('#schoolHint').textContent = event.target.value ? '学校已填写，可继续修改或从推荐中选择' : `已按${$('#education').value}筛选推荐学校，也支持手动输入`; });
+$('#school').addEventListener('change', saveProfileSchool);
 $('#schoolMenu').addEventListener('click', event => {
   const option = event.target.closest('[data-school]');
   if (!option) return;
@@ -562,6 +575,7 @@ $('#schoolMenu').addEventListener('click', event => {
   school.value = option.dataset.school === '__custom__' ? '' : option.dataset.school;
   $('#schoolHint').textContent = option.dataset.school === '__custom__' ? '请输入其他学校名称' : '已选择推荐学校';
   setSchoolMenu(false);
+  saveProfileSchool();
   school.focus();
 });
 document.addEventListener('click', event => { if (!event.target.closest('.school-combobox')) setSchoolMenu(false); });
@@ -678,11 +692,19 @@ $('#featureModalBody').addEventListener('click', async event => {
     $('#featureModalBody').innerHTML = featureResultMarkup(feature, {message:'安全状态已刷新'});
     return;
   }
+  if (action === 'qa-answer') {
+    const answer = window.prompt('写下你的回答');
+    if (!answer?.trim() || !validateUserText(answer)) return;
+    await buddyBoxDataAdapter.askWall({answer: answer.trim()});
+    button.textContent = '已回答';
+    button.disabled = true;
+    showToast('回答已提交，等待服务端同步');
+    return;
+  }
   const handlers = {
     'reverse-claim': ['claimWishBox', {wishId: state.wishId || null}],
     'coop-join': ['createCoopTask', {join:true}],
     'fragments-craft': ['craftFragment', {source:'returned-box'}],
-    'qa-answer': ['askWall', {answer:'我也在练习把大目标拆成今天能完成的一小步。'}],
     'group-enter': ['createGroup', {enter:true}],
     'wish-claim': ['publishWishNote', {claim:true}]
   };
@@ -761,7 +783,34 @@ async function syncSafetyState() {
   //【数据库接入插头：对接数据库后补全此处】页面只读取服务端安全状态，不在前端推断冷却或处罚。
   try { safetyState = {...safetyState, ...(await buddyBoxDataAdapter.getSafetySettings())}; } catch (error) { reportSyncFailure('安全设置加载失败，请稍后重试'); }
 }
-renderProfiles(); renderInbox(); renderFeatureCenter(); updatePreferenceStatus(); syncPlatformSnapshot(); syncSafetyState(); syncBuddyPreferences(); syncBuddyInbox(); syncBuddyProfiles(); syncBuddyBoard(); syncBuddyFeatureState();
+window.addEventListener('message', event => {
+  if (event.origin !== window.location.origin || !event.data || event.data.type !== 'dandan-realtime') return;
+  const type = event.data.event && event.data.event.type || 'fallback';
+  if (type === 'fallback' || type === 'buddy.message.created' || type === 'buddy.friend.updated') {
+    syncBuddyInbox();
+    syncBuddyProfiles(selectedTodayAction);
+    if (conversationProfile && conversationOverlay.classList.contains('open')) openConversation(conversationProfile);
+  }
+  if (type === 'fallback' || type === 'buddy.feature.updated') {
+    syncPlatformSnapshot();
+    syncBuddyBoard();
+    syncBuddyFeatureState();
+    syncBuddyProfiles(selectedTodayAction);
+  }
+  if (type === 'fallback' || type === 'ranking.updated') syncPlatformSnapshot();
+});
+renderProfiles(); renderInbox(); updatePreferenceStatus();
+// Keep preference panel responsive; feature cards are below the fold and can wait one frame.
+window.setTimeout(renderFeatureCenter, 0);
+/* Keep first paint local; hydrate secondary panels after browser is idle. */
+const scheduleBuddySync = (task, delay) => window.setTimeout(task, delay);
+scheduleBuddySync(syncPlatformSnapshot, 80);
+scheduleBuddySync(syncSafetyState, 120);
+scheduleBuddySync(syncBuddyPreferences, 160);
+scheduleBuddySync(syncBuddyInbox, 220);
+scheduleBuddySync(() => syncBuddyProfiles(selectedTodayAction), 280);
+scheduleBuddySync(syncBuddyBoard, 340);
+scheduleBuddySync(syncBuddyFeatureState, 400);
 /* Report content height to the host page so the host container owns scrolling. */
 if (window.parent !== window) {
   const reportBuddyHeight = () => {

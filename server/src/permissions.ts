@@ -27,6 +27,7 @@ export const PERMISSION_KEYS = {
   contentFilterManage: 'content.filter.manage',
   contentAnnouncementManage: 'content.announcement.manage',
   contentDemoManage: 'content.demo.manage',
+  blacklistCommentModerate: 'blacklist.comment.moderate',
   auditView: 'audit.view',
   auditExport: 'audit.export',
   permissionRoleCreate: 'permission.role.create',
@@ -50,6 +51,7 @@ export const PERMISSION_KEYS = {
   shopOrderRefund: 'shop.order.refund',
   shopReviewModerate: 'shop.review.moderate',
   shopAuditView: 'shop.audit.view',
+  shopMaintenanceRun: 'shop.maintenance.run',
 } as const;
 
 export type PermissionKey = typeof PERMISSION_KEYS[keyof typeof PERMISSION_KEYS];
@@ -79,6 +81,7 @@ const highRiskPermissionKeys = new Set<PermissionKey>([
   PERMISSION_KEYS.pointsRefund,
   PERMISSION_KEYS.auditExport,
   PERMISSION_KEYS.shopOrderRefund,
+  PERMISSION_KEYS.shopMaintenanceRun,
 ]);
 
 const descriptions: Record<PermissionKey, string> = {
@@ -110,6 +113,7 @@ const descriptions: Record<PermissionKey, string> = {
   [PERMISSION_KEYS.contentFilterManage]: '管理敏感词规则',
   [PERMISSION_KEYS.contentAnnouncementManage]: '管理公告',
   [PERMISSION_KEYS.contentDemoManage]: '管理带 demo 标签的测试数据',
+  [PERMISSION_KEYS.blacklistCommentModerate]: '软删除大学吐槽内容',
   [PERMISSION_KEYS.auditView]: '查看审计记录',
   [PERMISSION_KEYS.auditExport]: '导出审计记录',
   [PERMISSION_KEYS.permissionRoleCreate]: '创建自定义角色，仅固定管理员可用',
@@ -133,6 +137,7 @@ const descriptions: Record<PermissionKey, string> = {
   [PERMISSION_KEYS.shopOrderRefund]: '处理商城订单退款',
   [PERMISSION_KEYS.shopReviewModerate]: '隐藏违规商品评价',
   [PERMISSION_KEYS.shopAuditView]: '查看商城操作日志',
+  [PERMISSION_KEYS.shopMaintenanceRun]: '执行商城订单完成与发布权限清理',
 };
 
 function parts(key: PermissionKey) {
@@ -162,4 +167,15 @@ export function permissionDefinition(key: PermissionKey): PermissionDefinition {
   const definition = permissionByKey.get(key);
   if (!definition) throw new Error(`Unknown permission: ${key}`);
   return definition;
+}
+
+const nonAdministrativePermissionKeys = new Set<PermissionKey>([
+  PERMISSION_KEYS.shopProductCreateOwn,
+  PERMISSION_KEYS.shopProductEditOwn,
+  PERMISSION_KEYS.shopProductSubmitOwn,
+  PERMISSION_KEYS.shopProductStatsOwn,
+]);
+
+export function hasAdministrativePermission(keys: readonly PermissionKey[]): boolean {
+  return keys.some((key) => !nonAdministrativePermissionKeys.has(key));
 }

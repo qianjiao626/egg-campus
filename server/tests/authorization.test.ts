@@ -4,6 +4,7 @@ import {
   effectivePermissionKeys,
   isGrantEffective,
   loadAuthorizationContext,
+  resolveGrantWindow,
   type AuthorizationGrant,
 } from '../src/authorization.js';
 import { PERMISSION_KEYS, permissionDefinition } from '../src/permissions.js';
@@ -94,5 +95,19 @@ describe('authorization rules', () => {
     expect(context.ability.can('grant', 'permission')).toBe(false);
     expect(context.isProtectedAdmin).toBe(true);
     expect(context.mustChangePassword).toBe(true);
+  });
+
+  it('resolves preset, permanent, and bounded custom grant windows', () => {
+    expect(resolveGrantWindow({ preset: '1h' }, now).expiresAt).toEqual(new Date('2026-08-26T13:00:00.000Z'));
+    expect(resolveGrantWindow({ preset: '7d' }, now).expiresAt).toEqual(new Date('2026-09-02T12:00:00.000Z'));
+    expect(resolveGrantWindow({ preset: '1m' }, now).expiresAt).toEqual(new Date('2026-09-26T12:00:00.000Z'));
+    expect(resolveGrantWindow({ preset: '1q' }, now).expiresAt).toEqual(new Date('2026-11-26T12:00:00.000Z'));
+    expect(resolveGrantWindow({ preset: 'permanent' }, now)).toEqual({ startsAt: now, expiresAt: null, isPermanent: true });
+    expect(resolveGrantWindow({ preset: 'custom', customExpiresAt: new Date('2026-08-26T13:00:00.000Z') }, now).expiresAt)
+      .toEqual(new Date('2026-08-26T13:00:00.000Z'));
+    expect(() => resolveGrantWindow({ preset: 'custom', customExpiresAt: new Date('2026-08-26T12:59:59.999Z') }, now))
+      .toThrowError(/INVALID_GRANT_DURATION/);
+    expect(() => resolveGrantWindow({ preset: 'custom', customExpiresAt: new Date('2027-08-26T12:00:00.001Z') }, now))
+      .toThrowError(/INVALID_GRANT_DURATION/);
   });
 });

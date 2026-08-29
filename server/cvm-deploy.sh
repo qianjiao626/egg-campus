@@ -19,9 +19,9 @@ case "$DATABASE_URL_VALUE" in
   mysql://*:*@*:*/*) ;;
   *) echo "invalid DATABASE_URL: expected mysql://user:password@host:port/database" >&2; exit 1 ;;
 esac
-grep -Eq '^HOST="?127\\.0\\.0\\.1"?$' .env || { echo "HOST must be 127.0.0.1 in production" >&2; exit 1; }
-grep -Eq '^CORS_ORIGIN="?https://dsxnb\\.com"?$' .env || { echo "CORS_ORIGIN must be https://dsxnb.com in production" >&2; exit 1; }
-grep -Eq '^VERIFICATION_PROVIDER="?tencent_sms"?$' .env || { echo "VERIFICATION_PROVIDER must be tencent_sms in production" >&2; exit 1; }
+grep -Eq '^HOST="?127\.0\.0\.1"?$' .env || { echo "HOST must be 127.0.0.1 in production" >&2; exit 1; }
+grep -Eq '^CORS_ORIGIN="?https://dsxnb\.com"?$' .env || { echo "CORS_ORIGIN must be https://dsxnb.com in production" >&2; exit 1; }
+grep -Eq '^VERIFICATION_PROVIDER="?disabled"?$' .env || { echo "VERIFICATION_PROVIDER must be disabled while verification delivery is not configured" >&2; exit 1; }
 
 echo "[1/4] Installing locked dependencies"
 npm ci

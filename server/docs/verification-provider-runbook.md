@@ -3,7 +3,7 @@
 ## Mock（开发/测试）
 
 ```env
-VERIFICATION_PROVIDER=mock
+VERIFICATION_PROVIDER=disabled
 ```
 
 Mock provider 只用于本地和隔离测试，验证码保存在进程内供测试断言，不能用于生产。前端接口不会返回验证码。
@@ -13,7 +13,7 @@ Mock provider 只用于本地和隔离测试，验证码保存在进程内供测
 在 CVM 的 `server/.env` 中配置，不要提交到 Git：
 
 ```env
-VERIFICATION_PROVIDER=tencent_sms
+短信 provider 当前不启用，不配置腾讯云 SMS 密钥。
 TENCENTCLOUD_SECRET_ID="最小权限子账号 SecretId"
 TENCENTCLOUD_SECRET_KEY="对应 SecretKey"
 TENCENT_SMS_SDK_APP_ID="短信应用 SDK AppID"
@@ -22,7 +22,7 @@ TENCENT_SMS_TEMPLATE_ID="已审核验证码模板 ID"
 TENCENT_SMS_REGION="ap-nanjing"
 ```
 
-启动时缺少任一必填变量会直接失败。子账号只授予发送短信所需权限，定期轮换密钥。模板参数为验证码和有效期，短信正文不得包含账号密码等敏感数据。
+生产启动时明确使用 `VERIFICATION_PROVIDER=disabled`；如未来重新启用短信，需单独完成供应商、权限、模板和密钥审计。
 
 ## 故障处理
 

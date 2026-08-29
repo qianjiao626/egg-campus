@@ -1,5 +1,15 @@
 # 进度记录
 
+## 2026-08-28 全站真人式测试与发布边界整改收口
+
+- [x] 按 HANDOFF 完成全站真人式浏览器走查：注册、登录、Cookie 恢复、退出、资料、MBTI、角色、技能、任务广场、任务详情、认领/放弃、排行榜、通知、八卦/打听、反馈、盲盒、好友与移动端均已覆盖；未使用 agent-browser、未截图。
+- [x] 隔离真实写入 E2E `25/25` 通过，仅使用 `dandan_campus_test`，并清理 `3 users`、`7 point transactions`、`0 attachments`。
+- [x] 退出回归为 `refresh 200 -> logout 200`；退出后等待 17 秒无盲盒轮询；控制台无 error-level 消息；未复现“蛋总—千焦”身份串成“隐士蛋 · 蛋总”。
+- [x] 发现并修复发布边界缺口：r2 清单覆盖完整前端运行时集合（主页面、API/身份/实时/过滤脚本、角色图、盲盒资源），组件级区分前端与后端并绑定 SHA-256。
+- [x] 新增 staging 校验、前端依赖完整性校验、受管文件备份、原子替换与失败恢复；发布边界测试覆盖 staging、已批准部署、备份指针和中途失败回滚。
+- [x] 主页面结构检查：`<div>` 开闭均为 `1362`，`id="stage"` 唯一，`getElementById('stage')` 初始化查询 `2` 处。
+- [ ] 当前 r2 仍为 `isolated-test-only` 且未获生产批准；未上传生产、未 reload Nginx。
+
 ## 2026-08-26（四项 Bug 修复）
 
 - [x] 注册页移除手机号/注册验证码字段；无手机号用户可直接注册，后端手机号兼容保留。
@@ -269,3 +279,186 @@
 - [x] `agent-browser skills get core` 及浏览器连接、导航、标题/URL、无障碍快照、截图调用均正常；临时输出已清理。
 - [x] `git diff --check` 通过。
 - [ ] CVM 发布仍等待重新登录和 MFA；未将工具链健康误报为生产上线。
+
+## 2026-08-27 审计补充发布
+
+- [x] 修复角色/MBTI 与打听写入后的前端本地状态漂移，成功写入后统一从 REST 同步。
+- [x] 新增教学任务协商取消持久化记录、申请/响应 API 与实时通知；接受时取消任务、取消接取记录并归还冻结蛋蛋币。
+- [x] 扩展隔离 E2E 为 23/23，新增双用户协商取消和余额恢复用例。
+- [x] 生产只应用 `202608270002_task_cancellation_requests` 并显式登记；商城迁移未执行。
+- [x] 发布后 `https://dsxnb.com/dd/health`、管理员登录、新协商接口与 WSS 均通过；PM2 online、Nginx active、最新日志无 1045/500/Prisma 初始化错误。
+# 2026-08-27 继续执行：完成度审计
+
+- 读取生产实时化实施计划、根规划文件、11 轮线上报告和独立测试任务历史。
+- 证实生产发布、WSS、白名单清理与登录持久化已经完成；生产最终状态为 3 个指定账号、3 条初始流水。
+- 识别剩余关键缺口：`dandan_campus_test` 和独立测试进程尚未建立，现有循环报告只覆盖 GET 冒烟。
+- 建立新的五阶段执行计划：隔离测试环境 -> 完整业务 E2E -> 修复 -> 增量部署 -> 文档与证据审计。
+- 下一步：只读确认服务器 MySQL 当前用户，再创建测试数据库和本地回环测试进程。
+- 已创建 `dandan_campus_test`，仅授予 `app_user@127.0.0.1` 测试库权限；`.env.test` 权限 600，数据库名/端口/监听分别为 `dandan_campus_test`、3311、127.0.0.1。
+- 测试库 11 个非商城迁移全部应用，`dandan-world-test` PM2 进程启动且回环 health 返回 200。
+- 已向独立任务发送完整业务 E2E 指令；主任务同步发现个人技能默认假数据和旧资料伪造逻辑风险。
+- 确认旧管理员资料伪造逻辑可达；决定先以回归测试清除默认技能和固定 MBTI/满属性，不在同一变更中重构所有公开资料入口。
+- 清除前端默认技能、固定管理员 MBTI/满属性、固定余额/经验值、默认解锁角色及盲盒假用户注释；真实性契约 5/5 通过。
+- 建立隔离管理员并确认 52 项权限；新增 `server/scripts/isolated-e2e.mjs`，目标硬限制为 `127.0.0.1:13311`，最终 E2E 22/22 通过。
+- 报告已写入 `docs/online-test-reports/2026-08-27-isolated-e2e.md`，且确认不含密码、Cookie 或 JWT。
+- 全量验证：42 个测试文件、208/208 通过；`npm run build` 通过。
+- 本机无 `rsync`，改用 SHA-256 差异清单和 145286 字节增量包，只上传 `growth-school.html`、`api-client.js`、`blind-box/app.js`。
+- 生产前端备份：`/root/deploy-backups/dd-before-frontend-cleanup-20260827-0310.tar.gz`；覆盖后三个文件哈希与本地一致。
+- 生产验证：首页、health、公开 REST 为 200；两位管理员登录、`/me`、refresh 成功且各 52 项权限；WSS 握手成功；Nginx active；蛋蛋校园两个 PM2 进程 online，错误日志为空。
+- 商城继续前端隐藏、服务端关闭，未运行商城迁移；“航线”和 Supabase 未读取或修改。
+
+## 2026-08-27（动态管理数据发布与 HTTP 500 回归修复）
+
+- 管理员工作台计数、审核队列和用户列表改为 REST 真实数据；任务发布、审核、驳回、打听发布和个人技能保存不再维护前端第二份假状态。
+- 生产只读核验仍为三个指定账号；每人余额 100、冻结 0，且只有一条“初次上线 +100 蛋蛋币”流水。迁移记录中没有 `202608260007_egg_mall`。
+- 首次生产验收发现空 JSON POST 被 Fastify 抛为 `FST_ERR_CTP_EMPTY_JSON_BODY`，全局错误处理误映射为 500；新增失败回归用例后，将其与畸形 JSON 统一映射为中文 `400 INVALID_JSON`。
+- 最新全量验证：42 个测试文件、215/215 通过；本机 TypeScript 构建通过；隔离测试库 E2E 再次 22/22 通过。
+- 仅增量上传 `server/dist/src/app.js` 和 `backend-handoff-package/growth-school.html`；服务器保留 `.env`、`node_modules`，未执行 build，未执行商城迁移。
+- 生产验收：health 200；两位管理员登录、`/me`、refresh 均为 200；管理员用户列表返回 3 人，审核队列 200；空 JSON 回归返回 400；WSS 握手成功。
+- PM2 `dandan-world` online、Nginx active；新生产 PID 的 level 50 日志和 HTTP 5xx 计数均为 0。回滚目录：`/root/deploy-backups/dynamic-admin-20260827-033953`。
+
+## 2026-08-27（任务状态唯一事实来源第二轮）
+
+- [x] 确认配对和直接取消任务在成功写入后改为 REST 全量回读，消除浏览器任务卡与数据库可能漂移的路径。
+- [x] 通知列表取消本地临时业务记录，只读取服务端通知接口。
+- [x] 公共任务接口增加安全发布者身份映射，公共任务卡和详情不再以固定账号、固定头像或虚构属性作兜底。
+- [x] 新增前后端回归契约；本机全量 43 文件、225 项测试通过，TypeScript 构建通过。
+- [x] 仅增量发布 `dist/src/app.js` 和 `growth-school.html`；公网 health 200、匿名任务接口 401、Nginx active、PM2 online、错误日志为空。
+- [x] 商城继续保持隐藏且未执行商城迁移；未读取或修改“航线”项目与 Supabase。
+
+## 2026-08-27 管理员任务描述必填发布
+
+- 管理员发布任务不再以“蛋总发布任务”作为空描述兜底；缺少描述时在前端阻止提交，避免新增任何硬编码演示任务内容。
+- 本机验证：43 个测试文件、226 项测试通过；主页面两段内联脚本均可解析。
+- 发布范围仅为 `/var/www/dd/growth-school.html`，本地与远端 SHA-256 均为 `C29B8997EA640F13E6A824542D446D603A8EF7E10F9D4B86FF968FCEBB948123`。
+- 回滚副本：`/root/deploy-backups/admin-task-description-20260827-045102/growth-school.html`。生产 health 200，匿名任务接口 401，Nginx active，`dandan-world` online，错误日志为空。
+
+## 2026-08-27 前端兼容路径复审
+
+- 审计主站、API client 和盲盒前端的浏览器存储、静态示例与写后本地状态路径；未发现业务数据写入 `localStorage`/`sessionStorage` 或新的本地伪造记录。
+- 全量测试 43/226 通过，`npm run build` 成功，主页面内联脚本及两个前端脚本语法均通过。
+- 本轮无生产变更；商城继续双重关闭，生产数据库和“航线”项目均未触碰。
+
+## 2026-08-27 反馈工单控制器修复
+
+- 静态可达性审计定位到反馈弹窗、反馈筛选、用户历史和管理员回复的 15 个页面处理函数缺失，导致可见按钮点击报错。
+- 补齐反馈提交、附件上传、用户历史、管理员筛选/回复、状态展示、待修改补充与附件下载入口；业务状态仅来自既有 REST 回读，输入继续做敏感词预检与 HTML 转义渲染。
+- TDD：新增反馈前端连接契约，先复现缺失函数失败，再实现转绿。全量 43 文件、227 项测试通过，构建及脚本语法检查通过。
+- 生产仅更新 `growth-school.html`，回滚副本为 `/root/deploy-backups/feedback-ui-20260827-050757/growth-school.html`；页面内容、health、鉴权边界、Nginx、PM2 和错误日志均已验证。
+- 最终微调“已回复”统计为管理员消息实际数量，避免与处理中状态混淆；最终页面 SHA-256 为 `9900DE6A1E31175A927D3CCA9B5C291AC9AF6D9465DC307A6BB4AF1B772558E0`，最终回滚副本为 `/root/deploy-backups/feedback-ui-label-20260827-051046/growth-school.html`。
+
+## 2026-08-27 前端任务旧分支清理
+
+- [x] 定位并删除没有调用点、只会在浏览器 DOM 伪造任务或删除任务的历史兼容函数：`addToMyTasks`、`deleteMyTask`、`deleteGroup`。
+- [x] 修复真实性契约中固定 LF 的边界匹配，兼容主页面 CRLF 格式。
+- [x] 定向回归：3 个文件、28 项通过；完整回归：43 个文件、228 项通过；TypeScript 构建通过。
+- [x] 仅将 `backend-handoff-package/growth-school.html` 以备份后增量方式发布；本地与生产 SHA-256 均为 `7EE69EC6580208B4814791C02BF556B169BE3B0D272A7C69750A92FFF6939CA9`。
+- [x] 公网验收：health 200、匿名任务接口 401、Nginx active、`dandan-world` online，当前进程最近 500 行无 5xx，错误日志为空；回滚副本 `/root/deploy-backups/task-history-cleanup-20260827-052243/growth-school.html`。
+
+## 2026-08-27 前端演示数据清理收口
+
+- [x] 删除公共任务卡及任务详情中的发布者身份、稀有度、头像、等级和属性前端推断；仅展示后端返回的最小发布者资料。
+- [x] 删除隐藏管理员演示卡片及其固定属性；角色、MBTI、声望、点赞、蛋蛋币和资料缺失时不再使用固定默认值。
+- [x] 简介保存、盲盒抽取、盲盒问答和通知列表均改为后端事实来源；抽取不再由前端 `Math.random()` 决定，问答不再提交固定文本。
+- [x] 定向真实性契约 24 项通过；全量本机回归 43 个测试文件、233 项通过；TypeScript 构建通过；主页面 2 段内联脚本及 `api-client.js`、盲盒 `app.js`、实时客户端均通过语法检查。
+- [x] 静态禁入标记检查全部清零；商城继续由前后端双重开关关闭，未执行商城迁移，未触碰“航线”与 Supabase。
+- [x] 本轮仅增量发布 `growth-school.html` 与 `blind-box/app.js`；本机、远端正式文件及公网下载文件 SHA-256 均一致。回滚目录：`/root/deploy-backups/frontend-real-data-20260827-055608`。
+- [x] 生产验收：`/dd/health` 200、匿名 `/dd/api/tasks` 401、Nginx active、`dandan-world` online（当前 PID 2477809、unstable restarts 0）；错误日志为空，当前 PID 日志无 level 50 或 5xx。
+
+## 2026-08-27 任务完成链路与运行时残留清理
+
+- [x] 修复页面初始化对已删除 `scanAndRefundExpiredTasks()` 的调用，消除访客首屏 `ReferenceError` 风险。
+- [x] 任务审核弹窗改为从 `/api/tasks/:id/claims` 读取真实提交记录；确认完成调用 `/api/tasks/:id/complete`，刷新任务与蛋蛋币流水后再调用真实评价接口。
+- [x] 删除无入口的 `teamConfirmComplete` 与 `teamPublisherConfirm` 本地延时转账分支；邀请发布任务不再伪造通知，未接入服务端时明确提示不可用。
+- [x] 新增并通过 4 项失败回归；全量本机回归 43 个测试文件、237 项通过，TypeScript 构建、脚本语法和残留标记检查通过。
+- [x] 已增量发布 `growth-school.html`；公网 health 200、匿名任务 401、Nginx active、PM2 `dandan-world` online，当前 PID 错误日志为空且无新增 5xx。回滚目录：`/root/deploy-backups/frontend-task-runtime-20260827-060937`。
+
+## 2026-08-27 个人评价动态化与三文件增量发布
+
+- [x] 新增 `GET /api/users/me/ratings`，只读取当前登录用户收到的真实评价，并返回平均分、数量、评价来源最小资料和任务标题；个人页不再使用空数组或写回本地声望。
+- [x] 清除页面初始化残留、伪邀请通知、无入口本地完成/转账逻辑；任务完成与评价链路统一调用真实 REST 接口并回读任务和蛋蛋币流水。
+- [x] 本机完整回归为 43 个测试文件、239 项测试通过；`npm run build`、前端脚本、主页面两段内联脚本和 `git diff --check` 均通过。
+- [x] 生产发布前已备份旧文件到 `/root/deploy-backups/profile-ratings-20260827-062009`；仅增量覆盖后端构建、`api-client.js` 和 `growth-school.html`，服务器未 build、未安装依赖、未修改 `.env`、未执行 Prisma 迁移。
+- [x] 正式文件及公网哈希一致：后端 `8B21BCED7CE9CD9E14DA49B79E3FC2B79E9BC14C191A40F95431E5AD0ABB77A2`；API 客户端 `3F1E6DB4F8E853276592529A0646EE8A965C6D3CBDD8C51DB76EF6EE316D6565`；主页面 `3E60941296DA73851CA934B2002453319EFA356457D41DFCB06D1DB0532F7EA0`。
+- [x] 生产验收：`/dd/growth-school.html` 与 `/dd/health` 为 200；匿名任务和匿名评价接口均为 401；Nginx 配置有效且 active；PM2 新 PID `2506329` online、unstable restarts 0，错误日志 0 字节，新 PID 无 level 50 或 HTTP 5xx。
+- [x] 商城继续关闭且未迁移；未读取或修改“航线”项目与 Supabase。
+
+## 2026-08-27 全站真实性第三轮审计启动
+
+- [x] 恢复并复核 `task_plan.md`、`findings.md`、`progress.md` 与生产数据实时化实施计划；确认原 10 项实施任务已有完成证据。
+- [x] 新增第三轮审计阶段，范围限定为仍可达的硬编码业务数据、本地成功状态、随机结果与刷新丢失路径。
+- [x] 已加载 TDD 与系统调试流程；后续任何行为修复必须先证明根因并看到失败契约。
+- [x] 记录一次工具路径错误：`systematic-debugging` 实际位于 `.agents/skills/superpowers/systematic-debugging/SKILL.md`，已改用正确路径，不重复错误命令。
+- [x] 任务广场三个结果计数从旧静态 7/8/3 改为 0；REST 返回后仍由筛选函数动态重算。失败契约先红，修复后真实性契约 30/30 通过。
+- [x] 用户名片入口保留任务/排行榜/打听的稳定用户 ID；缓存缺失时调用现有 `/public-profile`，未公开字段显示空状态，简介和技能做输出编码。
+- [x] 名片失败契约先红；实现后真实性契约 31/31 通过，主页面两段内联脚本解析为 `INLINE_SCRIPTS_OK=2`。
+
+## 2026-08-27 第三轮真实性审计与增量发布
+
+- [x] 三个任务广场计数改为接口返回前 0、返回后动态计算；用户名片按稳定 ID 拉取公开资料并编码；认领管理使用后端真实蛋蛋角色和稀有度。
+- [x] 删除九个无调用入口的旧 DOM 任务刷新、详情及取消响应函数，保留 `syncMyTasks()`、真实取消申请接口、发布者取消入口和现行弹窗关闭函数。
+- [x] TDD 证据：真实性契约先命中旧函数红灯，删除后 33/33；任务持久化契约 8/8；完整回归 43 个测试文件、244/244。
+- [x] 本机 `npm run build` 成功；构建后端、`api-client.js`、盲盒 `app.js` 和主页面两段内联脚本均通过语法解析；`git diff --check` 无空白错误。
+- [x] 哈希比对后只发布后端 `dist/src/app.js` 与前端 `growth-school.html`。回滚目录：`/root/deploy-backups/production-truth-audit-20260827-071900`。
+- [x] 最终 SHA-256：后端 `95BC7D3FD8C88DF52E8CD29470FFA35DAA557D7BB9F6979C834AF515D8754202`；主页面 `D0AC0FE9365B9F8F5286F45735C1D42AEA61160D99C42BF36CD8936FB6AA30B5`。远端正式文件与公网主页面均匹配。
+- [x] 生产验收：主页面 200、health 200、匿名任务 401、Nginx 配置有效且 active、PM2 新 PID `2521240` online；错误日志 0 字节，新 PID无 MySQL 1045、Prisma 初始化、level 50 或 HTTP 5xx。
+- [x] 服务器未 build、未安装依赖、未修改 `.env`、未执行数据库迁移；商城继续关闭，“航线”项目和 Supabase 未触碰。
+
+## 2026-08-27 原始需求总完成度审计启动
+
+- [x] 读取当前目标、实施计划、任务记录、最新持续测试报告和工作区状态。
+- [x] 确认独立持续回归任务 active，10 分钟 heartbeat 正常，当前生产只读检查健康。
+- [x] 定位六类未执行用例的共同原因：持续测试任务没有本机专用 E2E 凭据和 `13311` 隧道，不是业务服务报错。
+- [x] 确认远端测试服务健康且存在 `.env.test`；下一步仅核对变量名并以不泄露秘密的方式运行隔离 E2E。
+- [x] 发现 `server/.env.test.example` 与计划不一致地缺失；已记录，不以旧计划勾选状态代替当前文件证据。
+- [x] 只读检查远端测试环境变量名：`.env.test` 与 PM2 均未配置 `E2E_ADMIN_IDENTIFIER`/`E2E_ADMIN_PASSWORD`，因此需要安全的临时凭据注入器。
+- [x] 两个含 `$1` 的远端 `awk` 命令被 PowerShell 改写后失败；已改用 `grep + cut` 并记录替代方案，未泄露环境值。
+
+## 2026-08-27 隔离 E2E 运行器完成
+
+- [x] 新增并验证隔离管理员守卫、远端管理员引导脚本与本机 `run-isolated-e2e.ps1` 启动器。
+- [x] 修复 PowerShell 加密随机 API 与 Node 20 stdin 兼容性后，完整隔离真实写入回归 23/23 通过。
+- [x] 测试写入仅发生在 `dandan_campus_test`；启动器已清理 SSH 隧道与临时环境变量，生产无代码、配置、依赖、数据库或进程变更。
+- [x] 独立持续测试任务已接收运行方式，可在后续十分钟轮次复用隔离管理员与隧道流程。
+- [x] 本机完整测试套件 `44` 文件、`249/249` 通过，`npm run build` 成功；远端隔离守卫和引导脚本与本机构建/源码 SHA-256 一致。
+- [x] 持续回归任务首轮已执行新启动器并记录 `23/23` 通过、退出码 0；未连接生产数据库，结束后本机 `13311` 隧道已关闭。
+
+## 2026-08-27 继续审计：好友与 RBAC 边界
+
+- [x] 复核历史好友模块风险：关系冷却排序、聊天历史最新窗口、待处理好友的 UI 操作、空推荐清理和用户文本编码均已在当前实现中存在。
+- [x] 隔离 E2E 已真实覆盖好友申请去重、已拒绝/待处理状态、接受前禁止聊天、接受后私有实时消息，未发现需要补丁的缺口。
+- [x] 完成 GitHub 开源 RBAC 方案复核：保持现有 Prisma/MySQL 统一 RBAC；不引入与 Prisma 6/MySQL 部署不匹配或需要额外常驻服务的候选方案。
+
+## 2026-08-27 认证资料与任务广场发布收口
+
+- [x] 认证用户状态统一到 `DandanAppState`，个人页和侧边栏显示同一昵称与学校。
+- [x] 注册保留用户名/密码必填和可选邮箱，移除手机号注册与邮箱验证码强制要求，并补齐中文错误映射。
+- [x] 角色护照、彩色任务广场真实数据卡片、零消息数字隐藏和移动端反馈入口完成视觉与契约验证。
+- [x] 修复演示数据清理后遗留的打听缓存/筛选状态未初始化问题，生产首屏无对应 JavaScript 异常。
+- [x] 本机完整回归 49 个测试文件、281/281；TypeScript 构建通过；桌面/手机 Playwright 视觉检查通过。
+- [x] 按本地/远端哈希只增量发布差异文件；服务器保留 `.env` 和 `node_modules`，未 build、未迁移数据库、未启用商城。
+- [x] 部署后三轮隔离 E2E 均为 23/23，合计 69/69；每轮生产 health 200；PM2、Nginx 与错误日志最终验收通过。
+
+## 2026-08-27 交接收口：敏感词误杀、邀请反馈与卡顿
+
+- [x] 敏感词误杀：后端与前端过滤器不再加载 5 万余条通用词表，改为校园社区高信号滥用词表；“英语四六级”“教师资格证”“俄罗斯留学生”等正常文本放行，加微信/诈骗/诈-骗/代考/办证/卖淫嫖娼仍拦截。
+- [x] 卡顿来源：移除页面加载时同步构建 5 万余词 Trie，`sensitive-filter.js` 从约 574KB 缩至约 2KB。
+- [x] 邀请对象：公开资料缓存 `skills` 统一为数组；邀请按钮对当前用户隐藏，避免自邀；目标用户 ID 传参保持完整。
+- [x] 交互反馈：邀请发送按钮接入加载态与防重复点击；全局请求进度条继续覆盖所有异步请求。
+- [x] 验证：`npm run build` 通过；51 个测试文件、292/292 通过；内联脚本语法检查 2/2 无错误。
+
+## 2026-08-27 生产上线（敏感词误杀、邀请反馈与卡顿收口）
+
+- [x] 增量发布前端 `growth-school.html`、`api-client.js`、`sensitive-filter.js` 与后端 `dist/src/content-filter.js`（含源码）；远端哈希与本机一致。
+- [x] 回滚目录 `/root/deploy-backups/content-filter-curation-20260827-181929`。
+- [x] 生产验收：health 200、页面与静态资源 200、Nginx -t 通过、PM2 `dandan-world` online 且错误日志为空、服务器端过滤行为符合预期。
+- [x] 隔离门禁：重启 `dandan-world-test` 后隔离 E2E 25/25 通过（仅写 `dandan_campus_test`）。
+## 2026-08-28 全站回归与版本边界 r2
+
+- [x] 按 HANDOFF 在隔离测试库执行完整真实写入 E2E：25/25 通过，结束后清理 3 users、7 point transactions、0 attachments。
+- [x] 使用全新浏览器会话完成注册、登录、身份显示、盲盒进入/退出回归；退出序列为 refresh 200 -> logout 200，退出后等待 17 秒无盲盒轮询请求。
+- [x] 上一轮本机完整回归为 53 个测试文件、311/311；本轮新鲜完整回归为 53 个测试文件、315/315；TypeScript build 通过；主页面 div 开闭数量均为 1362，#stage 节点唯一且存在 2 个初始化查询引用。
+- [x] 发现并修复版本门禁缺陷：旧清单哈希已过期且历史清单仍可能被部署；新增 r2 清单、release index、superseded 状态和 production-only 校验。
+- [x] 部署脚本强制 RELEASE_MANIFEST，默认目标修正为 /var/www/dd，并在复制文件前执行 production manifest 校验；未执行生产上传或 Nginx reload。
+- [x] r2 普通校验通过；r1 与 r2 的 production 校验均按预期失败；Git Bash `bash -n deploy-frontend.sh`、`git diff --check` 均通过。
+- [x] 工具记录：PowerShell PATH 中没有 `bash.exe`，改用已安装的 `C:\Program Files\Git\bin\bash.exe` 完成同一语法检查；期间两次错误包装的工具调用未执行 shell 命令，也未产生文件改动。

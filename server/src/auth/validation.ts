@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-export const verificationChannelSchema = z.enum(['sms', 'email']);
-export const verificationPurposeSchema = z.enum(['register', 'reset_password', 'bind_phone', 'bind_email']);
+export const verificationChannelSchema = z.literal('email');
+export const verificationPurposeSchema = z.enum(['register', 'reset_password', 'bind_email']);
 
 const verificationRequestBaseSchema = z.object({
   channel: verificationChannelSchema,
@@ -10,9 +10,6 @@ const verificationRequestBaseSchema = z.object({
 });
 
 const verificationTargetRules = (value: z.infer<typeof verificationRequestBaseSchema>, ctx: z.RefinementCtx) => {
-  if (value.channel === 'sms' && !/^1\d{10}$/.test(value.target.replace(/[\s-]/g, ''))) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['target'], message: '手机号格式不正确' });
-  }
   if (value.channel === 'email' && !z.string().email().safeParse(value.target).success) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['target'], message: '邮箱格式不正确' });
   }
@@ -50,8 +47,6 @@ export const registerSchema = z.object({
   nickname: z.string().trim().min(2).max(50),
   email: z.string().trim().email().max(100).optional().nullable(),
   password: z.string().min(8).max(128),
-  verificationToken: z.string().trim().min(40).max(128).optional().nullable(),
-  phone: z.string().trim().regex(/^1\d{10}$/).optional(),
   school: optionalText(100),
   major: optionalText(100),
   city: optionalText(50),
@@ -59,7 +54,8 @@ export const registerSchema = z.object({
   age: z.number().int().min(13).max(100).optional().nullable(),
   mbtiType: z.string().trim().length(4).toUpperCase().optional().nullable(),
   mbtiGroup: z.enum(['NT', 'NF', 'SJ', 'SP']).optional().nullable(),
-  eggCategory: z.enum(['study', 'job', 'side', 'hobby', 'game', 'life']).optional(),
+  eggCategory: z.enum(['study', 'job', 'side', 'hobby', 'game', 'life']).optional().nullable(),
+  inviteCode: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{6,20}$/).optional().nullable(),
 });
 
 export const loginSchema = z.object({
@@ -107,6 +103,9 @@ export function publicUserShape(user: {
   createdAt: Date;
   updatedAt: Date;
   lastLoginAt?: Date | null;
+  interests?: unknown;
+  skills?: unknown;
+  mustChangePassword?: boolean;
 }) {
   return {
     id: typeof user.id === 'bigint' ? user.id.toString() : user.id,
@@ -128,6 +127,8 @@ export function publicUserShape(user: {
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     lastLoginAt: user.lastLoginAt ?? null,
+    interests: Array.isArray(user.interests) ? user.interests : [],
+    skills: Array.isArray(user.skills) ? user.skills : [],
   };
 }
 
@@ -137,5 +138,8 @@ export function privateUserShape(user: Parameters<typeof publicUserShape>[0]) {
     email: user.email ?? null,
     phone: user.phone ?? null,
     inviteCode: user.inviteCode ?? null,
+    interests: Array.isArray(user.interests) ? user.interests : [],
+    skills: Array.isArray(user.skills) ? user.skills : [],
+    mustChangePassword: user.mustChangePassword ?? false,
   };
 }

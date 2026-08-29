@@ -85,6 +85,59 @@ describe('business API contracts', () => {
     }));
   });
 
+  it('publishes an inquiry and immediately returns it from the canonical mine route', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+    vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
+    const createdInquiry = {
+      id: 88n,
+      userId: 1n,
+      title: '图书馆开放时间',
+      content: '周末几点闭馆？',
+      tags: ['校园'],
+      bounty: 0,
+      status: 'open',
+      coinStatus: 'open',
+      likes: 0,
+      adopted: false,
+      adoptedReplyId: null,
+      deadline: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback({
+      inquiry: { create: vi.fn().mockResolvedValue(createdInquiry) },
+    }) as never);
+    vi.spyOn(prisma.inquiry, 'findMany').mockResolvedValue([{
+      ...createdInquiry,
+      user: { id: 1n, nickname: '当前用户' },
+      _count: { replies: 0 },
+      replies: [],
+    }] as never);
+    const token = await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
+
+    const published = await app.inject({
+      method: 'POST',
+      url: '/api/inquiries',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { title: createdInquiry.title, content: createdInquiry.content, tags: createdInquiry.tags, bounty: 0 },
+    });
+    const mine = await app.inject({
+      method: 'GET',
+      url: '/api/inquiries/mine',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(published.statusCode).toBe(201);
+    expect(published.json().inquiry.id).toBe('88');
+    expect(mine.statusCode).toBe(200);
+    expect(mine.json().inquiries[0]).toMatchObject({ id: '88', userId: '1', title: createdInquiry.title });
+    expect(JSON.stringify(mine.json())).not.toMatch(/Route GET|Prisma|SQL/i);
+  });
+
   it('rejects a comment whose parent answer belongs to another inquiry', async () => {
     process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
     process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
@@ -122,6 +175,30 @@ describe('business API contracts', () => {
     expect(first.statusCode).toBe(201);
     expect(second.statusCode).toBe(409);
     expect(second.json().error).toBe('TASK_ALREADY_CLAIMED');
+  });
+
+  it('lists only task claims owned by the authenticated user', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+    vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 2n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
+    const findMany = vi.spyOn(prisma.taskClaim, 'findMany').mockResolvedValue([{
+      id: 11n,
+      taskId: 9n,
+      claimerId: 2n,
+      status: 'assigned',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      task: { id: 9n, userId: 1n, title: '一起自习', description: '图书馆见', taskType: 'team', status: 'approved', reward: 10, createdAt: new Date(), updatedAt: new Date() },
+    }] as never);
+    vi.spyOn(prisma.rating, 'findMany').mockResolvedValue([{ taskId: 9n }] as never);
+    const token = await app.jwt.sign({ sub: '2', sessionId: 'session', role: 'student' });
+    const response = await app.inject({ method: 'GET', url: '/api/tasks/claimed', headers: { authorization: `Bearer ${token}` } });
+    expect(response.statusCode).toBe(200);
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { claimerId: 2n } }));
+    expect(response.json().claims[0]).toMatchObject({ id: '11', claimerId: '2', ratedByCurrentUser: true, task: { id: '9', userId: '1', title: '一起自习' } });
   });
 
   it('stores a task rating once and blocks duplicate ratings', async () => {

@@ -25,8 +25,7 @@ describe('verification primitives', () => {
     expect(hash).toBe(hashVerificationValue(value));
   });
 
-  it('normalizes phone and email targets', () => {
-    expect(normalizeVerificationTarget('sms', ' 138 0000 0000 ')).toBe('13800000000');
+  it('normalizes email targets', () => {
     expect(normalizeVerificationTarget('email', ' User@Example.COM ')).toBe('user@example.com');
   });
 
@@ -42,15 +41,15 @@ describe('mock verification provider', () => {
   it('records delivery for tests without exposing it in an API response', async () => {
     const provider = new MockVerificationProvider();
     await provider.send({
-      channel: 'sms',
-      target: '13800000000',
+      channel: 'email',
+      target: 'user@example.com',
       code: '123456',
       purpose: 'register',
     });
 
     expect(provider.lastMessage()).toEqual({
-      channel: 'sms',
-      target: '13800000000',
+      channel: 'email',
+      target: 'user@example.com',
       code: '123456',
       purpose: 'register',
     });
@@ -88,7 +87,7 @@ describe('verification API', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/auth/verification-codes',
-      payload: { channel: 'sms', target: '13800000000', purpose: 'register' },
+      payload: { channel: 'email', target: 'user@example.com', purpose: 'register' },
     });
 
     expect(response.statusCode).toBe(202);
@@ -107,8 +106,8 @@ describe('verification API', () => {
     const update = vi.spyOn(prisma.verificationCode, 'update').mockResolvedValue({} as never);
     vi.spyOn(prisma.verificationCode, 'findFirst').mockResolvedValue({
       id: 'verification-2',
-      channel: 'sms',
-      target: '13800000000',
+      channel: 'email',
+      target: 'user@example.com',
       purpose: 'register',
       codeHash: hashVerificationValue('123456'),
       verificationTokenHash: null,
@@ -125,7 +124,7 @@ describe('verification API', () => {
     const success = await app.inject({
       method: 'POST',
       url: '/api/auth/verification-codes/verify',
-      payload: { channel: 'sms', target: '13800000000', purpose: 'register', code: '123456' },
+      payload: { channel: 'email', target: 'user@example.com', purpose: 'register', code: '123456' },
     });
     expect(success.statusCode).toBe(200);
     expect(success.json().verificationToken).toMatch(/^[A-Za-z0-9_-]{40,}$/);
@@ -144,7 +143,7 @@ describe('verification API', () => {
     const wrong = await app.inject({
       method: 'POST',
       url: '/api/auth/verification-codes/verify',
-      payload: { channel: 'sms', target: '13800000000', purpose: 'register', code: '123456' },
+      payload: { channel: 'email', target: 'user@example.com', purpose: 'register', code: '123456' },
     });
     expect(wrong.statusCode).toBe(400);
     expect(wrong.json()).toEqual({ error: 'INVALID_VERIFICATION_CODE', message: '验证码无效或已过期' });

@@ -1,9 +1,16 @@
-import { readFileSync } from 'node:fs';
-
 export const CONTENT_BLOCKED_MESSAGE = '内容包含敏感词，请修改后再提交';
 
-const fallbackTerms = ['加微信', '加我微信', '手机号', '裸聊', '色情', '博彩', '刷单', '诈骗'];
-const safeDomainTerms = new Set(['测试', '任务', '时间', '南京大', '联系方式', '联系']);
+// 只拦截高信号的校园社区滥用场景。通用 GFW 词表包含大量正常词汇（如“四六级”“教师资格证”），
+// 会导致注册、资料、任务与反馈文本被误杀，同时同步构建 5 万余词的 Trie 还会造成首屏卡顿。
+const userTextBlockedTerms = [
+  '加微信', '加我微信', '手机号', '裸聊', '色情', '博彩', '刷单', '诈骗',
+  '代考', '替考', '办证', '假证', '卖淫', '嫖娼', '赌博', '毒品', '枪支', '炸药', '洗钱', '传销', '代写论文',
+];
+
+const skillBlockedTerms = [
+  '加微信', '加我微信', '手机号', '裸聊', '色情', '博彩', '刷单', '诈骗', '代考', '办证', '假证',
+];
+
 const separatorPattern = /[\s\p{P}\p{S}_]/u;
 
 type TrieNode = {
@@ -23,28 +30,11 @@ function emptyNode(): TrieNode {
   return { children: new Map(), terminal: false };
 }
 
-function loadBundledTerms() {
-  const candidates = [
-    new URL('./data/zh-sensitive-words.txt', import.meta.url),
-    new URL('../../src/data/zh-sensitive-words.txt', import.meta.url),
-  ];
-  for (const candidate of candidates) {
-    try {
-      return readFileSync(candidate, 'utf8').split(/\r?\n/).concat(fallbackTerms);
-    } catch {
-      // The second location is used after TypeScript has emitted dist/src.
-    }
-  }
-  return fallbackTerms;
-}
-
-function buildTrie() {
+function buildTrie(terms: string[]) {
   const root = emptyNode();
-  for (const raw of loadBundledTerms()) {
-    const word = raw.replace(/^\uFEFF/, '').trim();
-    if (!word || word.startsWith('#')) continue;
-    const normalized = normalizeWord(word);
-    if ((normalized.length < 3 && !fallbackTerms.includes(word)) || safeDomainTerms.has(normalized)) continue;
+  for (const raw of terms) {
+    const normalized = normalizeWord(raw);
+    if (!normalized) continue;
     let node = root;
     for (const unit of [...normalized]) {
       let next = node.children.get(unit);
@@ -59,7 +49,7 @@ function buildTrie() {
   return root;
 }
 
-const root = buildTrie();
+const root = buildTrie(userTextBlockedTerms);
 
 function containsBlockedTerm(value: unknown) {
   const chars = [...String(value ?? '')];
@@ -88,6 +78,20 @@ function containsBlockedTerm(value: unknown) {
 export function validateUserText(value: unknown) {
   const blocked = containsBlockedTerm(value);
   return { blocked, message: blocked ? CONTENT_BLOCKED_MESSAGE : null };
+}
+
+export function validateSkillTag(value: unknown) {
+  const normalized = normalizeWord(String(value ?? '').trim());
+  const blocked = skillBlockedTerms.some((term) => normalized.includes(normalizeWord(term)));
+  return { blocked, message: blocked ? CONTENT_BLOCKED_MESSAGE : null };
+}
+
+export function assertSafeSkillTags(...values: unknown[]) {
+  if (values.some((value) => validateSkillTag(value).blocked)) {
+    const error = new Error(CONTENT_BLOCKED_MESSAGE);
+    error.name = 'ContentBlockedError';
+    throw error;
+  }
 }
 
 export function assertSafeText(...values: unknown[]) {

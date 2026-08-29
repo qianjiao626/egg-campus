@@ -1,0 +1,17 @@
+{
+  "activeReleaseId": "2026-08-28-auth-profile-task-ui-r2",
+  "releases": [
+    {
+      "releaseId": "2026-08-28-auth-profile-task-ui-r1",
+      "manifest": "2026-08-28-auth-profile-task-ui.json",
+      "version": "r1",
+      "status": "superseded"
+    },
+    {
+      "releaseId": "2026-08-28-auth-profile-task-ui-r2",
+      "manifest": "2026-08-28-auth-profile-task-ui-r2.json",
+      "version": "r2",
+      "status": "isolated-test-only"
+    }
+  ]
+}

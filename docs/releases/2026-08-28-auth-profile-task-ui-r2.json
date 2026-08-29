@@ -1,0 +1,150 @@
+{
+  "releaseId": "2026-08-28-auth-profile-task-ui-r2",
+  "version": "r2",
+  "status": "isolated-test-only",
+  "productionDeployable": false,
+  "supersedes": "2026-08-28-auth-profile-task-ui-r1",
+  "generatedAt": "2026-08-28T00:50:00Z",
+  "sourceOfTruth": "component-scoped",
+  "componentSources": {
+    "frontend": "backend-handoff-package",
+    "backend": "server/src"
+  },
+  "targetEnvironments": [
+    "local",
+    "isolated-test"
+  ],
+  "productionPath": "/var/www/dd",
+  "isolatedApi": "127.0.0.1:3311 via SSH tunnel",
+  "rollbackSource": null,
+  "files": [
+    {
+      "path": "backend-handoff-package/growth-school.html",
+      "component": "frontend",
+      "target": "growth-school.html",
+      "sha256": "ac700a2cab770309fead735c057678a3c0be0bd1ee40a9250d92e0611373c5ae"
+    },
+    {
+      "path": "backend-handoff-package/api-client.js",
+      "component": "frontend",
+      "target": "api-client.js",
+      "sha256": "1be6444f35ecbff8b30abbf77c75a035dcf7053d334efcbb0749af9e75fff498"
+    },
+    {
+      "path": "backend-handoff-package/identity-view.js",
+      "component": "frontend",
+      "target": "identity-view.js",
+      "sha256": "29176fa3924df447932f7fbd2439b98338f06070dd5e16407d48cb3517337a82"
+    },
+    {
+      "path": "backend-handoff-package/realtime-client.js",
+      "component": "frontend",
+      "target": "realtime-client.js",
+      "sha256": "af54052e511b0067a6922095ce1a8b4baec670c488a7dfbcc8e8c1429678533d"
+    },
+    {
+      "path": "backend-handoff-package/sensitive-filter.js",
+      "component": "frontend",
+      "target": "sensitive-filter.js",
+      "sha256": "12dfe523907c9239e3abacefe1ba18a43a82191de090c21c02476cd2f136fe25"
+    },
+    {
+      "path": "backend-handoff-package/char-eggy-game.jpg",
+      "component": "frontend",
+      "target": "char-eggy-game.jpg",
+      "sha256": "41b6b77f95bfd235b9d1e602192da506b581bad7d2ed892ade394c2481f0141c"
+    },
+    {
+      "path": "backend-handoff-package/char-eggy-hobby-v2.jpg",
+      "component": "frontend",
+      "target": "char-eggy-hobby-v2.jpg",
+      "sha256": "2d3472821d32cfac23837d54fb90a2635e11096a7e50f0a8d0293516c3c12443"
+    },
+    {
+      "path": "backend-handoff-package/char-eggy-job-v2.jpg",
+      "component": "frontend",
+      "target": "char-eggy-job-v2.jpg",
+      "sha256": "f758aa721c7a20b1a93a2fa8e8f2e2925fff81dfec7cc206fb0de3461237f8c4"
+    },
+    {
+      "path": "backend-handoff-package/char-eggy-life-v2.jpg",
+      "component": "frontend",
+      "target": "char-eggy-life-v2.jpg",
+      "sha256": "637eeee4f8df0340061d054d5e468cdeab426c258ff14be26cc2afbbf27de5d3"
+    },
+    {
+      "path": "backend-handoff-package/char-eggy-side.jpg",
+      "component": "frontend",
+      "target": "char-eggy-side.jpg",
+      "sha256": "59be13dd069045ac97ce0166843c21b15f46013e311e53fed196668bfcc09be8"
+    },
+    {
+      "path": "backend-handoff-package/char-eggy-study-v2.jpg",
+      "component": "frontend",
+      "target": "char-eggy-study-v2.jpg",
+      "sha256": "e22d51e7f1e690bf6c4d72e7cb581448a49313542eb84e49992604cfbb2e39c5"
+    },
+    {
+      "path": "backend-handoff-package/blind-box/index.html",
+      "component": "frontend",
+      "target": "blind-box/index.html",
+      "sha256": "0843213a87de0e97f3f74bef81d24a979894d870737076678451a295149d1086"
+    },
+    {
+      "path": "backend-handoff-package/blind-box/styles.css",
+      "component": "frontend",
+      "target": "blind-box/styles.css",
+      "sha256": "de6b958ecb448c50b61a5c0401a785e0a71f2e2630f666ac63c1302e672f81dc"
+    },
+    {
+      "path": "backend-handoff-package/blind-box/city-data.js",
+      "component": "frontend",
+      "target": "blind-box/city-data.js",
+      "sha256": "742d4035282bf4bff7adc345bf1aeaebd9ae7a235cee8c1675633855810b0761"
+    },
+    {
+      "path": "backend-handoff-package/blind-box/region-data.json",
+      "component": "frontend",
+      "target": "blind-box/region-data.json",
+      "sha256": "c20bfab8c4e871efe7021c2be7bfe0444c0d480bc89c8d856a96d11837531153"
+    },
+    {
+      "path": "backend-handoff-package/blind-box/app.js",
+      "component": "frontend",
+      "target": "blind-box/app.js",
+      "sha256": "a72eb0621d97a793a0cf988c40991a812a4f18506f9f011e7f559720b83490a0"
+    },
+    {
+      "path": "backend-handoff-package/blind-box/buddy-box-api.js",
+      "component": "frontend",
+      "target": "blind-box/buddy-box-api.js",
+      "sha256": "28590b3a332826e1620a5b05431da4b16701bae2cf2a420fe580bf54713561d4"
+    },
+    {
+      "path": "server/src/app.ts",
+      "component": "backend",
+      "sha256": "f40b8c5ecc638ac3d2b197626e9f6d58ca01f341bc90c97cad9827aa7a9e7343"
+    },
+    {
+      "path": "backend-handoff-package/blacklist.js",
+      "component": "frontend",
+      "target": "blacklist.js",
+      "sha256": "1ceaba0f1503502c9b96be1f4607929712ed34db188c0941cb992c6dda9f6f0f"
+    }
+  ],
+  "forbiddenInRelease": [
+    ".env",
+    "node_modules",
+    "*.rollback-*",
+    "*.screenshot.*",
+    "output/playwright",
+    "server/.vitest-full-result.json"
+  ],
+  "verification": [
+    "node server/scripts/verify-release-boundary.mjs docs/releases/2026-08-28-auth-profile-task-ui-r2.json",
+    "cd server && npm test",
+    "cd server && npm run build",
+    "隔离 E2E：25/25",
+    "浏览器退出回归：refresh 200 -> logout 200，退出后 17 秒无盲盒轮询"
+  ]
+}

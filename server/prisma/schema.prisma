@@ -77,7 +77,9 @@ model User {
   inquiryLikes                InquiryLike[]
   inquiryReplyLikes           InquiryReplyLike[]
   notifications               Notification[]
-  taskClaims                  TaskClaim[]          @relation("TaskClaimer")
+   taskClaims                  TaskClaim[]          @relation("TaskClaimer")
+   taskCancellationRequestsMade     TaskCancellationRequest[] @relation("TaskCancellationRequester")
+   taskCancellationRequestsReceived TaskCancellationRequest[] @relation("TaskCancellationRecipient")
   ratingsGiven                Rating[]             @relation("RatingFromUser")
   ratingsReceived             Rating[]             @relation("RatingToUser")
   roleGrants                  UserRoleGrant[]       @relation("RoleGrantUser")
@@ -88,8 +90,64 @@ model User {
   feedbackAttachmentsUploaded FeedbackAttachment[] @relation("FeedbackAttachmentUploader")
   feedbackAttachmentsHidden   FeedbackAttachment[] @relation("FeedbackAttachmentHider")
   resourceReadStates          ResourceReadState[]
+  shopProducts                ShopProduct[]        @relation("ShopProductPublisher")
+  shopCartItems               ShopCartItem[]
+  shopOrders                  ShopOrder[]
+  shippingAddresses           ShippingAddress[]
+  shopEntitlements            UserEntitlement[]
+  shopReviews                 ProductReview[]
+  invitationsSent             Invitation[]        @relation("InvitationInviter")
+  invitationReceived          Invitation?         @relation("InvitationInvitee")
+  blacklistComments           BlacklistComment[]
 
   @@map("users")
+}
+
+enum BlacklistCommentStatus {
+  approved
+  deleted
+}
+
+model BlacklistSchool {
+  id        BigInt            @id @default(autoincrement())
+  name      String            @unique @db.VarChar(200)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+  comments  BlacklistComment[]
+
+  @@index([name])
+  @@map("schools")
+}
+
+model BlacklistComment {
+  id            BigInt                 @id @default(autoincrement())
+  userId        BigInt                 @map("user_id")
+  schoolId      BigInt                 @map("school_id")
+  content       String?                @db.Text
+  averageScore  Decimal                @map("average_score") @db.Decimal(3, 1)
+  status        BlacklistCommentStatus @default(approved)
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school        BlacklistSchool        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  scores        BlacklistScore[]
+
+  @@unique([userId, schoolId])
+  @@index([schoolId, status, createdAt])
+  @@map("school_comments")
+}
+
+model BlacklistScore {
+  id        BigInt           @id @default(autoincrement())
+  commentId BigInt           @map("comment_id")
+  metricKey String           @map("metric_key") @db.VarChar(40)
+  score     Int
+  createdAt DateTime         @default(now()) @map("created_at")
+  comment   BlacklistComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, metricKey])
+  @@index([metricKey, score])
+  @@map("school_scores")
 }
 
 model AuthSession {
@@ -195,6 +253,24 @@ model PointTransaction {
   @@index([userId, createdAt])
   @@index([taskId])
   @@map("point_transactions")
+}
+
+model Invitation {
+  id             BigInt    @id @default(autoincrement())
+  inviterId      BigInt    @map("inviter_id")
+  invitedUserId  BigInt    @unique @map("invited_user_id")
+  inviteCode     String    @map("invite_code") @db.VarChar(20)
+  rewardedAt     DateTime? @map("rewarded_at")
+  rewardedTaskId BigInt?   @map("rewarded_task_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  inviter     User @relation("InvitationInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitedUser User @relation("InvitationInvitee", fields: [invitedUserId], references: [id], onDelete: Cascade)
+
+  @@index([inviterId, createdAt])
+  @@index([rewardedAt, createdAt])
+  @@map("invitations")
 }
 
 model AuditLog {
@@ -378,6 +454,8 @@ model Task {
   maxClaimers  Int         @default(1) @map("max_claimers")
   contact      String?     @db.VarChar(160)
   requirements String?     @db.Text
+  skillCategory String?     @map("skill_category") @db.VarChar(50)
+  skillSubcategory String?  @map("skill_subcategory") @db.VarChar(50)
   status       String      @default("pending_review") @db.VarChar(30)
   reviewReason String?     @map("review_reason") @db.VarChar(500)
   createdAt    DateTime    @default(now()) @map("created_at")
@@ -385,15 +463,16 @@ model Task {
   reviewedAt   DateTime?   @map("reviewed_at")
   completedAt  DateTime?   @map("completed_at")
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  claims       TaskClaim[]
-  ratings      Rating[]
+   claims       TaskClaim[]
+   cancellationRequests TaskCancellationRequest[]
+   ratings      Rating[]
 
   @@index([userId, status, createdAt])
   @@index([status, createdAt])
   @@map("tasks")
 }
 
-model TaskClaim {
+ model TaskClaim {
   id           BigInt    @id @default(autoincrement())
   taskId       BigInt    @map("task_id")
   claimerId    BigInt    @map("claimer_id")
@@ -411,6 +490,27 @@ model TaskClaim {
   @@index([taskId, status])
   @@index([claimerId, status, createdAt])
   @@map("task_claims")
+ }
+
+model TaskCancellationRequest {
+  id          BigInt    @id @default(autoincrement())
+  taskId      BigInt    @map("task_id")
+  requesterId BigInt    @map("requester_id")
+  recipientId BigInt    @map("recipient_id")
+  reason      String    @db.VarChar(500)
+  status      String    @default("pending") @db.VarChar(20)
+  respondedAt DateTime? @map("responded_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  requester User @relation("TaskCancellationRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient User @relation("TaskCancellationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, status, createdAt])
+  @@index([requesterId, createdAt])
+  @@index([recipientId, status, createdAt])
+  @@map("task_cancellation_requests")
 }
 
 model Rating {
@@ -590,6 +690,251 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@map("notifications")
+}
+
+enum ShopProductType {
+  virtual
+  physical
+}
+
+enum ShopProductStatus {
+  draft
+  pending_review
+  rejected
+  approved
+  on_sale
+  off_sale
+  archived
+  sold_out
+}
+
+enum ShopOrderStatus {
+  paid
+  awaiting_shipment
+  shipped
+  completed
+  cancel_requested
+  cancelled
+  refunding
+  refunded
+  failed
+}
+
+enum ShopRedeemCodeStatus {
+  available
+  assigned
+  used
+  disabled
+}
+
+enum ShopEntitlementStatus {
+  active
+  used
+  expired
+  revoked
+}
+
+model ShopProduct {
+  id                BigInt            @id @default(autoincrement())
+  publisherId       BigInt?           @map("publisher_id")
+  publisherNickname String?           @map("publisher_nickname") @db.VarChar(50)
+  name              String            @db.VarChar(120)
+  type              ShopProductType
+  category          String?           @db.VarChar(60)
+  summary           String?           @db.VarChar(240)
+  description       String            @db.Text
+  price             Int
+  stock             Int?
+  unlimitedStock    Boolean           @default(false) @map("unlimited_stock")
+  minQuantity       Int               @default(1) @map("min_quantity")
+  maxQuantity       Int               @default(1) @map("max_quantity")
+  virtualType       String?           @map("virtual_type") @db.VarChar(60)
+  fulfillmentData   Json?             @map("fulfillment_data")
+  status            ShopProductStatus @default(draft)
+  reviewReason      String?           @map("review_reason") @db.VarChar(500)
+  reviewedBy        BigInt?           @map("reviewed_by")
+  reviewedAt        DateTime?         @map("reviewed_at")
+  publishedAt       DateTime?         @map("published_at")
+  archivedAt        DateTime?         @map("archived_at")
+  viewCount         Int               @default(0) @map("view_count")
+  salesCount        Int               @default(0) @map("sales_count")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  publisher         User?             @relation("ShopProductPublisher", fields: [publisherId], references: [id], onDelete: SetNull)
+  images            ShopProductImage[]
+  cartItems         ShopCartItem[]
+  orderItems        ShopOrderItem[]
+  redeemCodes       ProductRedeemCode[]
+  entitlements      UserEntitlement[]
+  reviews           ProductReview[]
+
+  @@index([status, publishedAt])
+  @@index([publisherId, status, createdAt])
+  @@index([category, status])
+  @@map("shop_products")
+}
+
+model ShopProductImage {
+  id         BigInt      @id @default(autoincrement())
+  productId  BigInt      @map("product_id")
+  url        String      @db.VarChar(500)
+  kind       String      @default("detail") @db.VarChar(20)
+  sortOrder  Int         @default(0) @map("sort_order")
+  deletedAt  DateTime?   @map("deleted_at")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  product    ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, kind, sortOrder])
+  @@map("shop_product_images")
+}
+
+model ShopCartItem {
+  id         BigInt      @id @default(autoincrement())
+  userId     BigInt      @map("user_id")
+  productId  BigInt      @map("product_id")
+  quantity   Int         @default(1)
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product    ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId, updatedAt])
+  @@map("shop_cart_items")
+}
+
+model ShippingAddress {
+  id            BigInt   @id @default(autoincrement())
+  userId        BigInt   @map("user_id")
+  recipientName String   @map("recipient_name") @db.VarChar(50)
+  phone         String   @db.VarChar(20)
+  province      String   @db.VarChar(50)
+  city          String   @db.VarChar(50)
+  district      String   @db.VarChar(50)
+  detail        String   @db.VarChar(300)
+  postalCode    String?  @map("postal_code") @db.VarChar(10)
+  isDefault     Boolean  @default(false) @map("is_default")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders        ShopOrder[]
+
+  @@index([userId, isDefault])
+  @@map("shipping_addresses")
+}
+
+model ShopOrder {
+  id              BigInt          @id @default(autoincrement())
+  userId          BigInt          @map("user_id")
+  status          ShopOrderStatus @default(paid)
+  totalAmount     Int             @map("total_amount")
+  needsShipment   Boolean         @default(false) @map("needs_shipment")
+  idempotencyKey  String          @unique @map("idempotency_key") @db.VarChar(100)
+  addressId       BigInt?         @map("address_id")
+  recipientName   String?         @map("recipient_name") @db.VarChar(50)
+  phone           String?         @db.VarChar(20)
+  addressSnapshot Json?           @map("address_snapshot")
+  carrier         String?         @db.VarChar(60)
+  trackingNumber  String?         @map("tracking_number") @db.VarChar(100)
+  shippedAt       DateTime?       @map("shipped_at")
+  completedAt     DateTime?       @map("completed_at")
+  cancelledAt     DateTime?       @map("cancelled_at")
+  cancelReason    String?         @map("cancel_reason") @db.VarChar(500)
+  refundedAt      DateTime?       @map("refunded_at")
+  refundReason    String?         @map("refund_reason") @db.VarChar(500)
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  user            User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  address         ShippingAddress? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  items           ShopOrderItem[]
+
+  @@index([userId, status, createdAt])
+  @@index([status, createdAt])
+  @@map("shop_orders")
+}
+
+model ShopOrderItem {
+  id               BigInt           @id @default(autoincrement())
+  orderId          BigInt           @map("order_id")
+  productId        BigInt           @map("product_id")
+  productName      String           @map("product_name") @db.VarChar(120)
+  productType      ShopProductType  @map("product_type")
+  unitPrice        Int              @map("unit_price")
+  quantity         Int
+  fulfillmentStatus String          @default("pending") @map("fulfillment_status") @db.VarChar(30)
+  fulfillmentData  Json?            @map("fulfillment_data")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  order            ShopOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          ShopProduct      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  entitlements     UserEntitlement[]
+  redeemCodes      ProductRedeemCode[]
+  reviews          ProductReview[]
+
+  @@index([orderId])
+  @@index([productId, createdAt])
+  @@map("shop_order_items")
+}
+
+model UserEntitlement {
+  id          BigInt              @id @default(autoincrement())
+  userId      BigInt              @map("user_id")
+  productId   BigInt              @map("product_id")
+  orderItemId BigInt              @map("order_item_id")
+  type        String              @db.VarChar(60)
+  payload     Json
+  status      ShopEntitlementStatus @default(active)
+  acquiredAt  DateTime            @default(now()) @map("acquired_at")
+  expiresAt   DateTime?           @map("expires_at")
+  usedAt      DateTime?           @map("used_at")
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     ShopProduct         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  orderItem   ShopOrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status, acquiredAt])
+  @@index([productId, acquiredAt])
+  @@map("user_entitlements")
+}
+
+model ProductRedeemCode {
+  id           BigInt             @id @default(autoincrement())
+  productId    BigInt             @map("product_id")
+  orderItemId  BigInt?            @map("order_item_id")
+  codeHash     String             @map("code_hash") @db.VarChar(128)
+  codeMask     String             @map("code_mask") @db.VarChar(80)
+  codeCiphertext String           @map("code_ciphertext") @db.Text
+  status       ShopRedeemCodeStatus @default(available)
+  assignedAt   DateTime?          @map("assigned_at")
+  usedAt       DateTime?          @map("used_at")
+  product      ShopProduct        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItem    ShopOrderItem?     @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+
+  @@unique([productId, codeHash])
+  @@index([productId, status])
+  @@index([orderItemId])
+  @@map("product_redeem_codes")
+}
+
+model ProductReview {
+  id          BigInt      @id @default(autoincrement())
+  productId   BigInt      @map("product_id")
+  orderItemId BigInt      @map("order_item_id")
+  userId      BigInt      @map("user_id")
+  rating      Int
+  content     String?     @db.Text
+  visible     Boolean     @default(true)
+  hiddenReason String?    @map("hidden_reason") @db.VarChar(500)
+  hiddenAt    DateTime?   @map("hidden_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  product     ShopProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItem   ShopOrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orderItemId])
+  @@index([productId, visible, createdAt])
+  @@index([userId, createdAt])
+  @@map("product_reviews")
 }
 
 model BuddyFeatureRecord {

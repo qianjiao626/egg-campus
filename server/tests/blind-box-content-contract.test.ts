@@ -34,10 +34,11 @@ describe('blind-box content-only contract', () => {
     expect(componentApi).toContain("/friend-requests/' + encodeURIComponent(id) + '/reject");
   });
 
-  it('keeps my inquiries private and reachable as a student page', () => {
-    expect(host).toContain('data-page="myinquiries"');
-    expect(host).toContain('id="page-myinquiries"');
-    expect(host).toContain("'myinquiries'");
+  it('keeps my inquiries private inside the unified task hub', () => {
+    expect(host).toContain('data-page="mytasks"');
+    expect(host).toContain('id="page-mytasks"');
+    expect(host).toContain('data-task-hub="inquiries"');
+    expect(host).toContain("if(id === 'myinquiries'){ id = 'mytasks'; switchTaskHub('inquiries'); }");
     expect(hostApi).toContain("'/api/inquiries/mine'");
   });
 
@@ -51,13 +52,18 @@ describe('blind-box content-only contract', () => {
     expect(host).not.toContain('setTimeout(function(){ openNotificationDetail(item); }, 120)');
   });
 
-  it('preserves DEMO published task records during real task sync', () => {
-    expect(host).toContain('data-demo="true"');
-    expect(host).toContain("getAttribute('data-demo') !== 'true'");
+  it('renders published tasks only from server-backed records', () => {
+    expect(host).toContain('apiClient.myTasks');
+    expect(host).not.toContain('data-demo="true"');
+    expect(host).not.toContain("getAttribute('data-demo') !== 'true'");
   });
 
-  it('persists blind-box school and waits for region data before restoring', () => {
-    expect(componentApp).toContain("api.updateProfile({school:");
+  it('does not clear a profile school when changing only the blind-box education filter', () => {
+    const educationHandler = componentApp.slice(componentApp.indexOf("$('#education').addEventListener('change'"), componentApp.indexOf("$('#schoolToggle').addEventListener"));
+    expect(educationHandler).not.toContain("school.value = ''");
+    expect(educationHandler).not.toContain('saveBuddyPreferences()');
+    expect(componentApp).toContain("$('#school').addEventListener('change'");
+    expect(componentApp).toContain('saveProfileSchool()');
     expect(componentApi).toContain("request('/api/users/me'");
     expect(readFileSync(resolve(packageRoot, 'blind-box', 'city-data.js'), 'utf8')).toContain('window.regionReady');
   });

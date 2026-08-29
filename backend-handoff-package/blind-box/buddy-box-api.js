@@ -4,10 +4,38 @@
   var isLocalPreview = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
   var base = window.DANDAN_API_ORIGIN || (isLocalPreview ? 'http://127.0.0.1:3310' : '/dd');
   var accessToken = null;
+  var refreshPromise = null;
   var featureNamePattern = /^[a-z][a-z0-9-]{1,39}$/;
+
+  async function awaitParentSessionRestore() {
+    try {
+      if (window.parent && window.parent !== window && window.parent.apiClient && typeof window.parent.apiClient.awaitSessionRestore === 'function') {
+        await window.parent.apiClient.awaitSessionRestore();
+        accessToken = window.parent.apiClient.getAccessToken() || accessToken;
+      }
+    } catch (_) { /* direct buddy-box pages do not have a same-origin parent client */ }
+  }
+
+  async function refreshSession() {
+    if (!refreshPromise) {
+      refreshPromise = fetch(base + '/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: '{}'
+      }).then(async function (refresh) {
+        if (!refresh.ok) throw new Error('会话已失效');
+        var refreshBody = await refresh.json().catch(function () { return {}; });
+        accessToken = refreshBody.accessToken || null;
+        if (!accessToken) throw new Error('会话已失效');
+      }).finally(function () { refreshPromise = null; });
+    }
+    return refreshPromise;
+  }
 
   async function request(path, options, retry) {
     options = options || {};
+    if (!retry && !accessToken) await awaitParentSessionRestore();
     var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
     if (accessToken) headers.Authorization = 'Bearer ' + accessToken;
     var response = await fetch(base + path, Object.assign({}, options, {
@@ -15,17 +43,7 @@
       credentials: 'include'
     }));
     if (response.status === 401 && !retry) {
-      var refresh = await fetch(base + '/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: '{}'
-      });
-      if (refresh.ok) {
-        var refreshBody = await refresh.json().catch(function () { return {}; });
-        accessToken = refreshBody.accessToken || null;
-        return request(path, options, true);
-      }
+      try { await refreshSession(); return request(path, options, true); } catch (_) { /* expose the original response below */ }
     }
     var body = await response.json().catch(function () { return {}; });
     if (!response.ok) {

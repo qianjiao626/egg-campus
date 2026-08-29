@@ -84,4 +84,14 @@ describe('password reset confirmation validation', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it('rejects SMS as a password reset channel', () => {
+    const result = passwordResetConfirmSchema.safeParse({
+      channel: 'sms',
+      target: '13800000000',
+      verificationToken: 'verification-token-that-is-long-enough-1234567890',
+      newPassword: 'new-password-123',
+    });
+    expect(result.success).toBe(false);
+  });
 });
