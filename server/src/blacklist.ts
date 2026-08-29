@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 
 export const BLACKLIST_METRICS = [
   { key: 'canteen', name: '学校食堂', description: '食堂菜品质量、价格、卫生' },
@@ -63,7 +63,9 @@ export function averageScores(scores: Record<string, number>): number {
   return Number((BLACKLIST_METRIC_KEYS.reduce((sum, key) => sum + Number(scores[key] ?? 0), 0) / BLACKLIST_METRIC_KEYS.length).toFixed(1));
 }
 
-export type BlacklistReadClient = Pick<PrismaClient, 'blacklistSchool' | 'blacklistComment' | 'blacklistScore'>;
+export type BlacklistReadClient = Pick<PrismaClient, 'blacklistSchool' | 'blacklistComment' | 'blacklistScore'> & {
+  $queryRaw<T = unknown>(query: Prisma.Sql): Promise<T>;
+};
 
 export async function rankBlacklistSchools(
   client: BlacklistReadClient,
@@ -73,23 +75,45 @@ export async function rankBlacklistSchools(
 ) {
   const safePage = Math.max(1, Math.floor(page));
   const safeSize = Math.min(50, Math.max(1, Math.floor(pageSize)));
-  const schools = await client.blacklistSchool.findMany({ orderBy: { name: 'asc' } });
-  const comments = await client.blacklistComment.findMany({ where: { status: 'approved' }, include: { user: { select: { nickname: true } }, scores: true } });
-  const bySchool = new Map<string, any[]>();
-  for (const comment of comments) bySchool.set(comment.schoolId.toString(), [...(bySchool.get(comment.schoolId.toString()) ?? []), comment]);
-  const rows = schools.flatMap((school) => {
-    const items = bySchool.get(school.id.toString()) ?? [];
-    if (!items.length) return [];
-    const values = items.map((comment) => {
-      const scores = Object.fromEntries(comment.scores.map((score: any) => [score.metricKey, score.score]));
-      return metric === 'all' ? averageScores(scores) : Number(scores[metric] ?? 0);
-    });
-    const score = Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(1));
-    return [{ ...serializeBlacklistSchool(school), score, avgScore: score, commentCount: items.length, count: items.length }];
-  }).sort((a, b) => b.score - a.score || b.commentCount - a.commentCount || a.schoolName.localeCompare(b.schoolName, 'zh-CN'));
   const start = (safePage - 1) * safeSize;
-  const pageRows = rows.slice(start, start + safeSize).map((row, index) => ({ ...row, rank: start + index + 1 }));
-  return { rows: pageRows, list: pageRows, total: rows.length, page: safePage, pageSize: safeSize };
+  const score = metric === 'all'
+    ? Prisma.sql`CAST(c.average_score AS DECIMAL(10, 4))`
+    : Prisma.sql`CAST(COALESCE(ms.score, 0) AS DECIMAL(10, 4))`;
+  const metricJoin = metric === 'all'
+    ? Prisma.sql``
+    : Prisma.sql`LEFT JOIN school_scores ms ON ms.comment_id = c.id AND ms.metric_key = ${metric}`;
+  type RankRow = { schoolId: bigint; schoolName: string; score: number | string; commentCount: bigint | number };
+  type CountRow = { total: bigint | number };
+  const [rows, totals] = await Promise.all([
+    client.$queryRaw<RankRow[]>(Prisma.sql`
+      SELECT s.id AS schoolId, s.name AS schoolName,
+             ROUND(AVG(${score}), 1) AS score,
+             COUNT(DISTINCT c.id) AS commentCount
+      FROM schools s
+      INNER JOIN school_comments c ON c.school_id = s.id AND c.status = 'approved'
+      ${metricJoin}
+      GROUP BY s.id, s.name
+      ORDER BY score DESC, commentCount DESC, s.name ASC
+      LIMIT ${safeSize} OFFSET ${start}
+    `),
+    client.$queryRaw<CountRow[]>(Prisma.sql`
+      SELECT COUNT(*) AS total
+      FROM (
+        SELECT c.school_id
+        FROM school_comments c
+        WHERE c.status = 'approved'
+        GROUP BY c.school_id
+      ) ranked_schools
+    `),
+  ]);
+  const pageRows = rows.map((row, index) => {
+    const school = { id: BigInt(row.schoolId), name: row.schoolName };
+    const rowScore = Number(row.score ?? 0);
+    const commentCount = Number(row.commentCount ?? 0);
+    return { ...serializeBlacklistSchool(school), score: rowScore, avgScore: rowScore, commentCount, count: commentCount, rank: start + index + 1 };
+  });
+  const total = Number(totals[0]?.total ?? 0);
+  return { rows: pageRows, list: pageRows, total, page: safePage, pageSize: safeSize };
 }
 
 export type BlacklistWriteClient = Prisma.TransactionClient;
