@@ -73,6 +73,29 @@ let conversationProfile = null;
 let selectedTodayAction = '';
 let inboxPollTimer = null;
 let conversationPollTimer = null;
+let inboxSyncPromise = null;
+let conversationSyncPromise = null;
+let buddyPageActive = window.parent === window;
+function canPollBuddy() { return buddyPageActive && !document.hidden; }
+function updateBuddyPolling() {
+  if (!canPollBuddy()) {
+    stopInboxPolling();
+    stopConversationPolling();
+    return;
+  }
+  if (messageDrawer.classList.contains('open')) startInboxPolling();
+  if (conversationProfile && conversationOverlay.classList.contains('open')) {
+    refreshConversation();
+    if (!conversationPollTimer) conversationPollTimer = window.setInterval(refreshConversation, 5000);
+  }
+  syncBuddyInbox();
+  syncPlatformSnapshot();
+  syncSafetyState();
+  syncBuddyPreferences();
+  syncBuddyProfiles(selectedTodayAction);
+  syncBuddyBoard();
+  syncBuddyFeatureState();
+}
 let inbox = [];
 const requestedProfiles = new Set();
 const blockedTerms = ['加微信','加我微信','手机号','裸聊','色情','博彩','刷单'];
@@ -224,8 +247,9 @@ function renderInbox() {
 }
 
 async function syncBuddyInbox() {
-  if (typeof api.getInbox !== 'function') return;
-  try {
+  if (!canPollBuddy() || typeof api.getInbox !== 'function') return;
+  if (inboxSyncPromise) return inboxSyncPromise;
+  inboxSyncPromise = (async () => { try {
     const result = await api.getInbox();
     const messages = Array.isArray(result?.messages) ? result.messages : [];
     const requests = Array.isArray(result?.friendRequests) ? result.friendRequests : [];
@@ -236,6 +260,9 @@ async function syncBuddyInbox() {
     }));
     renderInbox();
   } catch (_) { reportSyncFailure('消息加载失败，请稍后重试'); }
+  finally { inboxSyncPromise = null; }
+  })();
+  return inboxSyncPromise;
 }
 
 function stopInboxPolling() {
@@ -243,6 +270,8 @@ function stopInboxPolling() {
 }
 function startInboxPolling() {
   stopInboxPolling();
+  if (!canPollBuddy()) return;
+  syncBuddyInbox();
   inboxPollTimer = window.setInterval(syncBuddyInbox, 15000);
 }
 
@@ -402,14 +431,17 @@ function openProfileDetails(profile) {
 }
 function closeProfileDetails(){ profileDetailOverlay.classList.remove('open'); profileDetailOverlay.setAttribute('aria-hidden','true'); lockPage(false); }
 async function refreshConversation() {
-  if (!conversationProfile || !conversationOverlay.classList.contains('open')) return;
-  try {
+  if (!canPollBuddy() || !conversationProfile || !conversationOverlay.classList.contains('open')) return;
+  if (conversationSyncPromise) return conversationSyncPromise;
+  conversationSyncPromise = (async () => { try {
     const result = await api.getConversation(conversationProfile.id);
     const messages = result.messages || [];
     $('#conversationMessages').innerHTML = messages.length ? messages.map(message => `<div style="align-self:${String(message.senderId) === String(conversationProfile.id) ? 'flex-start' : 'flex-end'};max-width:85%;padding:8px 12px;border-radius:12px;background:${String(message.senderId) === String(conversationProfile.id) ? '#f3f4f6' : '#e7f5ef'}">${escapeHtml(message.text)}</div>`).join('') : '<div class="board-empty">暂无聊天记录</div>';
   } catch(error) {
     $('#conversationMessages').innerHTML = `<div class="board-empty">${escapeHtml(error.message || '接受好友后才能聊天')}</div>`;
-  }
+  } finally { conversationSyncPromise = null; }
+  })();
+  return conversationSyncPromise;
 }
 function stopConversationPolling() {
   if (conversationPollTimer) { window.clearInterval(conversationPollTimer); conversationPollTimer = null; }
@@ -423,7 +455,7 @@ async function openConversation(profile){
   $('#conversationMessages').innerHTML = '<div class="board-empty">正在加载聊天记录…</div>';
   conversationOverlay.classList.add('open'); conversationOverlay.setAttribute('aria-hidden','false'); lockPage(true);
   await refreshConversation();
-  conversationPollTimer = window.setInterval(refreshConversation, 5000);
+  if (canPollBuddy()) conversationPollTimer = window.setInterval(refreshConversation, 5000);
 }
 function closeConversation(){ stopConversationPolling(); conversationOverlay.classList.remove('open'); conversationOverlay.setAttribute('aria-hidden','true'); lockPage(false); conversationProfile = null; }
 
@@ -784,12 +816,18 @@ async function syncSafetyState() {
   try { safetyState = {...safetyState, ...(await buddyBoxDataAdapter.getSafetySettings())}; } catch (error) { reportSyncFailure('安全设置加载失败，请稍后重试'); }
 }
 window.addEventListener('message', event => {
-  if (event.origin !== window.location.origin || !event.data || event.data.type !== 'dandan-realtime') return;
+  if (event.origin !== window.location.origin || !event.data) return;
+  if (event.data.type === 'dandan-buddy-activity') {
+    buddyPageActive = Boolean(event.data.active);
+    updateBuddyPolling();
+    return;
+  }
+  if (event.data.type !== 'dandan-realtime' || !canPollBuddy()) return;
   const type = event.data.event && event.data.event.type || 'fallback';
   if (type === 'fallback' || type === 'buddy.message.created' || type === 'buddy.friend.updated') {
     syncBuddyInbox();
     syncBuddyProfiles(selectedTodayAction);
-    if (conversationProfile && conversationOverlay.classList.contains('open')) openConversation(conversationProfile);
+    if (conversationProfile && conversationOverlay.classList.contains('open')) refreshConversation();
   }
   if (type === 'fallback' || type === 'buddy.feature.updated') {
     syncPlatformSnapshot();
@@ -799,25 +837,39 @@ window.addEventListener('message', event => {
   }
   if (type === 'fallback' || type === 'ranking.updated') syncPlatformSnapshot();
 });
+document.addEventListener('visibilitychange', updateBuddyPolling);
+window.addEventListener('pagehide', function(){
+  buddyPageActive = false;
+  updateBuddyPolling();
+});
 renderProfiles(); renderInbox(); updatePreferenceStatus();
 // Keep preference panel responsive; feature cards are below the fold and can wait one frame.
 window.setTimeout(renderFeatureCenter, 0);
 /* Keep first paint local; hydrate secondary panels after browser is idle. */
 const scheduleBuddySync = (task, delay) => window.setTimeout(task, delay);
-scheduleBuddySync(syncPlatformSnapshot, 80);
-scheduleBuddySync(syncSafetyState, 120);
-scheduleBuddySync(syncBuddyPreferences, 160);
-scheduleBuddySync(syncBuddyInbox, 220);
-scheduleBuddySync(() => syncBuddyProfiles(selectedTodayAction), 280);
-scheduleBuddySync(syncBuddyBoard, 340);
-scheduleBuddySync(syncBuddyFeatureState, 400);
+const scheduleActiveBuddySync = (task, delay) => scheduleBuddySync(() => { if (canPollBuddy()) task(); }, delay);
+scheduleActiveBuddySync(syncPlatformSnapshot, 80);
+scheduleActiveBuddySync(syncSafetyState, 120);
+scheduleActiveBuddySync(syncBuddyPreferences, 160);
+scheduleActiveBuddySync(syncBuddyInbox, 220);
+scheduleActiveBuddySync(() => syncBuddyProfiles(selectedTodayAction), 280);
+scheduleActiveBuddySync(syncBuddyBoard, 340);
+scheduleActiveBuddySync(syncBuddyFeatureState, 400);
 /* Report content height to the host page so the host container owns scrolling. */
 if (window.parent !== window) {
+  let buddyHeightFrame = null;
+  let lastReportedBuddyHeight = 0;
   const reportBuddyHeight = () => {
+    if (buddyHeightFrame) return;
+    buddyHeightFrame = requestAnimationFrame(() => {
+    buddyHeightFrame = null;
     const root = document.documentElement;
     const body = document.body;
     const height = Math.max(root.scrollHeight, body ? body.scrollHeight : 0);
+    if (height === lastReportedBuddyHeight) return;
+    lastReportedBuddyHeight = height;
     window.parent.postMessage({type: 'dandan-buddy-height', height}, window.location.origin);
+    });
   };
   if ('ResizeObserver' in window) new ResizeObserver(reportBuddyHeight).observe(document.body);
   window.addEventListener('load', reportBuddyHeight, {once: true});

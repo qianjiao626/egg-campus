@@ -2613,7 +2613,7 @@
 
         <!-- ===== STUDENT: 盲盒交友（纯内容组件，复用主站外壳） ===== -->
         <section class="page buddybox-page" id="page-buddybox" aria-label="盲盒交友">
-          <iframe class="buddybox-frame" id="buddyboxFrame" title="盲盒交友" src="blind-box/" scrolling="no"></iframe>
+          <iframe class="buddybox-frame" id="buddyboxFrame" title="盲盒交友" src="about:blank" data-src="blind-box/" loading="lazy" fetchpriority="low" scrolling="no"></iframe>
         </section>
 
       </main>
@@ -4247,7 +4247,11 @@
     stage.style.left = (window.innerWidth - 1440*s)/2 + 'px';
     stage.style.top = (window.innerHeight - 1024*s)/2 + 'px';
   }
-  window.addEventListener('resize', scaleStage);
+  var scaleStageFrame = null;
+  window.addEventListener('resize', function(){
+    if(scaleStageFrame) return;
+    scaleStageFrame = requestAnimationFrame(function(){ scaleStageFrame = null; scaleStage(); });
+  });
   scaleStage();
 
   /* ===== Toast ===== */
@@ -4922,6 +4926,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       filterMyPublishedTasks(currentMyPublishedStatus);
     }catch(error){ toast(error.message || '任务加载失败，请稍后重试'); }
   }
+  var publicTaskPlazaSyncPromise = null;
   function renderServerPlazaTask(task){
     var type = task.taskType === 'help' || task.taskType === 'team' ? task.taskType : 'teach';
     var publisher = task.publisher || null;
@@ -4960,6 +4965,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   }
   async function syncPublicTaskPlazas(){
     if(!USER.registered || !window.apiClient || typeof window.apiClient.publicTasks !== 'function') return;
+    if(publicTaskPlazaSyncPromise) return publicTaskPlazaSyncPromise;
+    publicTaskPlazaSyncPromise = (async function(){
     try {
       var result = await window.apiClient.publicTasks();
       var lists = { teach:document.getElementById('plazaUserList'), help:document.getElementById('helpUserList'), team:document.getElementById('teamUserList') };
@@ -4975,7 +4982,9 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       applyPlazaFilters(); applyHelpFilters(); applyTeamFilters();
     } catch(error) {
       ['plazaUserList','helpUserList','teamUserList'].forEach(function(id){ var list = document.getElementById(id); if(list) list.innerHTML = '<div class="empty-state">任务加载失败，请稍后重试</div>'; });
-    }
+    } finally { publicTaskPlazaSyncPromise = null; }
+    })();
+    return publicTaskPlazaSyncPromise;
   }
   var currentTaskHub = 'published';
   function switchTaskHub(tab){
@@ -5127,23 +5136,27 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     if(id === 'myfeedback'){ id = 'mytasks'; switchTaskHub('feedback'); }
     if(id === 'profile' && !USER.registered){ toast('请先注册你的蛋蛋～'); openRegModal(); return; }
     if((id === 'mytasks' || id === 'publish' || id === 'myinquiries' || id.indexOf('shop') >= 0) && !USER.registered){ toast('请先登录后使用该功能'); openLoginModal(); return; }
-    if(id === 'buddybox'){
-      var buddyboxFrame = document.getElementById('buddyboxFrame');
-      if(buddyboxFrame && buddyboxFrame.getAttribute('src') === 'about:blank') buddyboxFrame.setAttribute('src', 'blind-box/');
+    var buddyboxFrame = document.getElementById('buddyboxFrame');
+    if(activeRealtimePage === 'buddybox' && id !== 'buddybox' && buddyboxFrame && buddyboxFrame.contentWindow){
+      buddyboxFrame.contentWindow.postMessage({ type:'dandan-buddy-activity', active:false }, window.location.origin);
+    }
+    if(id === 'buddybox' && buddyboxFrame){
+      if(buddyboxFrame.getAttribute('src') === 'about:blank') buddyboxFrame.setAttribute('src', buddyboxFrame.getAttribute('data-src') || 'blind-box/');
+      else if(buddyboxFrame.contentWindow) buddyboxFrame.contentWindow.postMessage({ type:'dandan-buddy-activity', active:true }, window.location.origin);
     }
     hideAllPages(); showPage(id);
     bindRealtimeForPage(id);
     var navId = ADMIN_PAGES.indexOf(id) >= 0 ? 'adminNav' : 'studentNav';
     var activePage = (id === 'newgroup') ? 'taskgroups' : (id === 'review' ? 'submissions' : id);
     setActiveNav(navId, activePage);
-    /* 每次切换页面都刷新用户数据显示（蛋蛋币、经验值等） */
+    /* Header data is local state; expensive profile panels load only when opened. */
     refreshProfile();
     syncNotifications();
     if(id === 'users') syncAdminUsers();
     if(['dashboard','reviewcenter','submissions','review'].indexOf(id) >= 0 && USER.isAdmin) syncAdminReviewQueue();
     if(id === 'feedback'){ syncFeedbackTickets(); updateFeedbackBadge(); }
     if(id === 'permissions') loadPermissionWorkspace();
-    if(id === 'profile'){ renderChar(); renderCharUnlocked(); }
+    if(id === 'profile'){ refreshProfileDetails(); renderChar(); renderCharUnlocked(); }
     if(id === 'gossip'){ renderGossipWall(); renderGossipTopList(); return syncGossipInquiries(); }
     if(id === 'blacklist'){ if(window.DandanBlacklist) return window.DandanBlacklist.load(); }
     if(id === 'rankhall'){
@@ -5173,12 +5186,21 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     if(!frame || event.source !== frame.contentWindow) return;
     if(event.data && event.data.type === 'dandan-buddy-height'){
       var height = Number(event.data.height);
-      if(Number.isFinite(height)) frame.style.height = Math.max(860, Math.ceil(height)) + 'px';
+      var nextHeight = Number.isFinite(height) ? Math.max(860, Math.ceil(height)) : null;
+      if(nextHeight && frame.dataset.reportedHeight !== String(nextHeight)){
+        frame.dataset.reportedHeight = String(nextHeight);
+        frame.style.height = nextHeight + 'px';
+      }
     }
     if(event.data && event.data.type === 'dandan-buddy-profile-updated'){
       var buddyUser = event.data.user;
       if(buddyUser && typeof applyAuthenticatedUser === 'function') applyAuthenticatedUser(buddyUser);
       if(typeof hydrateUserState === 'function') hydrateUserState().then(refreshProfile);
+    }
+  });
+  document.getElementById('buddyboxFrame').addEventListener('load', function(){
+    if(activeRealtimePage === 'buddybox' && this.contentWindow){
+      this.contentWindow.postMessage({ type:'dandan-buddy-activity', active:true }, window.location.origin);
     }
   });
 
@@ -7389,12 +7411,20 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     }
     var prog = lv.max === Infinity ? 100 : Math.round((USER.exp - lv.min) / (lv.max - lv.min) * 100);
     document.getElementById('levelProgress').style.width = prog + '%';
-    renderPointLogs();
-    syncPointTransactions();
     renderSkillProfile();
-    renderMyRatings();
     renderChar();
-    renderInviteStats();
+  }
+  var profileDetailsSyncPromise = null;
+  async function refreshProfileDetails(){
+    if(!USER.registered) return;
+    if(profileDetailsSyncPromise) return profileDetailsSyncPromise;
+    renderPointLogs();
+    profileDetailsSyncPromise = Promise.allSettled([
+      syncPointTransactions(),
+      renderMyRatings(),
+      renderInviteStats()
+    ]).finally(function(){ profileDetailsSyncPromise = null; });
+    return profileDetailsSyncPromise;
   }
   var currentLogTab = 'points';
   function renderPointLogs(){
@@ -7447,16 +7477,20 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     });
     return { id:Number(inquiry.id), serverId:String(inquiry.id), title:inquiry.title, desc:inquiry.content, tags:tags, tagColor:getTagColorByName(tagText), publisherId:String(inquiry.userId), publisher:inquiry.user && inquiry.user.nickname || '蛋蛋用户', publisherAvatar:(inquiry.user && inquiry.user.nickname || '蛋').charAt(0), publishTime:new Date(inquiry.createdAt).toLocaleString('zh-CN'), createdAt:new Date(inquiry.createdAt).getTime(), deadline: inquiry.deadline ? new Date(inquiry.deadline).getTime() : Date.now()+30*24*3600*1000, bounty:Number(inquiry.bounty || 0), coinStatus:inquiry.coinStatus || 'open', likes:Number(inquiry.likes || 0), liked:Boolean(inquiry.likedByMe), adopted:Boolean(inquiry.adopted), adoptedAnswerId:inquiry.adoptedReplyId == null ? null : Number(inquiry.adoptedReplyId), isMine:String(inquiry.userId) === String(USER.id), ownerId:String(inquiry.userId), answers:answers, cancelled:false };
   }
+  var gossipInquirySyncPromise = null;
   async function syncGossipInquiries(silent){
     if(!USER.registered || !window.apiClient || !window.apiClient.inquiries) return;
-    try {
+    if(gossipInquirySyncPromise) return gossipInquirySyncPromise;
+    gossipInquirySyncPromise = (async function(){ try {
       var response = await window.apiClient.inquiries();
       var mineResponse = typeof window.apiClient.myInquiries === 'function' ? await window.apiClient.myInquiries() : { inquiries: [] };
       var records = response.inquiries || [];
-      var mapped = await Promise.all(records.map(async function(inquiry){
-        var replyResponse = await window.apiClient.inquiryReplies(inquiry.id);
-        return mapInquiryToGossip(inquiry, replyResponse.replies || []);
-      }));
+      var mapped = records.map(function(inquiry){
+        var mappedPost = mapInquiryToGossip(inquiry, []);
+        mappedPost.repliesLoaded = false;
+        mappedPost._inquiryRecord = inquiry;
+        return mappedPost;
+      });
       GOSSIP_POSTS.length = 0;
       Array.prototype.push.apply(GOSSIP_POSTS, mapped);
       renderGossipWall(); renderGossipTopList();
@@ -7481,7 +7515,9 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     } catch(error) {
       if(!silent) toast('打听加载失败，请稍后重试');
       return false;
-    }
+    } finally { gossipInquirySyncPromise = null; }
+    })();
+    return gossipInquirySyncPromise;
   }
   function toggleMyInquiries(){
     var panel = document.getElementById('myInquiriesPanel');
@@ -7738,6 +7774,15 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var post = GOSSIP_POSTS.find(function(p){ return p.id === id; });
     if(!post) return;
     currentGossipDetail = id;
+    if(!post.repliesLoaded && window.apiClient && typeof window.apiClient.inquiryReplies === 'function'){
+      post.repliesLoaded = 'loading';
+      window.apiClient.inquiryReplies(post.serverId || post.id).then(function(replyResponse){
+        var hydrated = mapInquiryToGossip(post._inquiryRecord || {id:post.id,userId:post.ownerId,title:post.title,content:post.desc,tags:post.tags,createdAt:post.createdAt,deadline:post.deadline,bounty:post.bounty,coinStatus:post.coinStatus,likes:post.likes,likedByMe:post.liked,adopted:post.adopted,adoptedReplyId:post.adoptedAnswerId,user:{nickname:post.publisher}}, replyResponse.replies || []);
+        Object.keys(hydrated).forEach(function(key){ if(key !== '_inquiryRecord') post[key] = hydrated[key]; });
+        post.repliesLoaded = true;
+        showGossipDetail(id);
+      }).catch(function(){ post.repliesLoaded = false; });
+    }
 
     var cd = post.coinStatus === 'refunded' && !post.adopted ? { text:'⏰ 已自动退回', class:'done' } : getCountdownText(post.deadline);
     var tagClass = getTagClass(post.tagColor);

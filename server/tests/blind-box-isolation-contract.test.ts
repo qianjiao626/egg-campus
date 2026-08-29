@@ -23,7 +23,7 @@ describe('blind-box page isolation contract', () => {
   it('is a content-only component for both host and direct requests', () => {
     expect(host).toContain('data-page="buddybox"');
     expect(host).toContain('id="page-buddybox"');
-    expect(host).toContain('src="blind-box/"');
+    expect(host).toContain('data-src="blind-box/"');
     expect(html).not.toContain('embed');
     expect(html).not.toContain('class="sidebar"');
     expect(html).not.toContain('class="topbar"');

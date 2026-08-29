@@ -12,6 +12,7 @@
   var sessionRestoreResolve = null;
   var sessionRestoreStarted = false;
   var sessionRestorePromise = new Promise(function (resolve) { sessionRestoreResolve = resolve; });
+  var hydrateUserPromise = null;
 
   async function awaitSessionRestore() {
     return sessionRestorePromise;
@@ -383,6 +384,8 @@
   };
 
   async function hydrateUserState() {
+    if (hydrateUserPromise) return hydrateUserPromise;
+    hydrateUserPromise = (async function () {
     var results = await Promise.allSettled([apiClient.me(), apiClient.stats(), apiClient.pointAccount(), apiClient.characters()]);
     if (results[0].status === 'fulfilled' && results[0].value.user) USER = Object.assign({}, USER, results[0].value.user);
     if (results[1].status === 'fulfilled' && results[1].value.stats) {
@@ -401,6 +404,8 @@
       if (window.DandanAppState) window.DandanAppState.setState({ currentCharacter: currentCharacter });
     }
     applyAuthenticatedUser(USER);
+    })().finally(function () { hydrateUserPromise = null; });
+    return hydrateUserPromise;
   }
   window.hydrateUserState = hydrateUserState;
 

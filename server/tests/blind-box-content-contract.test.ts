@@ -73,7 +73,8 @@ describe('blind-box content-only contract', () => {
     expect(componentCss).toContain('overflow:visible');
     expect(componentCss).toContain('.interest-choices,.board-list{max-height:none;overflow:visible}');
     expect(host).toContain('class="buddybox-frame"');
-    expect(host).toContain('src="blind-box/"');
+    expect(host).toContain('data-src="blind-box/"');
+    expect(host).toContain('src="about:blank"');
     expect(host).toContain('scrolling="no"');
     expect(host).toContain('dandan-buddy-height');
   });
