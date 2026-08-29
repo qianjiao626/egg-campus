@@ -74,4 +74,21 @@ describe('shop maintenance', () => {
     await expect(offSalePublisherProductsIfUnauthorized(db as never, 7n, new Date())).resolves.toBe(0);
     expect(db.notification.create).not.toHaveBeenCalled();
   });
+
+  it('loads publisher permissions once for the maintenance batch', async () => {
+    const grants = vi.fn().mockResolvedValue([{ userId: 7n, role: { permissions: [{ permission: { key: 'shop.product.create_own' } }] } }]);
+    const db = {
+      shopOrder: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn() },
+      shopOrderItem: { updateMany: vi.fn() },
+      shopProduct: { findMany: vi.fn().mockResolvedValue([{ publisherId: 7n }, { publisherId: 8n }]), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      userRoleGrant: { findMany: grants },
+      notification: { create: vi.fn().mockResolvedValue({}) },
+    };
+
+    const result = await runShopMaintenance(db as never, new Date('2026-08-26T12:00:00.000Z'));
+
+    expect(result.offSaleProducts).toBe(1);
+    expect(grants).toHaveBeenCalledTimes(1);
+    expect(grants).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: { in: [7n, 8n] } }) }));
+  });
 });

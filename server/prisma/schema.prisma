@@ -772,6 +772,7 @@ model ShopProduct {
 
   @@index([status, publishedAt])
   @@index([publisherId, status, createdAt])
+  @@index([status, publisherId])
   @@index([category, status])
   @@map("shop_products")
 }
@@ -852,6 +853,7 @@ model ShopOrder {
 
   @@index([userId, status, createdAt])
   @@index([status, createdAt])
+  @@index([status, completedAt, shippedAt])
   @@map("shop_orders")
 }
 

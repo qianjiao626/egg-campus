@@ -8,7 +8,7 @@ export type ShopMaintenanceClient = {
     findMany(args: unknown): Promise<Array<{ publisherId: bigint | null }>>;
     updateMany(args: unknown): Promise<{ count: number }>;
   };
-  userRoleGrant: { findMany(args: unknown): Promise<Array<{ role: { permissions: Array<{ permission: { key: string } }> } }>> };
+  userRoleGrant: { findMany(args: unknown): Promise<Array<{ userId?: bigint; role: { permissions: Array<{ permission: { key: string } }> } }>> };
   notification: { create(args: unknown): Promise<unknown> };
 };
 
@@ -91,10 +91,40 @@ export async function runShopMaintenance(db: ShopMaintenanceClient, now = new Da
     distinct: ['publisherId'],
     select: { publisherId: true },
   });
+  const publisherIds = livePublishers.flatMap((product) => product.publisherId === null ? [] : [product.publisherId]);
   let offSaleProducts = 0;
-  for (const product of livePublishers) {
-    if (product.publisherId === null) continue;
-    offSaleProducts += await offSalePublisherProductsIfUnauthorized(db, product.publisherId, now);
+  if (publisherIds.length > 0) {
+    const grants = await db.userRoleGrant.findMany({
+      where: {
+        userId: { in: publisherIds },
+        revokedAt: null,
+        startsAt: { lte: now },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        role: {
+          enabled: true,
+          permissions: { some: { permission: { key: 'shop.product.create_own' } } },
+        },
+      },
+      select: { userId: true, role: { select: { permissions: { select: { permission: { select: { key: true } } } } } } },
+    });
+    const authorized = new Set(grants
+      .filter((grant) => grant.role.permissions.some((item) => item.permission.key === 'shop.product.create_own'))
+      .map((grant) => grant.userId?.toString())
+      .filter(Boolean));
+    for (const publisherId of publisherIds) {
+      if (authorized.has(publisherId.toString())) continue;
+      let changed: { count: number };
+      try {
+        changed = await db.shopProduct.updateMany({ where: { publisherId, status: 'on_sale' }, data: { status: 'off_sale' } });
+      } catch (error) {
+        if ((error as { code?: string })?.code === 'P2021') continue;
+        throw error;
+      }
+      if (changed.count > 0) {
+        offSaleProducts += changed.count;
+        await db.notification.create({ data: { userId: publisherId, type: 'shop_publisher_permission_lost', payload: { offSaleProductCount: changed.count } } });
+      }
+    }
   }
   return { completedOrders, offSaleProducts };
 }
