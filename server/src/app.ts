@@ -1708,8 +1708,7 @@ export function buildApp(): FastifyInstance {
     const task = await prisma.task.findUnique({ where: { id: params.id } });
     if (!task) return reply.code(404).send({ error: 'TASK_NOT_FOUND', message: '任务不存在' });
     if (task.userId !== userId && !await hasRequestPermission(request, PERMISSION_KEYS.taskClaimManage)) return reply.code(403).send({ error: 'FORBIDDEN', message: '只有发布者或获授权管理员可以确认配对' });
-    const claims = await prisma.taskClaim.findMany({ where: { taskId: task.id, status: { in: ['pending', 'submitted', 'assigned'] } } });
-    const selected = claims.filter((claim) => input.claimIds.some((id) => id === claim.id));
+    const selected = await prisma.taskClaim.findMany({ where: { taskId: task.id, id: { in: input.claimIds }, status: { in: ['pending', 'submitted', 'assigned'] } } });
     if (selected.length === 0) return reply.code(409).send({ error: 'TASK_CLAIM_NOT_FOUND', message: '没有可确认的认领者' });
     if (selected.length > task.maxClaimers) return reply.code(409).send({ error: 'TASK_FULL', message: '选择人数超过任务上限' });
     const result = await prisma.$transaction(async (tx) => {
