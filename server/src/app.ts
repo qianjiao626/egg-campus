@@ -414,15 +414,20 @@ export function buildApp(): FastifyInstance {
   });
   app.get('/api/blacklist/school/:id', async (request, reply) => {
     const params = z.object({ id: z.coerce.bigint() }).parse(request.params);
+    const query = z.object({ page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(50).default(20) }).parse(request.query);
     const school = await prisma.blacklistSchool.findUnique({ where: { id: params.id } });
     if (!school) return reply.code(404).send({ error: 'SCHOOL_NOT_FOUND', message: '学校不存在' });
-    const comments = await prisma.blacklistComment.findMany({ where: { schoolId: school.id, status: 'approved' }, include: { user: { select: { nickname: true } }, scores: true }, orderBy: { createdAt: 'desc' } });
-    const metricAverages = Object.fromEntries(BLACKLIST_METRIC_KEYS.map((key) => {
-      const values = comments.flatMap((comment: any) => comment.scores.filter((score: any) => score.metricKey === key).map((score: any) => score.score));
-      return [key, values.length ? Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)) : 0];
-    }));
-    const avgScore = comments.length ? Number((comments.reduce((sum: number, c: any) => sum + Number(c.averageScore), 0) / comments.length).toFixed(1)) : 0;
-    return { school: serializeBlacklistSchool(school), schoolId: school.id.toString(), schoolName: school.name, displayName: displayBlacklistSchoolName(school.name), count: comments.length, avgScore, metrics: metricAverages, stats: { commentCount: comments.length, averageScore: avgScore, metricAverages }, comments: comments.map(serializeBlacklistComment) };
+    const where = { schoolId: school.id, status: 'approved' as const };
+    const [total, comments, average, metricRows] = await Promise.all([
+      prisma.blacklistComment.count({ where }),
+      prisma.blacklistComment.findMany({ where, include: { user: { select: { nickname: true } }, scores: true }, orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
+      prisma.blacklistComment.aggregate({ where, _avg: { averageScore: true } }),
+      prisma.blacklistScore.groupBy({ where: { comment: where }, by: ['metricKey'], _avg: { score: true } }),
+    ]);
+    const metricAverages = Object.fromEntries(metricRows.map((row) => [row.metricKey, Number(Number(row._avg.score ?? 0).toFixed(1))]));
+    for (const key of BLACKLIST_METRIC_KEYS) if (!(key in metricAverages)) metricAverages[key] = 0;
+    const avgScore = Number(Number(average._avg.averageScore ?? 0).toFixed(1));
+    return { school: serializeBlacklistSchool(school), schoolId: school.id.toString(), schoolName: school.name, displayName: displayBlacklistSchoolName(school.name), count: total, avgScore, metrics: metricAverages, stats: { commentCount: total, averageScore: avgScore, metricAverages }, comments: comments.map(serializeBlacklistComment), page: query.page, pageSize: query.pageSize, total };
   });
   app.post('/api/blacklist/school/add', { preHandler: app.authenticate }, async (request, reply) => {
     const input = z.object({ schoolName: z.string().trim().min(2).max(200).optional(), name: z.string().trim().min(2).max(200).optional() }).parse(request.body);
