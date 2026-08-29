@@ -61,7 +61,18 @@ def git(*args: str) -> str:
 
 
 def assert_main_clean() -> None:
-    dirty = git("status", "--porcelain", "main")
+    lines = git("worktree", "list", "--porcelain").splitlines()
+    main_worktree: Path | None = None
+    worktree: Path | None = None
+    for line in lines:
+        if line.startswith("worktree "):
+            worktree = Path(line.removeprefix("worktree "))
+        elif line == "branch refs/heads/main":
+            main_worktree = worktree
+            break
+    if main_worktree is None:
+        raise RuntimeError("main worktree is unavailable; workflow will not create task branches")
+    dirty = subprocess.check_output(["git", "-C", str(main_worktree), "status", "--porcelain"], text=True, encoding="utf-8").strip()
     if dirty:
         raise RuntimeError("main is dirty; workflow will not create task branches")
 
