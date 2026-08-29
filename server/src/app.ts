@@ -1154,10 +1154,8 @@ export function buildApp(): FastifyInstance {
             if (product.virtualType === 'redeem_code') {
               const codes = await tx.productRedeemCode.findMany({ where: { productId: product.id, status: 'available' }, orderBy: { id: 'asc' }, take: quantity });
               if (codes.length !== quantity) throw new ShopRuleError('SHOP_REDEEM_CODE_INSUFFICIENT');
-              for (const code of codes) {
-                const assigned = await tx.productRedeemCode.updateMany({ where: { id: code.id, status: 'available' }, data: { status: 'assigned', orderItemId: orderItem.id, assignedAt: new Date() } });
-                if (assigned.count !== 1) throw new ShopRuleError('SHOP_REDEEM_CODE_INSUFFICIENT');
-              }
+              const assigned = await tx.productRedeemCode.updateMany({ where: { id: { in: codes.map((code) => code.id) }, status: 'available' }, data: { status: 'assigned', orderItemId: orderItem.id, assignedAt: new Date() } });
+              if (assigned.count !== quantity) throw new ShopRuleError('SHOP_REDEEM_CODE_INSUFFICIENT');
               await tx.userEntitlement.create({ data: { userId, productId: product.id, orderItemId: orderItem.id, type: 'redeem_code', payload: { redeemCodeIds: codes.map((code) => code.id.toString()) } } });
             } else {
               await tx.userEntitlement.create({ data: { userId, productId: product.id, orderItemId: orderItem.id, type: product.virtualType ?? 'digital', payload: (product.fulfillmentData ?? {}) as Prisma.InputJsonValue } });
