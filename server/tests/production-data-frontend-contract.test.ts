@@ -124,10 +124,10 @@ describe('production frontend data contract', () => {
   });
 
   it('starts admin counters from zero and omits development-only navigation', () => {
-    expect(html).toMatch(/id="pendingBadge" hidden><\/span>/);
+    expect(html).toMatch(/id="pendingBadge">0<\/span>/);
     expect(html).toMatch(/id="submissionsBadge" hidden><\/span>/);
     expect(html).toMatch(/id="usersCount">0<\/span>/);
-    expect(html).toMatch(/id="feedbackBadge" hidden><\/span>/);
+    expect(html).toMatch(/id="feedbackBadge">0<\/span>/);
     expect(html).not.toContain('data-page="states"');
     expect(html).not.toContain("'states'");
     expect(html).not.toContain('组件交互状态');

@@ -1658,6 +1658,72 @@
   @keyframes plazaCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   @media(max-width:900px){.bl-main-grid{grid-template-columns:1fr}.bl-rank-area,.bl-wall{height:auto;min-height:360px}.bl-wall{margin:0}.bl-rank-item{gap:9px;padding:12px}.bl-rank-badge{display:none}}
   @media(max-width:600px){.bl-toolbar{padding:0 14px}.bl-tabs{margin:0 14px 14px;padding:10px;gap:6px}.bl-main-grid{padding:0 14px}.bl-header{padding:14px}.bl-header-top{grid-template-columns:1fr}.bl-tousu-rating-grid{grid-template-columns:1fr}.bl-tousu-body{padding:18px}.bl-tousu-header,.bl-tousu-footer{padding-left:18px;padding-right:18px}.bl-rank-school-name{font-size:13px}.bl-rank-meta{display:none}}
+
+  /* ===== Cinematic glass theme ===== */
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap');
+  :root{
+    --ink:#fff;--ink2:rgba(255,255,255,.78);--muted:rgba(255,255,255,.65);--faint:rgba(255,255,255,.42);
+    --border:rgba(255,255,255,.12);--bg:rgba(255,255,255,.06);--primary:#fff;--primary-dark:#fff;
+    --primary-tint:rgba(255,255,255,.14);--orange:#fff;--orange-tint:rgba(255,255,255,.14);
+    --green:#fff;--green-tint:rgba(255,255,255,.14);--lilac:#fff;--lilac-tint:rgba(255,255,255,.14);
+    --red:#fff;--red-tint:rgba(255,255,255,.14);--gold:#fff;--gold-tint:rgba(255,255,255,.14);
+    --purple:#fff;--purple-tint:rgba(255,255,255,.14);--pink:#fff;--pink-tint:rgba(255,255,255,.14);
+    --shadow:0 8px 32px rgba(0,0,0,.3);--shadow-md:0 8px 32px rgba(0,0,0,.3);--shadow-lg:0 8px 32px rgba(0,0,0,.3);
+  }
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  html,body{background-color:#0d1218!important}
+  body{font-family:'Inter',system-ui,sans-serif!important;color:#fff!important;background-image:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('https://aka.doubaocdn.com/s/7Uk7ZUVBSo')!important;background-attachment:fixed!important;background-size:cover!important;background-position:center!important}
+  #stage{z-index:1}
+  .app{background:transparent!important}
+  .app::before,.sidebar::before,.sidebar::after,.plaza-banner::before,.team-hero::before,.team-hero::after,.gossip-hero::before,.gossip-hero::after{display:none!important}
+  .main{background:transparent!important;padding:24px!important}
+  .page{color:#fff!important}
+  .bl-page{background:transparent!important;color:#fff!important}
+  .page::-webkit-scrollbar-thumb{background:rgba(255,255,255,.24)!important}
+  .sidebar{width:232px;background:rgba(7,12,20,.54)!important;backdrop-filter:blur(12px)!important;-webkit-backdrop-filter:blur(12px)!important;border:1px solid rgba(255,255,255,.12);border-radius:0 20px 20px 0;box-shadow:8px 0 32px rgba(0,0,0,.3)!important;overflow-y:auto}
+  .sidebar-egg-deco{display:none!important}
+  .brand .name{font-family:'Instrument Serif',Georgia,serif!important;font-size:28px!important;font-weight:400!important;letter-spacing:0!important;color:#fff!important;background:none!important;-webkit-text-fill-color:#fff!important}
+  .nav-item{color:rgba(255,255,255,.65)!important;font-family:'Inter',system-ui,sans-serif!important;font-weight:400!important;border:1px solid transparent!important;border-radius:12px!important}
+  .nav-item:hover{background:rgba(255,255,255,.06)!important;color:#fff!important;transform:none!important}
+  .nav-item.active,.nav-item.student-item.active{background:rgba(255,255,255,.16)!important;color:#fff!important;border:1px solid rgba(255,255,255,.2)!important;padding-left:12px!important;box-shadow:none!important}
+  .user-card,.guest-card{background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12);border-radius:14px!important}
+  .guest-btn,.role-btn{font-family:'Inter',system-ui,sans-serif!important;background:rgba(255,255,255,.06)!important;color:#fff!important;border:1px solid rgba(255,255,255,.2)!important;box-shadow:none!important;border-radius:12px!important}
+  .guest-btn.register{background:rgba(255,255,255,.12)!important}
+  .logout{color:rgba(255,255,255,.65)!important}
+  .topbar{background:transparent!important}
+  .crumb,.topbar .right{color:rgba(255,255,255,.65)!important}
+  .title-row .t h2,.banner-text h2,.sec-head h3,.page h1,.page h2,.page h3{font-family:'Instrument Serif',Georgia,serif!important;font-weight:400!important;letter-spacing:0!important;color:#fff!important}
+  .title-row .t h2{font-size:34px!important}
+  .title-row .t p,.banner-text p{font-family:'Inter',system-ui,sans-serif!important;color:rgba(255,255,255,.65)!important;font-weight:400!important}
+  .plaza-banner{background:rgba(255,255,255,.08)!important;background-image:none!important;backdrop-filter:blur(12px)!important;-webkit-backdrop-filter:blur(12px)!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:16px!important;box-shadow:0 8px 32px rgba(0,0,0,.3)!important}
+  .banner-text h2{font-size:clamp(32px,4vw,58px)!important;line-height:1!important}
+  .banner-text .tag,.banner-text .tag b{color:#fff!important}
+  .filter-eggs,.filter-row,.cat-filter-row{background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:16px!important}
+  .filter-egg,.chip,.cat-chip,.tag,.task-cat-tag{font-family:'Inter',system-ui,sans-serif!important;background:rgba(255,255,255,.04)!important;color:rgba(255,255,255,.65)!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:none!important}
+  .filter-egg.active,.chip.active,.cat-chip.active{background:rgba(255,255,255,.2)!important;color:#fff!important;border-color:rgba(255,255,255,.3)!important}
+  .filter-egg .fe-name,.chip,.cat-chip{color:inherit!important}
+  .search,.input,.textarea,.input-date,.input-num{font-family:'Inter',system-ui,sans-serif!important;background:rgba(255,255,255,.06)!important;color:#fff!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:12px!important;box-shadow:none!important}
+  .search span,.search input,.input::placeholder,.textarea::placeholder{color:rgba(255,255,255,.65)!important}
+  .search input{font-family:inherit!important}
+  .btn,.banner-publish-btn,.bl-wall-more,.bl-tousu-submit,.gossip-publish-btn{font-family:'Inter',system-ui,sans-serif!important;background:rgba(255,255,255,.1)!important;background-image:none!important;color:#fff!important;border:1px solid rgba(255,255,255,.2)!important;box-shadow:none!important;border-radius:12px!important}
+  .btn:hover,.banner-publish-btn:hover,.bl-wall-more:hover,.bl-tousu-submit:hover,.gossip-publish-btn:hover{transform:none!important;box-shadow:none!important}
+  .card,.card-lg,.kpi,.group-card,.table,.plaza-card,.gossip-card,.rank-card,.points-rule .rule,.task-detail-card,[class*='-card'],.bl-rank-area,.bl-wall,.bl-tousu-modal,.bl-metric-rank-modal,.bl-school-detail-modal,.notif-panel,.task-hub-panel{background:rgba(255,255,255,.06)!important;background-image:none!important;backdrop-filter:blur(12px)!important;-webkit-backdrop-filter:blur(12px)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:16px!important;box-shadow:0 8px 32px rgba(0,0,0,.3)!important;color:#fff!important}
+  .plaza-card .nm,.gossip-card .title,.task-detail-card h3,.group-card .top .nm,.kpi .val,.sec-head h3{color:#fff!important}
+  .plaza-card .desc,.plaza-card .publisher,.gossip-card .desc,.empty-state,.result-count,.page [style*='color:var(--muted)']{color:rgba(255,255,255,.65)!important}
+  .plaza-card .tag,.gossip-card .tag,.sec-head .tag{background:rgba(255,255,255,.14)!important;color:#fff!important}
+  .bl-header-title,.bl-header-sub,.bl-rank-head-title,.bl-rank-head-count,.bl-wall-title,.bl-wall-card-school,.bl-wall-card-text,.bl-wall-card-user,.bl-rank-school-name,.bl-rank-meta,.bl-metric-rank-title,.bl-metric-rank-subtitle,.bl-school-detail-body,.bl-tousu-label,.bl-tousu-title,.bl-detail-comment-text,.bl-detail-comment-time{font-family:'Inter',system-ui,sans-serif!important;color:#fff!important;background-image:none!important;-webkit-text-fill-color:#fff!important}
+  .bl-header-title{font-family:'Instrument Serif',Georgia,serif!important;font-size:42px!important;font-weight:400!important}
+  .bl-header-sub,.bl-rank-head-count,.bl-rank-meta,.bl-metric-rank-subtitle,.bl-detail-comment-time{color:rgba(255,255,255,.65)!important}
+  .bl-stat,.bl-extreme-card,.bl-tabs,.bl-tab,.bl-rank-item,.bl-wall-card,.bl-detail-comment,.bl-metric-rank-item,.bl-search-dropdown,.bl-school-sel-item{background:rgba(255,255,255,.06)!important;background-image:none!important;backdrop-filter:blur(12px)!important;-webkit-backdrop-filter:blur(12px)!important;border:1px solid rgba(255,255,255,.12)!important;color:#fff!important;box-shadow:0 8px 32px rgba(0,0,0,.3)!important;border-radius:16px!important}
+  .bl-search-box input,.bl-tousu-input,.bl-tousu-textarea{background:rgba(255,255,255,.06)!important;color:#fff!important;border:1px solid rgba(255,255,255,.16)!important}
+  .bl-search-box input::placeholder,.bl-tousu-input::placeholder,.bl-tousu-textarea::placeholder{color:rgba(255,255,255,.5)!important}
+  .bl-btn-tousu,.bl-tab.active,.bl-rank-detail-btn,.bl-rank-badge,.bl-wall-badge,.bl-tousu-rank-btn{background:rgba(255,255,255,.14)!important;color:#fff!important;border:1px solid rgba(255,255,255,.2)!important;box-shadow:none!important}
+  .bl-rank-item::before{display:none!important}
+  .bl-rank-detail-btn:hover,.bl-tab:hover,.bl-wall-card:hover,.bl-search-item:hover{background:rgba(255,255,255,.16)!important;color:#fff!important;transform:none!important}
+  .bell-btn,.icon-btn,.chat-fab,.back-btn{background:rgba(255,255,255,.08)!important;color:#fff!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:12px!important;box-shadow:none!important}
+  .page .link,.edit-btn,.trow .op{color:#fff!important}
+  @media(max-width:900px){.main{padding:16px!important}.sidebar{border-radius:0 16px 16px 0}.topbar{background:transparent!important}.plaza-banner{padding:20px!important}.banner-text h2{font-size:42px!important}}
+  @media(max-width:620px){.sidebar{width:72px;min-width:72px;padding:14px 8px}.brand .name{display:none!important}.guest-btn{font-size:0!important;gap:0!important;padding:0!important}.guest-btn svg{width:16px!important;height:16px!important}.main{padding:12px!important}.banner-text h2{font-size:34px!important}.title-row .t h2{font-size:30px!important}}
 </style>
 </head>
 <body>
@@ -1795,11 +1861,11 @@
         <nav class="nav" id="adminNav">
           <div class="nav-item active" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>工作台</span></div>
           <div class="nav-item" data-page="taskgroups"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2L22 7L12 12L2 7L12 2Z"/><path d="M2 12L12 17L22 12"/><path d="M2 17L12 22L22 17"/></svg><span>任务组管理</span></div>
-           <div class="nav-item" data-page="reviewcenter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 11L12 14L20 6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12V18C20 19.1 19.1 20 18 20H6C4.9 20 4 19.1 4 18V6C4 4.9 4.9 4 6 4H14" stroke-linecap="round"/></svg><span>审核中心</span><span class="tag tag-orange" style="margin-left:auto" id="pendingBadge" hidden></span></div>
+           <div class="nav-item" data-page="reviewcenter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 11L12 14L20 6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12V18C20 19.1 19.1 20 18 20H6C4.9 20 4 19.1 4 18V6C4 4.9 4.9 4 6 4H14" stroke-linecap="round"/></svg><span>审核中心</span><span class="tag tag-orange" style="margin-left:auto" id="pendingBadge">0</span></div>
            <div class="nav-item" data-page="submissions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5H15V4"/><path d="M9 10H15M9 14H13" stroke-linecap="round"/></svg><span>待批改</span><span class="tag tag-orange" style="margin-left:auto" id="submissionsBadge" hidden></span></div>
           <div class="nav-item" data-page="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.5"/><path d="M2 20C2 16.5 5.1 14.5 9 14.5C12.9 14.5 16 16.5 16 20" stroke-linecap="round"/><circle cx="17" cy="7" r="2.5"/><path d="M16 14C19 14 22 15.5 22 18.5" stroke-linecap="round"/></svg><span>用户管理</span><span class="tag tag-lilac" style="margin-left:auto" id="usersCount">0</span></div>
           <div class="nav-item" data-page="permissions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l7 3v5c0 4.6-2.8 8.2-7 10-4.2-1.8-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>用户与权限</span></div>
-           <div class="nav-item" data-page="feedback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1 4.7-7.6 8.5 8.5 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke-linejoin="round"/></svg><span>反馈工单</span><span class="tag tag-red" style="margin-left:auto" id="feedbackBadge" hidden></span></div>
+           <div class="nav-item" data-page="feedback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1 4.7-7.6 8.5 8.5 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke-linejoin="round"/></svg><span>反馈工单</span><span class="tag tag-red" style="margin-left:auto" id="feedbackBadge">0</span></div>
           <div class="nav-item" data-page="admin-shop" data-shop-ui><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h16l-1 12H5L4 8Z"/><path d="M8 8a4 4 0 0 1 8 0"/></svg><span>商城管理</span></div>
         </nav>
 
@@ -4106,7 +4172,7 @@
     if(submissionsSummary) submissionsSummary.textContent = subs.length ? '共 ' + subs.length + ' 份提交待批改，请尽快处理' : '暂无待批改提交';
 
     var revBadge = document.getElementById('pendingBadge');
-    if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(revBadge, pending.length);
+    if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(revBadge, pending.length, {showZero:true});
   }
 
   function renderAdminReviewQueue(tasks){
@@ -4349,7 +4415,7 @@
   function updateFeedbackBadge(){
     var pending = feedbackWorkspace.admin.filter(function(record){ return record.status === 'pending'; }).length;
     var replied = feedbackWorkspace.admin.filter(function(record){ return Array.isArray(record.messages) && record.messages.some(function(message){ return message.authorType === 'admin'; }); }).length;
-    var badge = document.getElementById('feedbackBadge'); if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(badge, pending);
+    var badge = document.getElementById('feedbackBadge'); if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(badge, pending, {showZero:true});
     var pendingTag = document.getElementById('fbPendingTag'); if(pendingTag) pendingTag.textContent = '待处理 ' + pending;
     var repliedTag = document.getElementById('fbRepliedTag'); if(repliedTag) repliedTag.textContent = '已回复 ' + replied;
   }

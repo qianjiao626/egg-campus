@@ -27,15 +27,16 @@
     setText(target.profileSchool, '登录后查看学校');
   }
 
-  function renderUnreadBadge(elementOrId, value) {
+  function renderUnreadBadge(elementOrId, value, options) {
+    var showZero = options === true || Boolean(options && options.showZero);
     var count = Number(value);
     count = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
     var element = typeof elementOrId === 'string' && typeof document !== 'undefined'
       ? document.getElementById(elementOrId)
       : elementOrId;
     if (element) {
-      element.hidden = count === 0;
-      element.textContent = count > 0 ? String(count) : '';
+      element.hidden = !showZero && count === 0;
+      element.textContent = showZero || count > 0 ? String(count) : '';
     }
     return count;
   }

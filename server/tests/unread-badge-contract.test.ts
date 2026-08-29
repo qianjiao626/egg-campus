@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 type BadgeElement = { hidden: boolean; textContent: string };
 type IdentityView = {
-  renderUnreadBadge(element: BadgeElement | null, value: unknown): number;
+  renderUnreadBadge(element: BadgeElement | null, value: unknown, options?: { showZero?: boolean } | boolean): number;
 };
 
 function loadIdentityView(): IdentityView {
@@ -35,15 +35,26 @@ describe('unread badge contract', () => {
     expect(badge).toEqual({ hidden, textContent: text });
   });
 
-  it('ships all message entries with empty hidden number badges', () => {
+  it('keeps configured persistent badges visible at zero', () => {
+    const view = loadIdentityView();
+    const badge = { hidden: true, textContent: 'stale' };
+
+    const count = view.renderUnreadBadge(badge, 0, { showZero: true });
+
+    expect(count).toBe(0);
+    expect(badge).toEqual({ hidden: false, textContent: '0' });
+  });
+
+  it('ships notification and submission badges as empty hidden badges', () => {
     const html = readFileSync(resolve(process.cwd(), '..', 'backend-handoff-package', 'growth-school.html'), 'utf8');
-    for (const id of ['notifBadge', 'notifBadgeStudent', 'pendingBadge', 'submissionsBadge', 'feedbackBadge']) {
+    for (const id of ['notifBadge', 'notifBadgeStudent', 'submissionsBadge']) {
       expect(html).toMatch(new RegExp(`<span[^>]*id="${id}"[^>]*hidden[^>]*><\\/span>`));
     }
+    expect(html).toMatch(/<span[^>]*id="pendingBadge"[^>]*>0<\/span>/);
+    expect(html).toMatch(/<span[^>]*id="feedbackBadge"[^>]*>0<\/span>/);
     expect(html).toContain('class="bell-btn"');
     expect(html).toContain('data-page="reviewcenter"');
     expect(html).toContain('data-page="submissions"');
     expect(html).toContain('data-page="feedback"');
   });
 });
-
