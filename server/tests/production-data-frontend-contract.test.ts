@@ -3,9 +3,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const packageRoot = resolve(process.cwd(), '..', 'backend-handoff-package');
-const html = readFileSync(resolve(packageRoot, 'growth-school.html'), 'utf8');
-const apiClient = readFileSync(resolve(packageRoot, 'api-client.js'), 'utf8');
-const blindBoxApp = readFileSync(resolve(packageRoot, 'blind-box', 'app.js'), 'utf8');
+const readText = (file: string) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+const html = readText(resolve(packageRoot, 'growth-school.html'));
+const apiClient = readText(resolve(packageRoot, 'api-client.js'));
+const blindBoxApp = readText(resolve(packageRoot, 'blind-box', 'app.js'));
 
 describe('production frontend data contract', () => {
   it('does not ship demo task, point, inquiry, rating, or user records', () => {
