@@ -392,7 +392,7 @@ export function buildApp(): FastifyInstance {
   app.get('/api/blacklist/metrics', async () => ({ metrics: BLACKLIST_METRICS }));
   app.get('/api/blacklist/stats', async () => {
     const [schoolCount, commentCount, scoreSummary] = await Promise.all([
-      prisma.blacklistSchool.count(),
+      prisma.blacklistSchool.count({ where: { status: 'approved' } }),
       prisma.blacklistComment.count({ where: { status: 'approved' } }),
       prisma.blacklistScore.aggregate({
         where: { comment: { status: 'approved' } },
@@ -420,7 +420,7 @@ export function buildApp(): FastifyInstance {
   });
   app.get('/api/blacklist/search', async (request) => {
     const query = z.object({ keyword: z.string().trim().min(1).max(50) }).parse(request.query);
-    const schools = await prisma.blacklistSchool.findMany({ where: { name: { contains: normalizeBlacklistSchoolName(query.keyword) } }, orderBy: { name: 'asc' }, take: 20 });
+    const schools = await prisma.blacklistSchool.findMany({ where: { status: 'approved', name: { contains: normalizeBlacklistSchoolName(query.keyword) } }, orderBy: { name: 'asc' }, take: 20 });
     const stats = schools.length ? await prisma.blacklistComment.groupBy({
       where: { schoolId: { in: schools.map((school) => school.id) }, status: 'approved' },
       by: ['schoolId'],
@@ -439,7 +439,7 @@ export function buildApp(): FastifyInstance {
   });
   app.get('/api/blacklist/wall', async (request) => {
     const query = z.object({ schoolId: z.coerce.bigint().optional(), page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(50).default(20) }).parse(request.query);
-    const where = { status: 'approved' as const, ...(query.schoolId ? { schoolId: query.schoolId } : {}) };
+    const where = { status: 'approved' as const, school: { status: 'approved' as const }, ...(query.schoolId ? { schoolId: query.schoolId } : {}) };
     const [total, comments] = await Promise.all([
       prisma.blacklistComment.count({ where }),
       prisma.blacklistComment.findMany({ where, include: { user: { select: { nickname: true } }, school: true, scores: true }, orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
@@ -451,7 +451,7 @@ export function buildApp(): FastifyInstance {
     const params = z.object({ id: z.coerce.bigint() }).parse(request.params);
     const query = z.object({ page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(50).default(20) }).parse(request.query);
     const school = await prisma.blacklistSchool.findUnique({ where: { id: params.id } });
-    if (!school) return reply.code(404).send({ error: 'SCHOOL_NOT_FOUND', message: '学校不存在' });
+    if (!school || (school.status && school.status !== 'approved')) return reply.code(404).send({ error: 'SCHOOL_NOT_FOUND', message: '学校不存在' });
     const where = { schoolId: school.id, status: 'approved' as const };
     const [total, comments, average, metricRows] = await Promise.all([
       prisma.blacklistComment.count({ where }),
@@ -471,7 +471,7 @@ export function buildApp(): FastifyInstance {
     assertSafeText(requestedName);
     const name = normalizeBlacklistSchoolName(requestedName);
     try {
-      const school = await prisma.blacklistSchool.upsert({ where: { name }, create: { name }, update: {} });
+      const school = await prisma.blacklistSchool.upsert({ where: { name }, create: { name, isUserAdded: true, addedBy: currentUserId(request), status: 'approved' }, update: {} });
       return reply.code(201).send({ success: true, ...serializeBlacklistSchool(school) });
     } catch (error) {
       if (prismaErrorCode(error) === 'P2002') return reply.code(409).send({ error: 'SCHOOL_ALREADY_EXISTS', message: '学校已存在' });
@@ -500,7 +500,7 @@ export function buildApp(): FastifyInstance {
       const result = await prisma.$transaction(async (tx) => {
         let school = raw.schoolId ? await tx.blacklistSchool.findUnique({ where: { id: raw.schoolId } }) : null;
         if (raw.schoolId && !school) throw new Error('SCHOOL_NOT_FOUND');
-        if (!school) school = await tx.blacklistSchool.upsert({ where: { name: schoolName! }, create: { name: schoolName! }, update: {} });
+        if (!school) school = await tx.blacklistSchool.upsert({ where: { name: schoolName! }, create: { name: schoolName!, isUserAdded: true, addedBy: userId, status: 'approved' }, update: {} });
         const existing = await tx.blacklistComment.findUnique({ where: { userId_schoolId: { userId, schoolId: school.id } } });
         if (existing) throw new Error('BLACKLIST_ALREADY_SUBMITTED');
         const total = await tx.blacklistComment.count({ where: { userId } });

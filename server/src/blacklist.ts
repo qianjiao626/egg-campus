@@ -92,6 +92,7 @@ export async function rankBlacklistSchools(
       FROM schools s
       INNER JOIN school_comments c ON c.school_id = s.id AND c.status = 'approved'
       ${metricJoin}
+      WHERE s.status = 'approved'
       GROUP BY s.id, s.name
       ORDER BY score DESC, commentCount DESC, s.name ASC
       LIMIT ${safeSize} OFFSET ${start}
@@ -101,6 +102,7 @@ export async function rankBlacklistSchools(
       FROM (
         SELECT c.school_id
         FROM school_comments c
+        INNER JOIN schools s ON s.id = c.school_id AND s.status = 'approved'
         WHERE c.status = 'approved'
         GROUP BY c.school_id
       ) ranked_schools
