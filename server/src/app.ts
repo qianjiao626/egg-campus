@@ -3140,40 +3140,71 @@ export function buildApp(): FastifyInstance {
   });
 
   app.get('/api/users/leaderboard', async (request) => {
-    const query = z.object({ category: z.string().default('all') }).parse(request.query);
+    const query = z.object({ category: z.string().default('all'), page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(100).default(50) }).parse(request.query);
+    const skip = (query.page - 1) * query.pageSize;
     if (query.category === 'gossip') {
-      const replies = await prisma.inquiryReply.findMany({
-        where: { kind: 'answer', user: { status: 'active', role: 'student' } },
-        include: { user: true, likes: true, inquiry: { select: { adoptedReplyId: true } } },
-      });
-      const byUser = new Map<string, { user: typeof replies[number]['user']; gossipLikes: number; answerCount: number; adoptedCount: number }>();
-      replies.forEach((reply) => {
-        const key = reply.userId.toString();
-        const current = byUser.get(key) ?? { user: reply.user, gossipLikes: 0, answerCount: 0, adoptedCount: 0 };
-        current.gossipLikes += reply.likes.length;
-        current.answerCount += 1;
-        if (reply.inquiry.adoptedReplyId === reply.id) current.adoptedCount += 1;
-        byUser.set(key, current);
-      });
+      type GossipRow = { id: bigint; nickname: string; mbtiType: string | null; eggCategory: string | null; eggRarity: string; likes: number; reputation: number | string; createdAt: Date; gossipLikes: bigint | number; answerCount: bigint | number; adoptedCount: bigint | number };
+      const rows = await prisma.$queryRaw<GossipRow[]>(Prisma.sql`
+        SELECT u.id, u.nickname, u.mbti_type AS mbtiType, u.egg_category AS eggCategory,
+               u.egg_rarity AS eggRarity, u.likes, u.reputation, u.created_at AS createdAt,
+               COUNT(DISTINCT l.id) AS gossipLikes,
+               COUNT(DISTINCT r.id) AS answerCount,
+               COUNT(DISTINCT CASE WHEN i.adopted_reply_id = r.id THEN r.id END) AS adoptedCount
+        FROM users u
+        INNER JOIN inquiry_replies r ON r.user_id = u.id AND r.kind = 'answer'
+        INNER JOIN inquiries i ON i.id = r.inquiry_id
+        LEFT JOIN inquiry_reply_likes l ON l.reply_id = r.id
+        WHERE u.status = 'active' AND u.role = 'student'
+        GROUP BY u.id, u.nickname, u.mbti_type, u.egg_category, u.egg_rarity, u.likes, u.reputation, u.created_at
+        ORDER BY gossipLikes DESC, adoptedCount DESC, u.nickname ASC
+        LIMIT ${query.pageSize} OFFSET ${skip}
+      `);
       return {
-        users: Array.from(byUser.values()).sort((a, b) => b.gossipLikes - a.gossipLikes || b.adoptedCount - a.adoptedCount).map((item) => ({
-          id: item.user.id.toString(), nickname: item.user.nickname, mbtiType: item.user.mbtiType, eggCategory: item.user.eggCategory, eggRarity: item.user.eggRarity,
-          likes: item.user.likes, reputation: Number(item.user.reputation), experience: 0, gossipLikes: item.gossipLikes, answerCount: item.answerCount, adoptedCount: item.adoptedCount,
-          stats: { knowledge: 0, skills: 0, charm: 0, money: 0, reputation: Number(item.user.reputation) }, coins: 0, createdAt: item.user.createdAt,
+        users: rows.map((item, index) => ({
+          id: item.id.toString(), nickname: item.nickname, mbtiType: item.mbtiType, eggCategory: item.eggCategory, eggRarity: item.eggRarity,
+          likes: item.likes, reputation: Number(item.reputation), experience: 0, gossipLikes: Number(item.gossipLikes), answerCount: Number(item.answerCount), adoptedCount: Number(item.adoptedCount),
+          rank: skip + index + 1, stats: { knowledge: 0, skills: 0, charm: 0, money: 0, reputation: Number(item.reputation) }, coins: 0, createdAt: item.createdAt,
         })),
+        page: query.page, pageSize: query.pageSize,
       };
     }
-    const users = await prisma.user.findMany({
-      where: { status: 'active', role: 'student' },
-      include: { stats: true, account: true },
-    });
     const categoryMap: Record<string, string | undefined> = {
-      study: 'study', job: 'job', side: 'side', hobby: 'hobby', game: 'game', life: 'life',
+      study: 'study', '学业技术': 'study',
+      job: 'job', '就业技能': 'job',
+      side: 'side', '副业技能': 'side',
+      hobby: 'hobby', '兴趣爱好': 'hobby',
+      game: 'game', '游戏搭子': 'game',
+      life: 'life', '生活互助': 'life',
     };
-    const filtered = query.category === 'all' || query.category === 'rich' || query.category === 'gossip'
-      ? users
-      : users.filter((user) => user.eggCategory === categoryMap[query.category]);
-    const result = filtered.map((user) => ({
+    const where = {
+      status: 'active' as const,
+      role: 'student' as const,
+      ...(categoryMap[query.category] ? { eggCategory: categoryMap[query.category] } : {}),
+    };
+    const leaderboardCategory = categoryMap[query.category] ?? query.category;
+    const orderBy = leaderboardCategory === 'rich'
+      ? [{ account: { availableBalance: 'desc' as const } }, { stats: { experience: 'desc' as const } }, { likes: 'desc' as const }]
+      : leaderboardCategory === 'study'
+        ? [{ stats: { knowledge: 'desc' as const } }, { stats: { experience: 'desc' as const } }]
+        : leaderboardCategory === 'job'
+          ? [{ stats: { skills: 'desc' as const } }, { stats: { experience: 'desc' as const } }]
+          : leaderboardCategory === 'side'
+            ? [{ stats: { money: 'desc' as const } }, { stats: { experience: 'desc' as const } }]
+            : (leaderboardCategory === 'hobby' || leaderboardCategory === 'game' || leaderboardCategory === 'life')
+              ? [{ stats: { charm: 'desc' as const } }, { stats: { experience: 'desc' as const } }]
+              : [{ stats: { experience: 'desc' as const } }, { likes: 'desc' as const }];
+    const users = await prisma.user.findMany({
+      where,
+      orderBy,
+      skip,
+      take: query.pageSize,
+      select: {
+        id: true, nickname: true, mbtiType: true, eggCategory: true, eggRarity: true, likes: true, reputation: true, createdAt: true,
+        stats: { select: { experience: true, knowledge: true, skills: true, charm: true, money: true, reputation: true } },
+        account: { select: { availableBalance: true } },
+      },
+    });
+    const result = users.map((user, index) => ({
       id: user.id.toString(),
       nickname: user.nickname,
       mbtiType: user.mbtiType,
@@ -3187,6 +3218,7 @@ export function buildApp(): FastifyInstance {
       } : { knowledge: 0, skills: 0, charm: 0, money: 0, reputation: 0 },
       coins: user.account?.availableBalance ?? 0,
       createdAt: user.createdAt,
+      rank: skip + index + 1,
     })).sort((a, b) => {
       if (query.category === 'rich') return b.coins - a.coins || b.experience - a.experience;
       if (query.category === 'gossip') return 0;
@@ -3196,7 +3228,7 @@ export function buildApp(): FastifyInstance {
       if (query.category === 'hobby' || query.category === 'game' || query.category === 'life') return b.stats.charm - a.stats.charm || b.experience - a.experience;
       return b.experience - a.experience || b.likes - a.likes;
     });
-    return { users: result };
+    return { users: result, page: query.page, pageSize: query.pageSize };
   });
 
   app.get('/api/users/:id/public-profile', async (request, reply) => {
