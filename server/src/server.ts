@@ -1,4 +1,4 @@
-import { buildApp, refundExpiredInquiries } from './app.js';
+import { buildApp, refundExpiredInquiries, refundExpiredTasks } from './app.js';
 import { loadConfig } from './config.js';
 import { prisma } from './prisma.js';
 import { seedAuthorizationCatalog } from './rbac-seed.js';
@@ -28,7 +28,7 @@ const verificationCleanup = setInterval(nonOverlappingSweep(
 ), 15 * 60 * 1000);
 verificationCleanup.unref();
 const inquiryRefundSweep = setInterval(nonOverlappingSweep(
-  async () => { await refundExpiredInquiries(); },
+  async () => { await refundExpiredInquiries(); await refundExpiredTasks(); },
   (error) => app.log.error({ err: error }, 'inquiry refund sweep failed'),
 ), 5 * 60 * 1000);
 inquiryRefundSweep.unref();

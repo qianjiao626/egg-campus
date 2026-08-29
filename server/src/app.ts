@@ -277,6 +277,31 @@ export async function refundExpiredInquiries(now = new Date()) {
   return { scanned: expired.length, refunded };
 }
 
+export async function refundExpiredTasks(now = new Date()) {
+  const cutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+  const expired = await prisma.task.findMany({
+    where: { status: 'approved', taskType: { in: ['help', 'team'] }, reward: { gt: 0 }, createdAt: { lt: cutoff } },
+    orderBy: { createdAt: 'asc' }, take: 100,
+    select: { id: true, userId: true, taskType: true, reward: true, maxClaimers: true },
+  });
+  let refunded = 0;
+  for (const item of expired) {
+    const didRefund = await prisma.$transaction(async (tx) => {
+      const current = await tx.task.findUnique({ where: { id: item.id } });
+      if (!current || current.status !== 'approved' || current.taskType === 'teach' || current.reward <= 0 || current.createdAt >= cutoff) return false;
+      const active = await tx.taskClaim.count({ where: { taskId: current.id, status: { in: ['pending', 'assigned', 'submitted'] } } });
+      if (active > 0) return false;
+      const amount = current.taskType === 'team' ? current.reward * current.maxClaimers : current.reward;
+      await applyBuddyPointDelta(tx, current.userId, amount, `task-expired-refund:${current.id.toString()}`, 'task_reward_refund', `任务三天无人认领退回蛋蛋币:${current.id.toString()}`);
+      await tx.task.update({ where: { id: current.id }, data: { status: 'cancelled' } });
+      await tx.notification.create({ data: { userId: current.userId, type: 'task_expired_refunded', refId: current.id.toString(), payload: { taskId: current.id.toString(), reward: amount } } });
+      return true;
+    });
+    if (didRefund) refunded += 1;
+  }
+  return { scanned: expired.length, refunded };
+}
+
 export function buildApp(): FastifyInstance {
   const config = loadConfig();
   const app = Fastify({ logger: true });
@@ -589,10 +614,13 @@ export function buildApp(): FastifyInstance {
       user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true, role: true } },
     };
   }
-  function serializeTask(task: any) {
+  function serializeTask(task: any, viewerId?: bigint) {
     const { _count, claims, user, ...record } = task;
+    const owner = viewerId != null && viewerId === task.userId;
+    const paired = claims?.[0]?.status && ['assigned', 'submitted', 'completed'].includes(claims[0].status);
     return {
       ...record,
+      contact: owner || paired ? task.contact : null,
       id: task.id.toString(),
       userId: task.userId.toString(),
       publisher: user ? {
@@ -622,7 +650,7 @@ export function buildApp(): FastifyInstance {
     }
     for (const claim of claims) {
       if (claim.frozenAmount > 0) {
-        await applyBuddyPointDelta(tx, task.userId, claim.frozenAmount, `task-cancel-claim-refund:${task.id.toString()}:${claim.id.toString()}`, 'task_tuition_paid', `取消任务支付发布者蛋蛋币:${task.id.toString()}`);
+        await applyBuddyPointDelta(tx, claim.claimerId, claim.frozenAmount, `task-cancel-claim-refund:${task.id.toString()}:${claim.id.toString()}`, 'task_tuition_refund', `取消教学任务退回认领者蛋蛋币:${task.id.toString()}`);
       }
     }
     await tx.taskClaim.updateMany({ where: { taskId: task.id, status: { in: ['pending', 'assigned', 'submitted'] } }, data: { status: 'cancelled' } });
@@ -1508,7 +1536,7 @@ export function buildApp(): FastifyInstance {
         return tx.task.create({ data: { userId, title: input.title, description: input.description, remark: input.remark ?? null, taskType: input.taskType, claimMode: input.claimMode, reward: input.reward, publishExpReward, maxClaimers: input.maxClaimers, contact: input.contact ?? null, requirements: input.requirements ?? null, skillCategory: input.skillCategory ?? null, skillSubcategory: input.skillSubcategory ?? null } });
       });
       publishRealtime(() => realtime.publishAdmin(realtimeEvent('task.pending', task.id, 'admin'), PERMISSION_KEYS.taskReview));
-      return reply.code(201).send({ task: serializeTask(task) });
+      return reply.code(201).send({ task: serializeTask(task, userId) });
     } catch (error) {
       if (error instanceof DailyTaskPublishLimitError) return reply.code(429).send({ error: error.message, message: `每日最多发布 ${DAILY_TASK_PUBLISH_LIMIT} 次任务` });
       throw error;
@@ -1523,7 +1551,7 @@ export function buildApp(): FastifyInstance {
       take: 100,
       include: taskListInclude(userId),
     });
-    return { tasks: tasks.map(serializeTask) };
+    return { tasks: tasks.map((task) => serializeTask(task, userId)) };
   });
 
   app.get('/api/admin/tasks/review-queue', { preHandler: app.authenticate }, async (request, reply) => {
@@ -1535,7 +1563,7 @@ export function buildApp(): FastifyInstance {
       take: 100,
       include: taskListInclude(userId),
     });
-    return { tasks: tasks.map(serializeTask) };
+    return { tasks: tasks.map((task) => serializeTask(task, userId)) };
   });
 
   app.patch('/api/tasks/:id', { preHandler: app.authenticate }, async (request, reply) => {
@@ -1552,14 +1580,14 @@ export function buildApp(): FastifyInstance {
       data: { ...input, status: 'pending_review', reviewReason: null, reviewedAt: null },
     });
     publishRealtime(() => realtime.publishAdmin(realtimeEvent('task.updated', task.id, 'admin'), PERMISSION_KEYS.taskReview));
-    return { task: serializeTask(task) };
+    return { task: serializeTask(task, currentUserId(request)) };
   });
 
   app.get('/api/tasks/mine', { preHandler: app.authenticate }, async (request) => {
     const query = taskMineQuerySchema.parse(request.query);
     const userId = currentUserId(request);
     const tasks = await prisma.task.findMany({ where: { ...taskVisibilityWhere({ userId, canReview: false, view: 'mine' }), ...(query.status ? { status: query.status } : {}) }, orderBy: { createdAt: 'desc' }, take: query.limit, include: taskListInclude(userId) });
-    return { tasks: tasks.map(serializeTask) };
+    return { tasks: tasks.map((task) => serializeTask(task, userId)) };
   });
 
   app.get('/api/tasks/claimed', { preHandler: app.authenticate }, async (request) => {
@@ -1584,7 +1612,7 @@ export function buildApp(): FastifyInstance {
         taskId: claim.taskId.toString(),
         claimerId: claim.claimerId.toString(),
         ratedByCurrentUser: ratedTaskIds.has(claim.taskId.toString()),
-        task: serializeTask(claim.task),
+        task: serializeTask({ ...claim.task, claims: [{ status: claim.status }] }, userId),
       })),
     };
   });
@@ -1640,13 +1668,23 @@ export function buildApp(): FastifyInstance {
     if (task.status !== 'approved') return reply.code(409).send({ error: 'TASK_NOT_AVAILABLE', message: '任务当前不可认领' });
     const existing = await prisma.taskClaim.findUnique({ where: { taskId_claimerId: { taskId: params.id, claimerId: userId } } });
     if (existing) return reply.code(409).send({ error: 'TASK_ALREADY_CLAIMED', message: '你已经认领过该任务' });
-    const activeCount = await prisma.taskClaim.count({ where: { taskId: params.id, status: { in: ['pending', 'assigned', 'submitted'] } } });
-    if (activeCount >= task.maxClaimers) return reply.code(409).send({ error: 'TASK_FULL', message: '任务名额已满' });
+    if (task.taskType !== 'help') {
+      const activeCount = await prisma.taskClaim.count({ where: { taskId: params.id, status: { in: ['pending', 'assigned', 'submitted'] } } });
+      if (activeCount >= task.maxClaimers) return reply.code(409).send({ error: 'TASK_FULL', message: '任务名额已满' });
+    }
     let frozenAmount = 0;
     try {
       if (task.taskType === 'teach' && task.reward > 0) {
         frozenAmount = task.reward;
-        await prisma.$transaction((tx) => applyBuddyPointDelta(tx, userId, -frozenAmount, `task-claim-freeze:${task.id.toString()}:${userId.toString()}`, 'task_tuition_frozen', `认领教学任务冻结蛋蛋币:${task.id.toString()}`));
+        const claim = await prisma.$transaction(async (tx) => {
+          await applyBuddyPointDelta(tx, userId, -frozenAmount, `task-claim-freeze:${task.id.toString()}:${userId.toString()}`, 'task_tuition_frozen', `认领教学任务冻结蛋蛋币:${task.id.toString()}`);
+          const created = await tx.taskClaim.create({ data: { taskId: task.id, claimerId: userId, contact: input.contact ?? null, frozenAmount, status: 'assigned' } });
+          await tx.notification.create({ data: { userId: task.userId, type: 'task_claimed', refId: task.id.toString(), payload: { taskId: task.id.toString(), claimerId: userId.toString() } } });
+          return created;
+        });
+        publishRealtime(() => realtime.publishPublic(realtimeEvent('task.claimed', task.id, 'public')));
+        publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', userId, 'public')));
+        return reply.code(201).send({ claim: { ...claim, id: claim.id.toString(), taskId: claim.taskId.toString(), claimerId: claim.claimerId.toString() } });
       }
       const claim = await prisma.taskClaim.create({ data: { taskId: task.id, claimerId: userId, contact: input.contact ?? null, frozenAmount, status: 'pending' } });
       await prisma.notification.create({ data: { userId: task.userId, type: 'task_claimed', refId: task.id.toString(), payload: { taskId: task.id.toString(), claimerId: userId.toString() } } });
@@ -1705,7 +1743,7 @@ export function buildApp(): FastifyInstance {
     if (!task) return reply.code(404).send({ error: 'TASK_NOT_FOUND', message: '任务不存在' });
     const canManageClaims = task.userId === userId || await hasRequestPermission(request, PERMISSION_KEYS.taskClaimManage);
     const claims = await prisma.taskClaim.findMany({ where: { taskId: params.id, ...(canManageClaims ? {} : { claimerId: userId }) }, orderBy: { createdAt: 'asc' }, include: { claimer: { select: { id: true, nickname: true, mbtiType: true, reputation: true, bio: true, eggCategory: true, eggRarity: true } } } });
-    return { claims: claims.map((claim) => ({ ...claim, id: claim.id.toString(), taskId: claim.taskId.toString(), claimerId: claim.claimerId.toString(), claimer: claim.claimer ? { ...claim.claimer, id: claim.claimer.id.toString(), reputation: Number(claim.claimer.reputation) } : null })) };
+    return { claims: claims.map((claim) => ({ ...claim, contact: canManageClaims || ['assigned', 'submitted', 'completed'].includes(claim.status) ? claim.contact : null, id: claim.id.toString(), taskId: claim.taskId.toString(), claimerId: claim.claimerId.toString(), claimer: claim.claimer ? { ...claim.claimer, id: claim.claimer.id.toString(), reputation: Number(claim.claimer.reputation) } : null })) };
   });
 
   app.patch('/api/tasks/:id/claims/assign', { preHandler: app.authenticate }, async (request, reply) => {
@@ -1739,24 +1777,29 @@ export function buildApp(): FastifyInstance {
     if (!claim) return reply.code(409).send({ error: 'TASK_SUBMISSION_NOT_FOUND', message: '没有待确认的提交' });
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const completed = await tx.taskClaim.update({ where: { id: claim.id }, data: { status: 'completed', completedAt: new Date() } });
-        if (task.reward > 0) {
-          if (task.taskType === 'teach') {
-            await applyBuddyPointDelta(tx, task.userId, task.reward, `task-complete-pay:${task.id.toString()}:${claim.claimerId.toString()}`, 'task_tuition_paid', `教学任务完成结算:${task.id.toString()}`);
-          } else {
-            await applyBuddyPointDelta(tx, task.userId, -task.reward, `task-complete-spend:${task.id.toString()}:${claim.claimerId.toString()}`, 'task_reward_spent', `任务完成扣除发布者蛋蛋币:${task.id.toString()}`);
-            await applyBuddyPointDelta(tx, claim.claimerId, task.reward, `task-complete-reward:${task.id.toString()}:${claim.claimerId.toString()}`, 'task_reward_paid', `任务完成奖励:${task.id.toString()}`);
+        const currentClaim = await tx.taskClaim.findUnique({ where: { id: claim.id } });
+        const currentTask = await tx.task.findUnique({ where: { id: task.id } });
+        if (!currentClaim || !currentTask || currentClaim.status !== 'submitted' || ['completed', 'cancelled'].includes(currentTask.status)) throw new Error('TASK_SUBMISSION_NOT_FOUND');
+        const completed = await tx.taskClaim.update({ where: { id: currentClaim.id }, data: { status: 'completed', completedAt: new Date() } });
+        if (currentTask.reward > 0) {
+          if (currentTask.taskType === 'teach') await applyBuddyPointDelta(tx, currentTask.userId, currentTask.reward, `task-complete-pay:${currentTask.id.toString()}:${currentClaim.claimerId.toString()}`, 'task_tuition_paid', `教学任务完成结算:${currentTask.id.toString()}`);
+          else await applyBuddyPointDelta(tx, currentClaim.claimerId, currentTask.reward, `task-complete-reward:${currentTask.id.toString()}:${currentClaim.claimerId.toString()}`, 'task_reward_paid', `任务完成奖励:${currentTask.id.toString()}`);
+          if (currentTask.taskType === 'team') {
+            const completedCount = await tx.taskClaim.count({ where: { taskId: currentTask.id, status: 'completed' } });
+            const refund = Math.max(0, currentTask.maxClaimers - completedCount) * currentTask.reward;
+            if (refund > 0) await applyBuddyPointDelta(tx, currentTask.userId, refund, `task-team-complete-refund:${currentTask.id.toString()}`, 'task_reward_refund', `组队任务未使用奖励退回:${currentTask.id.toString()}`);
           }
         }
-        const updatedTask = await tx.task.update({ where: { id: task.id }, data: { status: 'completed', completedAt: new Date() } });
-        await tx.notification.create({ data: { userId: claim.claimerId, type: 'task_completed', refId: task.id.toString(), payload: { taskId: task.id.toString(), claimId: claim.id.toString() } } });
+        const updatedTask = await tx.task.update({ where: { id: currentTask.id }, data: { status: 'completed', completedAt: new Date() } });
+        await tx.notification.create({ data: { userId: currentClaim.claimerId, type: 'task_completed', refId: currentTask.id.toString(), payload: { taskId: currentTask.id.toString(), claimId: currentClaim.id.toString() } } });
         return { claim: completed, task: updatedTask };
       });
       publishRealtime(() => realtime.publishPublic(realtimeEvent('task.completed', task.id, 'public')));
       publishRealtime(() => realtime.publishPrivate([task.userId, claim.claimerId], realtimeEvent('task.completed', task.id, 'private')));
       if (task.reward > 0) publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', task.taskType === 'teach' ? task.userId : claim.claimerId, 'public')));
-      return { claim: { ...result.claim, id: result.claim.id.toString(), taskId: result.claim.taskId.toString(), claimerId: result.claim.claimerId.toString() }, task: serializeTask(result.task) };
+      return { claim: { ...result.claim, id: result.claim.id.toString(), taskId: result.claim.taskId.toString(), claimerId: result.claim.claimerId.toString() }, task: serializeTask(result.task, userId) };
     } catch (error) {
+      if (error instanceof Error && error.message === 'TASK_SUBMISSION_NOT_FOUND') return reply.code(409).send({ error: 'TASK_SUBMISSION_NOT_FOUND', message: '没有待确认的提交' });
       if (error instanceof BuddyPrestigeError) return reply.code(409).send({ error: error.message, message: '结算蛋蛋币失败' });
       throw error;
     }
@@ -1775,7 +1818,7 @@ export function buildApp(): FastifyInstance {
       publishRealtime(() => realtime.publishPublic(realtimeEvent('task.cancelled', task.id, 'public')));
       publishRealtime(() => realtime.publishPrivate([task.userId, ...claims.map((claim) => claim.claimerId)], realtimeEvent('task.cancelled', task.id, 'private')));
       if (task.reward > 0) publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', task.userId, 'public')));
-      return { task: serializeTask(result), cancelledClaims: claims.length };
+      return { task: serializeTask(result, userId), cancelledClaims: claims.length };
     } catch (error) {
       if (error instanceof BuddyPrestigeError) return reply.code(409).send({ error: error.message, message: '退回蛋蛋币失败' });
       throw error;
