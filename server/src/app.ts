@@ -741,6 +741,7 @@ export function buildApp(): FastifyInstance {
       return updated;
     });
     await recordAudit({ actorId: currentUserId(request), action: 'rbac.role.update', targetType: 'role', targetId: role.id.toString(), ip: request.ip, afterData: { enabled: role.enabled, permissionKeys: keys ?? undefined } });
+    if (keys !== null || input.enabled !== undefined) realtime.invalidatePermissions();
     return { role: { ...role, id: role.id.toString() } };
   });
 
@@ -808,6 +809,7 @@ export function buildApp(): FastifyInstance {
       await tx.roleGrantAudit.create({ data: { grantId: saved.id, actorId, action: existing ? 'renew' : 'grant', beforeData, afterData: { startsAt: saved.startsAt.toISOString(), expiresAt: saved.expiresAt?.toISOString() ?? null, isPermanent: saved.isPermanent }, reason: input.reason } });
       return saved;
     });
+    realtime.invalidatePermissions([input.userId]);
     return reply.code(201).send({ grant: { ...grant, id: grant.id.toString(), userId: grant.userId.toString(), roleId: grant.roleId.toString(), grantedBy: grant.grantedBy?.toString() ?? null } });
   });
 
@@ -827,6 +829,7 @@ export function buildApp(): FastifyInstance {
       await offSalePublisherProductsIfUnauthorized(tx as unknown as ShopMaintenanceClient, current.userId);
       return updated;
     });
+    realtime.invalidatePermissions([current.userId]);
     return { grant: { ...grant, id: grant.id.toString(), userId: grant.userId.toString(), roleId: grant.roleId.toString(), grantedBy: grant.grantedBy?.toString() ?? null, revokedBy: grant.revokedBy?.toString() ?? null } };
   });
 
