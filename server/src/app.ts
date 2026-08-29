@@ -239,7 +239,12 @@ async function recordAudit(input: {
 }
 
 export async function refundExpiredInquiries(now = new Date()) {
-  const expired = await prisma.inquiry.findMany({ where: { deadline: { lt: now }, adopted: false, coinStatus: 'frozen', bounty: { gt: 0 } }, select: { id: true, userId: true, bounty: true } });
+  const expired = await prisma.inquiry.findMany({
+    where: { deadline: { lt: now }, adopted: false, coinStatus: 'frozen', bounty: { gt: 0 } },
+    orderBy: { deadline: 'asc' },
+    take: 100,
+    select: { id: true, userId: true, bounty: true },
+  });
   let refunded = 0;
   for (const item of expired) {
     try {
@@ -351,12 +356,15 @@ export function buildApp(): FastifyInstance {
   // Public university blacklist reads. These routes intentionally do not use authentication.
   app.get('/api/blacklist/metrics', async () => ({ metrics: BLACKLIST_METRICS }));
   app.get('/api/blacklist/stats', async () => {
-    const [schoolCount, commentCount, scores] = await Promise.all([
+    const [schoolCount, commentCount, scoreSummary] = await Promise.all([
       prisma.blacklistSchool.count(),
       prisma.blacklistComment.count({ where: { status: 'approved' } }),
-      prisma.blacklistScore.findMany({ where: { comment: { status: 'approved' } }, select: { score: true } }),
+      prisma.blacklistScore.aggregate({
+        where: { comment: { status: 'approved' } },
+        _avg: { score: true },
+      }),
     ]);
-    const average = scores.length ? Number((scores.reduce((sum, row) => sum + row.score, 0) / scores.length).toFixed(1)) : 0;
+    const average = Number(Number(scoreSummary._avg.score ?? 0).toFixed(1));
     return { schoolCount, commentCount, totalTousu: commentCount, averageScore: average, avgScore: average, metricCount: BLACKLIST_METRICS.length };
   });
   app.get('/api/blacklist/rank', async (request) => {
@@ -378,23 +386,18 @@ export function buildApp(): FastifyInstance {
   app.get('/api/blacklist/search', async (request) => {
     const query = z.object({ keyword: z.string().trim().min(1).max(50) }).parse(request.query);
     const schools = await prisma.blacklistSchool.findMany({ where: { name: { contains: normalizeBlacklistSchoolName(query.keyword) } }, orderBy: { name: 'asc' }, take: 20 });
-    const comments = schools.length ? await prisma.blacklistComment.findMany({
+    const stats = schools.length ? await prisma.blacklistComment.groupBy({
       where: { schoolId: { in: schools.map((school) => school.id) }, status: 'approved' },
-      select: { schoolId: true, averageScore: true },
+      by: ['schoolId'],
+      _count: { _all: true },
+      _avg: { averageScore: true },
     }) : [];
-    const stats = new Map<string, { count: number; total: number }>();
-    for (const comment of comments) {
-      const key = comment.schoolId.toString();
-      const current = stats.get(key) ?? { count: 0, total: 0 };
-      current.count += 1;
-      current.total += Number(comment.averageScore);
-      stats.set(key, current);
-    }
+    const statsBySchoolId = new Map(stats.map((item) => [item.schoolId.toString(), item]));
     const list = schools.map((school) => {
       const item = serializeBlacklistSchool(school);
-      const current = stats.get(school.id.toString());
-      const commentCount = current?.count ?? 0;
-      const avgScore = commentCount ? Number((current!.total / commentCount).toFixed(1)) : 0;
+      const current = statsBySchoolId.get(school.id.toString());
+      const commentCount = current?._count._all ?? 0;
+      const avgScore = commentCount ? Number(Number(current?._avg.averageScore ?? 0).toFixed(1)) : 0;
       return { ...item, commentCount, count: commentCount, avgScore, score: avgScore };
     });
     return { schools: list, list };
@@ -2050,10 +2053,10 @@ export function buildApp(): FastifyInstance {
   app.get('/api/inquiries', { preHandler: app.authenticate }, async (request) => {
     const query = z.object({ limit: z.coerce.number().int().min(1).max(100).default(50) }).parse(request.query);
     const userId = currentUserId(request);
-    const [inquiries, likes] = await Promise.all([
-      prisma.inquiry.findMany({ orderBy: { createdAt: 'desc' }, take: query.limit, include: { user: { select: { id: true, nickname: true } } } }),
-      prisma.inquiryLike.findMany({ where: { userId }, select: { inquiryId: true } }),
-    ]);
+    const inquiries = await prisma.inquiry.findMany({ orderBy: { createdAt: 'desc' }, take: query.limit, include: { user: { select: { id: true, nickname: true } } } });
+    const likes = inquiries.length
+      ? await prisma.inquiryLike.findMany({ where: { userId, inquiryId: { in: inquiries.map((inquiry) => inquiry.id) } }, select: { inquiryId: true } })
+      : [];
     const likedIds = new Set(likes.map((item) => item.inquiryId.toString()));
     return { inquiries: inquiries.map((item) => ({ ...serializeInquiry(item), likedByMe: likedIds.has(item.id.toString()), user: { ...item.user, id: item.user.id.toString() } })) };
   });

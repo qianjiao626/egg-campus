@@ -4,25 +4,40 @@ import { prisma } from './prisma.js';
 import { seedAuthorizationCatalog } from './rbac-seed.js';
 import { runShopMaintenance, type ShopMaintenanceClient } from './shop-maintenance.js';
 
+function nonOverlappingSweep(task: () => Promise<void>, onError: (error: unknown) => void) {
+  let running = false;
+  return async () => {
+    if (running) return;
+    running = true;
+    try {
+      await task();
+    } catch (error) {
+      onError(error);
+    } finally {
+      running = false;
+    }
+  };
+}
+
 const config = loadConfig();
 await seedAuthorizationCatalog(prisma);
 const app = buildApp();
-const verificationCleanup = setInterval(async () => {
-  await prisma.verificationCode.deleteMany({
-    where: { expiresAt: { lt: new Date() } },
-  }).catch((error) => app.log.error({ err: error }, 'verification cleanup failed'));
-}, 15 * 60 * 1000);
+const verificationCleanup = setInterval(nonOverlappingSweep(
+  async () => { await prisma.verificationCode.deleteMany({ where: { expiresAt: { lt: new Date() } } }); },
+  (error) => app.log.error({ err: error }, 'verification cleanup failed'),
+), 15 * 60 * 1000);
 verificationCleanup.unref();
-const inquiryRefundSweep = setInterval(async () => {
-  await refundExpiredInquiries().catch((error) => app.log.error({ err: error }, 'inquiry refund sweep failed'));
-}, 5 * 60 * 1000);
+const inquiryRefundSweep = setInterval(nonOverlappingSweep(
+  async () => { await refundExpiredInquiries(); },
+  (error) => app.log.error({ err: error }, 'inquiry refund sweep failed'),
+), 5 * 60 * 1000);
 inquiryRefundSweep.unref();
 let shopMaintenanceSweep: NodeJS.Timeout | undefined;
 if (config.SHOP_ENABLED) {
-  shopMaintenanceSweep = setInterval(async () => {
-    await runShopMaintenance(prisma as unknown as ShopMaintenanceClient)
-      .catch((error) => app.log.error({ err: error }, 'shop maintenance sweep failed'));
-  }, 15 * 60 * 1000);
+  shopMaintenanceSweep = setInterval(nonOverlappingSweep(
+    async () => { await runShopMaintenance(prisma as unknown as ShopMaintenanceClient); },
+    (error) => app.log.error({ err: error }, 'shop maintenance sweep failed'),
+  ), 15 * 60 * 1000);
   shopMaintenanceSweep.unref();
 }
 
