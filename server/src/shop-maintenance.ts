@@ -14,12 +14,15 @@ export type ShopMaintenanceClient = {
 
 export async function offSalePublisherProductsIfUnauthorized(
   db: Pick<ShopMaintenanceClient, 'userRoleGrant' | 'shopProduct' | 'notification'>,
-  publisherId: bigint,
+  publisherIdOrIds: bigint | readonly bigint[],
   now = new Date(),
 ) {
+  const publisherIds = typeof publisherIdOrIds === 'bigint' ? [publisherIdOrIds] : [...new Set(publisherIdOrIds)];
+  if (publisherIds.length === 0) return 0;
+
   const grants = await db.userRoleGrant.findMany({
     where: {
-      userId: publisherId,
+      userId: publisherIds.length === 1 ? publisherIds[0] : { in: publisherIds },
       revokedAt: null,
       startsAt: { lte: now },
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
@@ -32,30 +35,37 @@ export async function offSalePublisherProductsIfUnauthorized(
       role: { select: { permissions: { select: { permission: { select: { key: true } } } } } },
     },
   });
-  const canPublish = grants.some((grant) => grant.role.permissions.some((item) => item.permission.key === 'shop.product.create_own'));
-  if (canPublish) return 0;
+  const canPublish = (grant: (typeof grants)[number]) => grant.role.permissions.some((item) => item.permission.key === 'shop.product.create_own');
+  const authorized = new Set(grants.filter(canPublish).map((grant) => grant.userId?.toString()).filter(Boolean));
+  // Existing single-publisher callers may provide a minimal grant shape without userId.
+  if (publisherIds.length === 1 && authorized.size === 0 && grants.some(canPublish)) authorized.add(publisherIds[0].toString());
 
-  let changed: { count: number };
-  try {
-    changed = await db.shopProduct.updateMany({
-      where: { publisherId, status: 'on_sale' },
-      data: { status: 'off_sale' },
-    });
-  } catch (error) {
-    // The mall is disabled in deployments without the optional shop tables.
-    if ((error as { code?: string })?.code === 'P2021') return 0;
-    throw error;
+  let offSaleCount = 0;
+  for (const publisherId of publisherIds) {
+    if (authorized.has(publisherId.toString())) continue;
+    let changed: { count: number };
+    try {
+      changed = await db.shopProduct.updateMany({
+        where: { publisherId, status: 'on_sale' },
+        data: { status: 'off_sale' },
+      });
+    } catch (error) {
+      // The mall is disabled in deployments without the optional shop tables.
+      if ((error as { code?: string })?.code === 'P2021') continue;
+      throw error;
+    }
+    if (changed.count > 0) {
+      offSaleCount += changed.count;
+      await db.notification.create({
+        data: {
+          userId: publisherId,
+          type: 'shop_publisher_permission_lost',
+          payload: { offSaleProductCount: changed.count },
+        },
+      });
+    }
   }
-  if (changed.count > 0) {
-    await db.notification.create({
-      data: {
-        userId: publisherId,
-        type: 'shop_publisher_permission_lost',
-        payload: { offSaleProductCount: changed.count },
-      },
-    });
-  }
-  return changed.count;
+  return offSaleCount;
 }
 
 export async function runShopMaintenance(db: ShopMaintenanceClient, now = new Date()) {
@@ -94,37 +104,7 @@ export async function runShopMaintenance(db: ShopMaintenanceClient, now = new Da
   const publisherIds = livePublishers.flatMap((product) => product.publisherId === null ? [] : [product.publisherId]);
   let offSaleProducts = 0;
   if (publisherIds.length > 0) {
-    const grants = await db.userRoleGrant.findMany({
-      where: {
-        userId: { in: publisherIds },
-        revokedAt: null,
-        startsAt: { lte: now },
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        role: {
-          enabled: true,
-          permissions: { some: { permission: { key: 'shop.product.create_own' } } },
-        },
-      },
-      select: { userId: true, role: { select: { permissions: { select: { permission: { select: { key: true } } } } } } },
-    });
-    const authorized = new Set(grants
-      .filter((grant) => grant.role.permissions.some((item) => item.permission.key === 'shop.product.create_own'))
-      .map((grant) => grant.userId?.toString())
-      .filter(Boolean));
-    for (const publisherId of publisherIds) {
-      if (authorized.has(publisherId.toString())) continue;
-      let changed: { count: number };
-      try {
-        changed = await db.shopProduct.updateMany({ where: { publisherId, status: 'on_sale' }, data: { status: 'off_sale' } });
-      } catch (error) {
-        if ((error as { code?: string })?.code === 'P2021') continue;
-        throw error;
-      }
-      if (changed.count > 0) {
-        offSaleProducts += changed.count;
-        await db.notification.create({ data: { userId: publisherId, type: 'shop_publisher_permission_lost', payload: { offSaleProductCount: changed.count } } });
-      }
-    }
+    offSaleProducts = await offSalePublisherProductsIfUnauthorized(db, publisherIds, now);
   }
   return { completedOrders, offSaleProducts };
 }

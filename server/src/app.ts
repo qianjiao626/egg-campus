@@ -734,9 +734,7 @@ export function buildApp(): FastifyInstance {
       const publishingRemoved = input.enabled === false || (keys !== null && !keys.includes(PERMISSION_KEYS.shopProductCreateOwn));
       if (publishingRemoved) {
         const affected = await tx.userRoleGrant.findMany({ where: { roleId: current.id }, distinct: ['userId'], select: { userId: true } });
-        for (const grant of affected) {
-          await offSalePublisherProductsIfUnauthorized(tx as unknown as ShopMaintenanceClient, grant.userId);
-        }
+        await offSalePublisherProductsIfUnauthorized(tx as unknown as ShopMaintenanceClient, affected.map((grant) => grant.userId));
       }
       return updated;
     });

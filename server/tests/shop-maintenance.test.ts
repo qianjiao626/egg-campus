@@ -63,6 +63,29 @@ describe('shop maintenance', () => {
     });
   });
 
+  it('checks multiple publishers in one authorization query', async () => {
+    const grants = vi.fn().mockResolvedValue([
+      { userId: 7n, role: { permissions: [{ permission: { key: 'shop.product.create_own' } }] } },
+    ]);
+    const db = {
+      userRoleGrant: { findMany: grants },
+      shopProduct: { updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
+      notification: { create: vi.fn().mockResolvedValue({}) },
+    };
+
+    const count = await offSalePublisherProductsIfUnauthorized(db as never, [7n, 8n], new Date());
+
+    expect(count).toBe(2);
+    expect(grants).toHaveBeenCalledTimes(1);
+    expect(db.shopProduct.updateMany).toHaveBeenCalledWith({
+      where: { publisherId: 8n, status: 'on_sale' },
+      data: { status: 'off_sale' },
+    });
+    expect(db.notification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ userId: 8n, type: 'shop_publisher_permission_lost' }),
+    });
+  });
+
   it('does not block role revocation when the disabled shop table is absent', async () => {
     const missingTable = Object.assign(new Error('The table `shop_products` does not exist'), { code: 'P2021' });
     const db = {
