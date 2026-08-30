@@ -3770,7 +3770,7 @@
         html += '<div style="font-size:11px;color:var(--muted);margin:8px 0 4px;font-weight:500">' + sub.name + '</div><div class="skill-tags">';
         sub.tags.forEach(function(t){
           var on = tempSkills.indexOf(t) >= 0;
-          html += '<span class="skill-tag' + (on?' on':'') + '" onclick="toggleSkill(this,\'' + t.replace(/'/g,"\\'") + '\')">' + t + '</span>';
+          html += '<span class="skill-tag' + (on?' on':'') + '" onclick="toggleSkill(this,\'' + escapeInlineString(t) + '\')">' + escapeHtml(t) + '</span>';
         });
         html += '</div>';
       });
@@ -3806,7 +3806,7 @@
     if(cnt) cnt.textContent = tempSkills.length;
     if(el){
       el.innerHTML = tempSkills.map(function(s){
-        return '<span class="st skill-publish-tag"><span class="st-name" onclick="publishFromSkill(\'' + s.replace(/'/g,"\\'") + '\')" title="点击发布「' + s + '」教学任务">💰 ' + s + '</span><span class="x" onclick="removeSkill(\'' + s.replace(/'/g,"\\'") + '\')">×</span></span>';
+        return '<span class="st skill-publish-tag"><span class="st-name" onclick="publishFromSkill(\'' + escapeInlineString(s) + '\')" title="点击发布「' + escapeHtml(s) + '」教学任务">💰 ' + escapeHtml(s) + '</span><span class="x" onclick="removeSkill(\'' + escapeInlineString(s) + '\')">×</span></span>';
       }).join('');
     }
   }
@@ -5286,8 +5286,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
             banner.className = 'cancel-req-banner received';
             banner.innerHTML = '<div class="cr-icon">📨</div><div><b>发布者申请取消任务</b><br>原因：' + (cancelReq.reason || '无') + '<br>' +
               '<div class="cr-actions">' +
-                '<button class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#66BB6A,#43A047);box-shadow:none;padding:6px 14px;font-size:12px" onclick="acceptCancelRequest(\'' + name.replace(/'/g, "\\'") + '\')">同意取消</button> ' +
-                '<button class="btn btn-sm" style="background:#fff;color:#666;border:1px solid #ddd;padding:6px 14px;font-size:12px" onclick="rejectCancelRequest(\'' + name.replace(/'/g, "\\'") + '\')">拒绝</button>' +
+                '<button class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#66BB6A,#43A047);box-shadow:none;padding:6px 14px;font-size:12px" onclick="acceptCancelRequest(\'' + escapeInlineString(name) + '\')">同意取消</button> ' +
+                '<button class="btn btn-sm" style="background:#fff;color:#666;border:1px solid #ddd;padding:6px 14px;font-size:12px" onclick="rejectCancelRequest(\'' + escapeInlineString(name) + '\')">拒绝</button>' +
               '</div></div>';
           }
           var titleEl = card.querySelector('div[style*="font-size:15px;font-weight:600"]');
@@ -5411,13 +5411,13 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         : '<span class="tag tag-lilac">' + skillCat + '</span>';
       pubHtml = '<div class="td-section-title" style="margin-top:14px">发布者</div><div class="td-pub">' +
         '<div class="td-pub-header">' +
-        '<div class="td-pub-avatar-wrap pub-egg-wrap large" ' + (isAdminPub ? 'style="cursor:default"' : 'onclick="event.stopPropagation();showUserEggModal(\'' + publisher.replace(/'/g, "\\'") + '\')"') + '>' +
+        '<div class="td-pub-avatar-wrap pub-egg-wrap large" ' + (isAdminPub ? 'style="cursor:default"' : 'onclick="event.stopPropagation();showUserEggModal(\'' + escapeInlineString(publisher) + '\')"') + '>' +
           '<div class="pub-egg-ring" style="border-color:' + (RARITY_COLORS[rarity]||'#C0C0C0') + (isAdminPub ? ';box-shadow:0 0 16px ' + (RARITY_COLORS[rarity]||'#FFD700') + '80' : '') + '"></div>' +
           '<img class="pub-egg" src="' + egg.img + '">' +
           '<span class="pub-egg-r-tag" style="background:' + (RARITY_COLORS[rarity]||'#C0C0C0') + '">' + rarity + '</span>' +
         '</div>' +
         '<div class="td-pub-info">' +
-          '<div class="td-pub-name" ' + (isAdminPub ? 'style="cursor:default"' : 'onclick="event.stopPropagation();showUserEggModal(\'' + publisher.replace(/'/g, "\\'") + '\')"') + '>' + publisher + '</div>' +
+          '<div class="td-pub-name" ' + (isAdminPub ? 'style="cursor:default"' : 'onclick="event.stopPropagation();showUserEggModal(\'' + escapeInlineString(publisher) + '\')"') + '>' + escapeHtml(publisher) + '</div>' +
         '<div class="td-pub-tags">' + pubTagsHtml + '</div></div></div>' +
         '<div class="td-pub-stats">' + renderStatBars(pubStats) + '</div>' +
       '</div>';
@@ -5527,7 +5527,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         var rarityColor = RARITY_COLORS[c.rarity] || '#C0C0C0';
         var statusBadgeColor = c.status === '已提交' ? 'var(--green)' : '#6C5CE4';
         var statusBadgeBg = c.status === '已提交' ? 'rgba(16,185,129,.1)' : 'rgba(108,92,228,.1)';
-        var safeName = c.name.replace(/'/g, "\\'");
+        var safeName = escapeInlineString(c.name);
         /* 已确认配对（状态为进行中或已提交）的认领者显示联系方式 */
         var contactLine = '';
         if((c.status === '进行中' || c.status === '已提交') && c.claimerContact){
@@ -5810,8 +5810,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         banner.className = 'cancel-req-banner received';
         banner.innerHTML = '<div class="cr-icon">📨</div><div><b>' + claimerName + ' 申请取消任务</b><br>原因：' + (cancelReq.reason || '无') + '<br>' +
           '<div class="cr-actions">' +
-            '<button class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#66BB6A,#43A047);box-shadow:none;padding:6px 14px;font-size:12px" onclick="publisherAcceptCancel(\'' + taskName.replace(/'/g, "\\'") + '\')">同意取消</button> ' +
-            '<button class="btn btn-sm" style="background:#fff;color:#666;border:1px solid #ddd;padding:6px 14px;font-size:12px" onclick="publisherRejectCancel(\'' + taskName.replace(/'/g, "\\'") + '\')">拒绝</button>' +
+            '<button class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#66BB6A,#43A047);box-shadow:none;padding:6px 14px;font-size:12px" onclick="publisherAcceptCancel(\'' + escapeInlineString(taskName) + '\')">同意取消</button> ' +
+            '<button class="btn btn-sm" style="background:#fff;color:#666;border:1px solid #ddd;padding:6px 14px;font-size:12px" onclick="publisherRejectCancel(\'' + escapeInlineString(taskName) + '\')">拒绝</button>' +
           '</div></div>';
       }
 
@@ -6274,7 +6274,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       } else if(hasRated){
         actionHtml = '<span class="tag tag-gray" style="font-size:11px">已评价 ' + hasRated.score + ' 星</span>';
       } else {
-        actionHtml = '<button class="btn btn-primary btn-sm" onclick="confirmReviewAndRate(' + i + ',\'' + s.name.replace(/'/g, "\\'") + '\')">反馈并评价</button>';
+        actionHtml = '<button class="btn btn-primary btn-sm" onclick="confirmReviewAndRate(' + i + ',\'' + escapeInlineString(s.name) + '\')">反馈并评价</button>';
       }
       var contactHtml = (s.status === '进行中' || s.status === '已提交') && s.contact ? '<div style="font-size:12px;color:var(--ink2);padding:6px 10px;background:#FFF7E6;border-radius:8px">📞 ' + s.contact + '</div>' : '';
       return '<div data-user-id="' + (s.userId || '') + '" style="padding:16px;border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;gap:8px">' +
@@ -6956,10 +6956,10 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         var statPct = statVal / maxVal * 100;
         if(cat === 'gossip'){
           // 八卦帮用户渲染
-          html += '<div class="podium-item ' + pc + '" onclick="showUserEggModal(\'' + u.name.replace(/'/g, "\\'") + '\')" style="cursor:pointer">';
+          html += '<div class="podium-item ' + pc + '" onclick="showUserEggModal(\'' + escapeInlineString(u.name) + '\')" style="cursor:pointer">';
           html += '<span class="podium-crown">' + crowns[pi] + '</span>';
           html += '<div class="podium-avatar" style="background:' + (u.avatarColor || '#FF6B9D') + ';color:#fff;font-size:28px;font-weight:700;display:flex;align-items:center;justify-content:center">' + (u.avatar || '🥚') + '</div>';
-          html += '<div class="podium-name">' + u.name + '</div>';
+          html += '<div class="podium-name">' + escapeHtml(u.name) + '</div>';
           html += '<span class="podium-mbti" style="background:' + info.color + '22;color:' + info.color + '">💬 八卦达人</span>';
           html += '<div class="podium-stat">' + info.emoji + ' ' + info.label + ' <b style="color:' + info.color + '">' + statVal + '</b></div>';
           html += '<div class="podium-stat-bar"><div class="podium-stat-fill" style="width:' + statPct + '%;background:' + info.color + '"></div></div>';
@@ -6975,7 +6975,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
           } else {
             html += '<div class="podium-avatar" style="background:' + info.color + '22">' + (RANK_EGG_EMOJI[u.egg]||'🥚') + '</div>';
           }
-          html += '<div class="podium-name">' + u.name + '</div>';
+          html += '<div class="podium-name">' + escapeHtml(u.name) + '</div>';
           html += '<span class="podium-mbti" style="background:' + mbtiColor + '22;color:' + mbtiColor + '">' + u.mbti + ' ' + u.nick + '</span>';
           html += '<div class="podium-stat">' + info.emoji + ' ' + info.label + ' <b style="color:' + info.color + '">' + statVal + '</b></div>';
           html += '<div class="podium-stat-bar"><div class="podium-stat-fill" style="width:' + statPct + '%;background:' + info.color + '"></div></div>';
@@ -6997,12 +6997,12 @@ async function createPublisherProduct(){var type=document.getElementById('publis
 
         if(cat === 'gossip'){
           // 八卦帮用户列表渲染
-          html += '<div class="rank-item' + (isTop10 ? ' top10' : '') + '" onclick="showUserEggModal(\'' + u.name.replace(/'/g, "\\'") + '\')" style="cursor:pointer">';
+          html += '<div class="rank-item' + (isTop10 ? ' top10' : '') + '" onclick="showUserEggModal(\'' + escapeInlineString(u.name) + '\')" style="cursor:pointer">';
           html += '<div class="rank-num">' + rankNum + '</div>';
           html += '<div class="rank-avatar" style="background:' + (u.avatarColor || '#FF6B9D') + ';color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">' + (u.avatar || '🥚') + '</div>';
           html += '<div class="rank-info">';
           html += '<div class="rank-name-row">';
-          html += '<span class="rank-name">' + u.name + '</span>';
+          html += '<span class="rank-name">' + escapeHtml(u.name) + '</span>';
           html += '<span class="podium-mbti" style="background:' + info.color + '22;color:' + info.color + '">💬 八卦达人</span>';
           html += '</div>';
           html += '<div class="rank-meta">💬 回答 ' + (u.answerCount||0) + ' 个 · 🏆 采纳 ' + (u.adoptedCount||0) + ' 次</div>';
@@ -7027,7 +7027,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
           }
           html += '<div class="rank-info">';
           html += '<div class="rank-name-row">';
-          html += '<span class="rank-name">' + u.name + '</span>';
+          html += '<span class="rank-name">' + escapeHtml(u.name) + '</span>';
           html += '<span class="podium-mbti" style="background:' + mbtiColor + '22;color:' + mbtiColor + '">' + u.mbti + ' ' + u.nick + '</span>';
           html += '<span style="font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:' + rarityColor + '">' + u.rarity + '</span>';
           html += '</div>';
@@ -7577,10 +7577,10 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     listEl.innerHTML = topUsers.map(function(user, idx){
       var rank = idx + 1;
       return (
-        '<div class="gossip-top-item" onclick="showUserEggModal(\'' + user.name.replace(/'/g, "\\'") + '\')">' +
+          '<div class="gossip-top-item" onclick="showUserEggModal(\'' + escapeInlineString(user.name) + '\')">' +
           '<div class="gossip-top-rank r' + rank + '">' + rank + '</div>' +
           '<div class="gossip-top-avatar" style="background:' + user.avatarColor + '">' + user.avatar + '</div>' +
-          '<div class="gossip-top-name">' + user.name + '</div>' +
+          '<div class="gossip-top-name">' + escapeHtml(user.name) + '</div>' +
           '<div class="gossip-top-likes">👍 ' + user.likes + '</div>' +
         '</div>'
       );

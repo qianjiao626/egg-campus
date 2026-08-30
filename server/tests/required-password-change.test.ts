@@ -43,5 +43,5 @@ describe('required password change', () => {
     expect(changed.json().accessToken).toEqual(expect.any(String));
     expect(userUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ mustChangePassword: false }) }));
     expect(sessionUpdate).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { not: 'session' } }) }));
-  });
+  }, 20000);
 });

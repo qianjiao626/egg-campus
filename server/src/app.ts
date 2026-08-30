@@ -86,6 +86,7 @@ import { createRealtimeHub, type RealtimeEvent, type RealtimeScope } from './rea
 import {
   BLACKLIST_METRICS,
   BLACKLIST_METRIC_KEYS,
+  type BlacklistMetricKey,
   averageScores,
   displayBlacklistSchoolName,
   maskBlacklistNickname,
@@ -288,12 +289,12 @@ export async function refundExpiredTasks(now = new Date()) {
   for (const item of expired) {
     const didRefund = await prisma.$transaction(async (tx) => {
       const current = await tx.task.findUnique({ where: { id: item.id } });
-      if (!current || current.status !== 'approved' || current.taskType === 'teach' || current.reward <= 0 || current.createdAt >= cutoff) return false;
+      if (!current || current.status !== 'approved' || current.taskType === 'teach' || current.reward <= 0 || current.rewardFrozen !== true || current.createdAt >= cutoff) return false;
       const active = await tx.taskClaim.count({ where: { taskId: current.id, status: { in: ['pending', 'assigned', 'submitted'] } } });
       if (active > 0) return false;
       const amount = current.taskType === 'team' ? current.reward * current.maxClaimers : current.reward;
       await applyBuddyPointDelta(tx, current.userId, amount, `task-expired-refund:${current.id.toString()}`, 'task_reward_refund', `任务三天无人认领退回蛋蛋币:${current.id.toString()}`);
-      await tx.task.update({ where: { id: current.id }, data: { status: 'cancelled' } });
+      await tx.task.update({ where: { id: current.id }, data: { status: 'cancelled', rewardFrozen: false } });
       await tx.notification.create({ data: { userId: current.userId, type: 'task_expired_refunded', refId: current.id.toString(), payload: { taskId: current.id.toString(), reward: amount } } });
       return true;
     });
@@ -404,8 +405,12 @@ export function buildApp(): FastifyInstance {
   });
   app.get('/api/blacklist/rank', async (request) => {
     const query = z.object({ metric: z.string().default('all'), page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(50).default(20) }).parse(request.query);
-    if (query.metric !== 'all' && !metricKey(query.metric)) throw new z.ZodError([{ code: 'custom', path: ['metric'], message: '指标无效' }]);
-    return rankBlacklistSchools(prisma, query.metric as any, query.page, query.pageSize);
+    let metric: BlacklistMetricKey | 'all' = 'all';
+    if (query.metric !== 'all') {
+      if (!metricKey(query.metric)) throw new z.ZodError([{ code: 'custom', path: ['metric'], message: '指标无效' }]);
+      metric = query.metric;
+    }
+    return rankBlacklistSchools(prisma, metric, query.page, query.pageSize);
   });
   app.get('/api/blacklist/metric-rank', async (request) => {
     const query = z.object({ metric: z.string(), page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(50).default(20) }).parse(request.query);
@@ -602,7 +607,7 @@ export function buildApp(): FastifyInstance {
     reason: z.string().trim().min(1).max(500),
   });
   const requiredPasswordChangeSchema = z.object({ currentPassword: z.string().min(1).max(128), newPassword: z.string().min(8).max(128) });
-  const inquiryCreateSchema = z.object({ title: z.string().trim().min(1).max(160), content: z.string().trim().min(1).max(10000), tags: z.array(z.string().trim().max(40)).max(8).default([]), bounty: z.coerce.number().int().min(0).max(10000).default(0), deadline: z.coerce.date().nullable().optional() });
+  const inquiryCreateSchema = z.object({ title: z.string().trim().min(1).max(160), content: z.string().trim().min(1).max(10000), tags: z.array(z.string().trim().max(40)).max(8).default([]), bounty: z.coerce.number().int().min(0).max(10000).default(0), deadline: z.coerce.date().nullable().optional(), idempotencyKey: z.string().trim().min(16).max(160).optional() });
   const inquiryReplySchema = z.object({ content: z.string().trim().min(1).max(10000), kind: z.enum(['answer', 'comment']).default('answer'), parentId: z.coerce.bigint().nullable().optional() });
   const notificationParamsSchema = z.object({ id: z.coerce.bigint() });
 
@@ -644,7 +649,7 @@ export function buildApp(): FastifyInstance {
     };
   }
   async function cancelTaskAndRefund(tx: Prisma.TransactionClient, task: any, claims: Array<{ id: bigint; claimerId: bigint; frozenAmount: number }>) {
-    if (task.reward > 0 && (task.taskType === 'help' || task.taskType === 'team' || task.taskType === 'reward')) {
+    if (task.rewardFrozen === true && task.reward > 0 && (task.taskType === 'help' || task.taskType === 'team' || task.taskType === 'reward')) {
       const refund = task.taskType === 'team' ? task.reward * task.maxClaimers : task.reward;
       await applyBuddyPointDelta(tx, task.userId, refund, `task-cancel-refund:${task.id.toString()}`, 'task_reward_refund', `取消任务退回蛋蛋币:${task.id.toString()}`);
     }
@@ -654,7 +659,7 @@ export function buildApp(): FastifyInstance {
       }
     }
     await tx.taskClaim.updateMany({ where: { taskId: task.id, status: { in: ['pending', 'assigned', 'submitted'] } }, data: { status: 'cancelled' } });
-    return tx.task.update({ where: { id: task.id }, data: { status: 'cancelled' } });
+    return tx.task.update({ where: { id: task.id }, data: { status: 'cancelled', rewardFrozen: false } });
   }
   function serializeFeedback(feedback: any) {
     return {
@@ -1632,12 +1637,12 @@ export function buildApp(): FastifyInstance {
         if (!current) throw new Error('TASK_NOT_FOUND');
         const firstApproval = input.status === 'approved' && current.status !== 'approved';
         const awardingExperience = firstApproval && current.publishExpReward > 0;
-        if (input.status === 'approved' && current.userId !== currentUserId(request) && current.reward > 0 && (current.taskType === 'help' || current.taskType === 'team' || current.taskType === 'reward')) {
+        if (input.status === 'approved' && current.rewardFrozen !== true && current.reward > 0 && (current.taskType === 'help' || current.taskType === 'team' || current.taskType === 'reward')) {
           const units = current.taskType === 'team' ? current.maxClaimers : 1;
           await applyBuddyPointDelta(tx, current.userId, -(current.reward * units), `task-review-freeze:${current.id.toString()}`, 'task_reward_frozen', `任务审核冻结蛋蛋币:${current.id.toString()}`);
         }
         if (awardingExperience) await tx.userStats.update({ where: { userId: current.userId }, data: { experience: { increment: current.publishExpReward } } });
-        const updated = await tx.task.update({ where: { id: params.id }, data: { status: input.status, reviewReason: input.reviewReason ?? null, reviewedAt: input.status === 'approved' || input.status === 'needs_revision' ? now : current.reviewedAt, completedAt: input.status === 'completed' ? now : current.completedAt } });
+        const updated = await tx.task.update({ where: { id: params.id }, data: { status: input.status, rewardFrozen: input.status === 'approved' && current.reward > 0 && (current.taskType === 'help' || current.taskType === 'team' || current.taskType === 'reward') ? true : current.rewardFrozen, reviewReason: input.reviewReason ?? null, reviewedAt: input.status === 'approved' || input.status === 'needs_revision' ? now : current.reviewedAt, completedAt: input.status === 'completed' ? now : current.completedAt } });
         const invitationReward = firstApproval
           ? await rewardInvitationForApprovedTask(tx, current.userId, current.id, now)
           : { rewarded: false as const };
@@ -1790,7 +1795,7 @@ export function buildApp(): FastifyInstance {
             if (refund > 0) await applyBuddyPointDelta(tx, currentTask.userId, refund, `task-team-complete-refund:${currentTask.id.toString()}`, 'task_reward_refund', `组队任务未使用奖励退回:${currentTask.id.toString()}`);
           }
         }
-        const updatedTask = await tx.task.update({ where: { id: currentTask.id }, data: { status: 'completed', completedAt: new Date() } });
+        const updatedTask = await tx.task.update({ where: { id: currentTask.id }, data: { status: 'completed', rewardFrozen: false, completedAt: new Date() } });
         await tx.notification.create({ data: { userId: currentClaim.claimerId, type: 'task_completed', refId: currentTask.id.toString(), payload: { taskId: currentTask.id.toString(), claimId: currentClaim.id.toString() } } });
         return { claim: completed, task: updatedTask };
       });
@@ -2164,13 +2169,25 @@ export function buildApp(): FastifyInstance {
     const input = inquiryCreateSchema.parse(request.body);
       assertSafeText(input.title, input.content, ...input.tags);
     const userId = currentUserId(request);
+    const requestKey = input.idempotencyKey
+      ? `client:${hashToken(input.idempotencyKey)}`
+      : `payload:${hashToken(JSON.stringify({ title: input.title, content: input.content, tags: input.tags, bounty: input.bounty, deadline: input.deadline?.toISOString() ?? null }))}`;
+    const idempotencyKey = `inquiry:${userId.toString()}:${requestKey}`;
+    if (input.idempotencyKey) {
+      const existing = await prisma.inquiry.findFirst({ where: { userId, idempotencyKey } });
+      if (existing) return reply.code(200).send({ inquiry: serializeInquiry(existing), duplicate: true });
+    }
     let inquiry;
     try {
       inquiry = await prisma.$transaction(async (tx) => {
-        if (input.bounty > 0) await applyBuddyPointDelta(tx, userId, -input.bounty, `inquiry-bounty:${userId.toString()}:${hashToken(input.title + input.content + String(Date.now()))}`, 'inquiry_bounty', '打听悬赏冻结');
-        return tx.inquiry.create({ data: { userId, title: input.title, content: input.content, tags: input.tags, bounty: input.bounty, coinStatus: input.bounty > 0 ? 'frozen' : 'open', deadline: input.deadline ?? null } });
+        if (input.bounty > 0) await applyBuddyPointDelta(tx, userId, -input.bounty, `inquiry-bounty:${idempotencyKey}`, 'inquiry_bounty', '打听悬赏冻结');
+        return tx.inquiry.create({ data: { userId, idempotencyKey, title: input.title, content: input.content, tags: input.tags, bounty: input.bounty, coinStatus: input.bounty > 0 ? 'frozen' : 'open', deadline: input.deadline ?? null } });
       });
     } catch(error) {
+      if (prismaErrorCode(error) === 'P2002') {
+        const existing = await prisma.inquiry.findFirst({ where: { userId, idempotencyKey } });
+        if (existing) return reply.code(200).send({ inquiry: serializeInquiry(existing), duplicate: true });
+      }
       if(error instanceof BuddyPrestigeError) return reply.code(409).send({error:error.message, message:error.message === 'INSUFFICIENT_PRESTIGE' ? '蛋蛋币不足' : '蛋蛋币账户不存在'});
       throw error;
     }
@@ -2394,9 +2411,7 @@ export function buildApp(): FastifyInstance {
     if (existing) return reply.code(200).send({ accepted: true, duplicate: true, record: serializeBuddyFeature(existing) });
     const pointDelta = input.feature === 'box' && input.action === 'draw'
       ? -1
-      : input.feature === 'prestige' && input.action === 'settle'
-        ? Math.max(-100, Math.min(100, Number.isInteger(payload.delta) ? Number(payload.delta) : 0))
-        : 0;
+      : 0;
     try {
       const createRecord = async (tx: Prisma.TransactionClient) => {
         const point = pointDelta === 0 ? null : await applyBuddyPointDelta(tx, userId, pointDelta, `buddy-points:${idempotencyKey}`, 'buddy_box', '盲盒玩法声望变动');
@@ -2908,6 +2923,14 @@ export function buildApp(): FastifyInstance {
 
   app.post('/api/auth/login', async (request, reply) => {
     const input = parseBody(loginSchema, request.body);
+    const loginIpLimit = verificationLimiter.check(`login-ip:${request.ip}`, 20, 5 * 60 * 1000);
+    const loginIdentifierLimit = verificationLimiter.check(`login-id:${input.identifier.toLowerCase()}`, 10, 15 * 60 * 1000);
+    if (!loginIpLimit.allowed || !loginIdentifierLimit.allowed) {
+      return reply
+        .code(429)
+        .header('retry-after', String(Math.max(loginIpLimit.retryAfterSeconds, loginIdentifierLimit.retryAfterSeconds)))
+        .send({ error: 'RATE_LIMITED', message: '登录尝试过于频繁，请稍后再试' });
+    }
     const user = await prisma.user.findFirst({
       where: { OR: [{ email: input.identifier.toLowerCase() }, { nickname: input.identifier }] },
     });

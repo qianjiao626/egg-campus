@@ -483,6 +483,7 @@ model Task {
   taskType     String      @default("teach") @map("task_type") @db.VarChar(20)
   claimMode    String      @default("single") @map("claim_mode") @db.VarChar(20)
   reward       Int         @default(0)
+  rewardFrozen Boolean     @default(false) @map("reward_frozen")
   publishExpReward Int     @default(0) @map("publish_exp_reward")
   maxClaimers  Int         @default(1) @map("max_claimers")
   contact      String?     @db.VarChar(160)
@@ -648,6 +649,7 @@ model ResourceReadState {
 model Inquiry {
   id         BigInt         @id @default(autoincrement())
   userId     BigInt         @map("user_id")
+  idempotencyKey String?     @unique @map("idempotency_key") @db.VarChar(160)
   title      String         @db.VarChar(160)
   content    String         @db.Text
   tags       Json

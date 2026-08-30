@@ -1,0 +1,57 @@
+<style>
+  .role-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:24px}
+  .role-choice{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#11162a;cursor:pointer;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+  .role-choice:hover{transform:translateY(-3px);border-color:#58e7ff;box-shadow:0 16px 38px rgba(36,194,255,.18)}
+  .role-choice.selected{border-color:#ffe66d;box-shadow:0 0 0 2px rgba(255,230,109,.25),0 20px 44px rgba(255,77,151,.18)}
+  .role-preview{min-height:270px;padding:20px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#10152a,#191c38)}
+  .role-photo{object-fit:cover;border-radius:50%;border:3px solid #63e6ff;box-shadow:0 0 0 5px rgba(99,230,255,.12),0 0 28px rgba(99,230,255,.35)}
+  .role-body{padding:16px 18px 20px}.role-body h3{margin:0 0 6px;color:#fff}.role-body p{margin:0;color:#9da8c9;font-size:13px;line-height:1.55}
+  .compact{width:100%;display:flex;align-items:center;gap:14px;padding:15px;border-radius:14px;background:linear-gradient(120deg,#172340,#211a42);border:1px solid rgba(99,230,255,.28)}
+  .compact .role-photo{width:68px;height:68px}.compact-copy{min-width:0}.eyebrow{font-size:11px;color:#70e8ff;font-weight:800}.role-name{font-size:20px;color:#fff;font-weight:900;margin:4px 0}.role-meta{font-size:12px;color:#b8c1dc}.level{margin-left:auto;padding:6px 9px;border-radius:8px;background:#ff3f88;color:#fff;font-weight:900;font-size:11px}
+  .passport{width:210px;padding:18px;border-radius:16px;background:#f8fbff;color:#151a31;box-shadow:0 18px 45px rgba(0,0,0,.32);border:2px solid #6578ff;position:relative}
+  .passport:before{content:'';position:absolute;inset:7px;border:1px solid rgba(101,120,255,.28);border-radius:10px;pointer-events:none}.passport .role-photo{display:block;width:96px;height:96px;margin:0 auto 12px}.passport-title{text-align:center;font-weight:900;font-size:20px}.passport-sub{text-align:center;color:#63708d;font-size:12px;margin-top:3px}.passport-tags{display:flex;justify-content:center;gap:6px;margin-top:13px}.passport-tags span{padding:5px 7px;border-radius:6px;background:#e9edff;color:#4c5dc8;font-size:10px;font-weight:800}
+  .energy{width:100%;padding:18px;border-radius:14px;background:linear-gradient(120deg,#151b34,#251849);border:1px solid rgba(255,255,255,.12)}
+  .energy-top{display:flex;align-items:center;gap:14px}.energy .role-photo{width:74px;height:74px;border-color:#ff4f9a;box-shadow:0 0 0 5px rgba(255,79,154,.13),0 0 30px rgba(255,79,154,.35)}.energy-title{font-weight:900;color:#fff;font-size:20px}.energy-rank{color:#ffe66d;font-size:12px;font-weight:800;margin-top:3px}.energy-bar{height:8px;background:#0c1020;border-radius:6px;overflow:hidden;margin-top:16px}.energy-bar i{display:block;width:72%;height:100%;background:linear-gradient(90deg,#2ce5ff,#7d66ff,#ff4f9a)}.energy-stats{display:flex;justify-content:space-between;margin-top:8px;color:#9ea8c7;font-size:11px}
+  .choice-letter{position:absolute;top:12px;left:12px;width:30px;height:30px;border-radius:9px;background:#fff;color:#11162a;display:grid;place-items:center;font-weight:900;z-index:2}
+  @media(max-width:900px){.role-grid{grid-template-columns:1fr}.role-preview{min-height:220px}}
+</style>
+
+<h2>个人信息中的蛋蛋角色，选择一种展示方式</h2>
+<p class="subtitle">都保留真实角色名、等级和当前状态。点击卡片选择，最终颜色会与主站整体协调。</p>
+
+<div class="role-grid">
+  <div class="role-choice" data-choice="role-a" onclick="toggleSelect(this)">
+    <div class="choice-letter">A</div>
+    <div class="role-preview">
+      <div class="compact">
+        <img class="role-photo" src="/files/char-eggy-study-v2.jpg" alt="学习蛋">
+        <div class="compact-copy"><div class="eyebrow">当前蛋蛋角色</div><div class="role-name">学习蛋</div><div class="role-meta">专注积累 · 知识成长</div></div>
+        <span class="level">LV.6</span>
+      </div>
+    </div>
+    <div class="role-body"><h3>A · 紧凑身份条</h3><p>最节省空间，信息读取快，适合放在个人页右上角。推荐方案。</p></div>
+  </div>
+
+  <div class="role-choice" data-choice="role-b" onclick="toggleSelect(this)">
+    <div class="choice-letter">B</div>
+    <div class="role-preview">
+      <div class="passport">
+        <img class="role-photo" src="/files/char-eggy-study-v2.jpg" alt="学习蛋">
+        <div class="passport-title">学习蛋</div><div class="passport-sub">蛋蛋角色档案 · LV.6</div>
+        <div class="passport-tags"><span>知识型</span><span>已启用</span></div>
+      </div>
+    </div>
+    <div class="role-body"><h3>B · 角色档案卡</h3><p>角色感最强，像收藏卡，但在个人页中占用面积较大。</p></div>
+  </div>
+
+  <div class="role-choice" data-choice="role-c" onclick="toggleSelect(this)">
+    <div class="choice-letter">C</div>
+    <div class="role-preview">
+      <div class="energy">
+        <div class="energy-top"><img class="role-photo" src="/files/char-eggy-study-v2.jpg" alt="学习蛋"><div><div class="energy-title">学习蛋</div><div class="energy-rank">当前角色 · LV.6</div></div></div>
+        <div class="energy-bar"><i></i></div><div class="energy-stats"><span>成长进度</span><strong>720 / 1000</strong></div>
+      </div>
+    </div>
+    <div class="role-body"><h3>C · 能量状态卡</h3><p>更炫酷，角色与成长进度结合；信息丰富，但视觉重量更高。</p></div>
+  </div>
+</div>

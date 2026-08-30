@@ -10,6 +10,12 @@ const apiClient = readFileSync(resolve(workspaceRoot, 'backend-handoff-package',
 const page = readFileSync(resolve(workspaceRoot, 'backend-handoff-package', 'growth-school.html'), 'utf8');
 
 describe('task cancellation request persistence contract', () => {
+  it('guards task reward refunds with an explicit frozen state', () => {
+    const appSource = readFileSync(resolve(process.cwd(), 'src/app.ts'), 'utf8');
+    expect(appSource).toContain('task.rewardFrozen === true');
+    expect(appSource).toContain('current.rewardFrozen !== true');
+    expect(appSource).toContain('rewardFrozen: false');
+  });
   it('persists teaching-task cancellation negotiations on the server', () => {
     expect(schema).toContain('model TaskCancellationRequest');
     expect(appSource).toContain("app.post('/api/tasks/:id/cancellation-requests'");

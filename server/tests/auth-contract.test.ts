@@ -12,6 +12,20 @@ describe('password reset contract', () => {
     vi.restoreAllMocks();
   });
 
+  it('rate limits repeated failed login attempts by identifier', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    vi.spyOn(prisma.user, 'findFirst').mockResolvedValue(null);
+    let last;
+    for (let index = 0; index < 11; index += 1) {
+      last = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { identifier: 'limited@example.com', password: 'wrong-password' } });
+    }
+    expect(last?.statusCode).toBe(429);
+    expect(last?.headers['retry-after']).toBeDefined();
+  });
+
   it('returns the same success response for an unknown reset target', async () => {
     process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
     process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';

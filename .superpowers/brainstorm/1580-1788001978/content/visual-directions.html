@@ -1,0 +1,60 @@
+<style>
+  :root{--ink:#19243a;--muted:#6f7b90;--line:#dce2eb;--paper:#f6f4ef;--blue:#2056a4;--berry:#e85876;--mint:#56c6bb;--night:#121d31;--gold:#f2c94c}
+  .dir-wrap{max-width:1180px;margin:0 auto;padding:8px 0 30px}
+  .dir-kicker{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;color:var(--blue);background:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}
+  .dir-title{margin:16px 0 8px;font-size:34px;line-height:1.1;color:var(--ink);letter-spacing:0}
+  .dir-sub{margin:0 0 22px;color:var(--muted);font-size:14px;max-width:720px}
+  .dir-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .dir-card{padding:0;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+  .dir-card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(25,36,58,.14);border-color:#9bb4d8}
+  .dir-card.selected{border:2px solid var(--blue);box-shadow:0 0 0 4px rgba(32,86,164,.13)}
+  .dir-preview{height:220px;padding:14px;position:relative;overflow:hidden}
+  .dir-preview.arch{background:var(--paper)}
+  .dir-preview.energy{background:linear-gradient(135deg,#17335b,#1e5971 55%,#553b7c)}
+  .dir-preview.night{background:var(--night)}
+  .mini-shell{height:100%;display:grid;grid-template-columns:54px 1fr;gap:10px}
+  .mini-side{border-radius:9px;background:#163862;position:relative;overflow:hidden}
+  .mini-side:after{content:"";position:absolute;inset:18px 12px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.72) 0 3px,transparent 3px 17px);opacity:.34}
+  .mini-main{border-radius:10px;padding:12px;background:rgba(255,255,255,.92);display:flex;flex-direction:column;gap:9px}
+  .energy .mini-main{background:rgba(236,247,249,.96)}
+  .night .mini-main{background:rgba(22,35,57,.94);border:1px solid rgba(255,255,255,.12)}
+  .mini-top{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:800;color:var(--ink)}
+  .night .mini-top{color:#f6f2e8}
+  .mini-pill{width:48px;height:8px;border-radius:99px;background:#dce5f0}
+  .mini-hero{display:flex;justify-content:space-between;gap:8px;align-items:end;padding:11px;border-radius:8px;background:linear-gradient(135deg,#234a83,#6e71bf);color:#fff;min-height:54px}
+  .energy .mini-hero{background:linear-gradient(135deg,#ef6d7f,#f0a53f 50%,#58c9bb)}
+  .night .mini-hero{background:linear-gradient(135deg,#e85876,#f2c94c);color:#182237}
+  .mini-hero strong{font-size:13px;line-height:1.2;display:block;max-width:130px}
+  .mini-hero i{display:block;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.48);animation:float 2.8s ease-in-out infinite}
+  .mini-filters{display:flex;gap:5px}.mini-filters span{height:14px;padding:0 7px;border-radius:99px;background:#edf1f6;color:#5f7190;font-size:8px;line-height:14px}.mini-filters span:first-child{background:#56c6bb;color:#fff}
+  .mini-cards{display:grid;grid-template-columns:1fr 1fr;gap:6px;flex:1}.mini-task{border-radius:7px;background:#fff;border:1px solid #e3e8ef;padding:7px;position:relative;overflow:hidden}.energy .mini-task{background:#f9fffd}.night .mini-task{background:#1e2d47;border-color:rgba(255,255,255,.1)}.mini-task:before{content:"";display:block;width:34px;height:6px;border-radius:99px;background:#dce5f0;margin-bottom:7px}.mini-task:after{content:"";display:block;width:70%;height:5px;border-radius:99px;background:#edf1f6;box-shadow:0 10px 0 #edf1f6}.night .mini-task:before{background:#e85876}.night .mini-task:after{background:#50617c;box-shadow:0 10px 0 #50617c}
+  .dir-info{padding:16px 16px 17px}.dir-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px}.dir-no{font-size:11px;font-weight:800;color:var(--blue);letter-spacing:.08em}.dir-info h3{margin:0;font-size:18px;color:var(--ink);letter-spacing:0}.dir-info p{margin:8px 0 12px;color:var(--muted);font-size:12px;line-height:1.55;min-height:38px}.dir-tags{display:flex;flex-wrap:wrap;gap:6px}.dir-tags span{padding:5px 8px;border-radius:999px;background:#f1f4f8;color:#536987;font-size:11px}.energy + .dir-info span{background:#eef9f7}.dir-foot{margin-top:22px;padding:12px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:12px}.dir-foot strong{color:var(--ink)}
+  @keyframes float{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-5px) rotate(5deg)}}
+  @media(max-width:900px){.dir-grid{grid-template-columns:1fr}.dir-preview{height:180px}.dir-title{font-size:28px}}
+</style>
+<div class="dir-wrap">
+  <div class="dir-kicker">蛋蛋校园 · 视觉方向选择</div>
+  <h2 class="dir-title">先定气质，再定动效</h2>
+  <p class="dir-sub">三套方向都保留现有认证、任务、盲盒、打听、反馈和排行榜。差异集中在首屏节奏、内容密度、角色表现和交互反馈。</p>
+  <div class="dir-grid">
+    <div class="dir-card" data-choice="archive" onclick="toggleSelect(this)">
+      <div class="dir-preview arch">
+        <div class="mini-shell"><div class="mini-side"></div><div class="mini-main"><div class="mini-top"><span>蛋蛋档案馆</span><span class="mini-pill"></span></div><div class="mini-hero"><strong>今天，先找到<br>一个靠谱搭子</strong><i></i></div><div class="mini-filters"><span>全部</span><span>学业</span><span>生活</span><span>兴趣</span></div><div class="mini-cards"><div class="mini-task"></div><div class="mini-task"></div></div></div></div>
+      </div>
+      <div class="dir-info"><div class="dir-meta"><span class="dir-no">01</span><h3>校园档案馆</h3></div><p>把任务和关系做成“可翻阅的校园档案”。克制、清晰、耐看，适合高频使用和信息扫描。</p><div class="dir-tags"><span>Land-book 编辑感</span><span>纸张层次</span><span>低噪动效</span></div></div>
+    </div>
+    <div class="dir-card" data-choice="energy" onclick="toggleSelect(this)">
+      <div class="dir-preview energy">
+        <div class="mini-shell"><div class="mini-side"></div><div class="mini-main"><div class="mini-top"><span>蛋蛋能量场</span><span class="mini-pill"></span></div><div class="mini-hero"><strong>把技能变成<br>真实的连接</strong><i></i></div><div class="mini-filters"><span>推荐</span><span>学业</span><span>求助</span><span>组队</span></div><div class="mini-cards"><div class="mini-task"></div><div class="mini-task"></div></div></div></div>
+      </div>
+      <div class="dir-info"><div class="dir-meta"><span class="dir-no">02</span><h3>蛋能量场</h3></div><p>用颜色、粒子和角色状态表达“有人正在参与”。有呼吸感，但把动效限制在关键反馈上。</p><div class="dir-tags"><span>Landing Love 动效</span><span>角色能量</span><span>渐变微光</span></div></div>
+    </div>
+    <div class="dir-card" data-choice="night" onclick="toggleSelect(this)">
+      <div class="dir-preview night">
+        <div class="mini-shell"><div class="mini-side"></div><div class="mini-main"><div class="mini-top"><span>夜间社群</span><span class="mini-pill"></span></div><div class="mini-hero"><strong>今晚，和同频的人<br>做点具体的事</strong><i></i></div><div class="mini-filters"><span>在场</span><span>技能</span><span>盲盒</span><span>树洞</span></div><div class="mini-cards"><div class="mini-task"></div><div class="mini-task"></div></div></div></div>
+      </div>
+      <div class="dir-info"><div class="dir-meta"><span class="dir-no">03</span><h3>夜间社群</h3></div><p>把 Awwwards 的沉浸感压缩进工具型产品：深色舞台、聚光交互、短促转场，适合盲盒和打听。</p><div class="dir-tags"><span>Awwwards 创意</span><span>聚光跟随</span><span>短转场</span></div></div>
+    </div>
+  </div>
+  <div class="dir-foot"><span>推荐基线：<strong>02 蛋能量场</strong>，最贴合现有角色资产和产品玩法。</span><span>点击卡片记录选择</span></div>
+</div>

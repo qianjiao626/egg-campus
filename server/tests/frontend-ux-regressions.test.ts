@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 
 const root = resolve(process.cwd(), '..');
 const html = readFileSync(resolve(root, 'backend-handoff-package', 'growth-school.html'), 'utf8');
+const rollbackHtml = readFileSync(resolve(root, 'backend-handoff-package', 'growth-school.rollback-real-data.html'), 'utf8');
 const blacklist = readFileSync(resolve(root, 'backend-handoff-package', 'blacklist.js'), 'utf8');
 const buddy = readFileSync(resolve(root, 'backend-handoff-package', 'blind-box', 'styles.css'), 'utf8');
 const buddyApp = readFileSync(resolve(root, 'backend-handoff-package', 'blind-box', 'app.js'), 'utf8');
@@ -52,5 +53,15 @@ describe('frontend UX regressions', () => {
     const restore = html.match(/window\.addEventListener\('dandan:session-restored',[\s\S]*?\n  \}\);/);
     expect(restore?.[0]).toContain('revealStage();');
     expect(restore?.[0]).not.toMatch(/await hydrateUserState\(\);[\s\S]*revealStage\(\);/);
+  });
+
+  it('escapes leaderboard names and inline attribute values in both HTML variants', () => {
+    for (const page of [html, rollbackHtml]) {
+      expect(page).toContain('escapeHtml(u.name)');
+      expect(page).toContain('escapeHtml(user.name)');
+      expect(page).toContain("replace(/&/g,'&amp;')");
+      expect(page).toContain("replace(/\"/g,'&quot;')");
+      expect(page).not.toMatch(/\b(?:taskName|name|publisher|s\.name|c\.name)\.replace\(\/'\/g/);
+    }
   });
 });

@@ -7,6 +7,7 @@ node_modules/
 jspm_packages/
 web_modules/
 *.tsbuildinfo
+server/.vitest-full-result.json
 
 # Logs and local runtime files
 logs/

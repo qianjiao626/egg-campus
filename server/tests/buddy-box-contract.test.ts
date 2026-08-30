@@ -157,6 +157,35 @@ describe('buddy box API contract', () => {
     expect(tx.pointTransaction.create).toHaveBeenCalledOnce();
   });
 
+  it('does not credit prestige from a client-controlled settlement delta', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+    vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
+    vi.spyOn(prisma.buddyFeatureRecord, 'findUnique').mockResolvedValue(null);
+    const pointTransactionCreate = vi.fn();
+    const pointAccountUpdate = vi.fn();
+    const featureCreate = vi.fn().mockResolvedValue({ id: 3n, userId: 1n, feature: 'prestige', action: 'settle', status: 'active', payload: { delta: 100 }, result: { accepted: true }, idempotencyKey: 'settle-abuse-1', createdAt: new Date(), updatedAt: new Date() });
+    vi.spyOn(prisma.buddyFeatureRecord, 'create').mockImplementation(featureCreate as never);
+    const tx = {
+      pointTransaction: { findUnique: vi.fn().mockResolvedValue(null), create: pointTransactionCreate },
+      pointAccount: { findUnique: vi.fn().mockResolvedValue({ userId: 1n, availableBalance: 10, frozenBalance: 0 }), update: pointAccountUpdate },
+      buddyFeatureRecord: { create: featureCreate },
+    };
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/buddy-box/features',
+      headers: { authorization: 'Bearer ' + await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' }) },
+      payload: { feature: 'prestige', action: 'settle', payload: { delta: 100 }, idempotencyKey: 'settle-abuse-1' },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(pointAccountUpdate).not.toHaveBeenCalled();
+    expect(pointTransactionCreate).not.toHaveBeenCalled();
+    expect(featureCreate).toHaveBeenCalledOnce();
+  });
+
   it('ranks recommendations that share the drawn action first', async () => {
     process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
     process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';

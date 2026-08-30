@@ -1,0 +1,57 @@
+<style>
+  .task-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:22px}
+  .task-choice{position:relative;cursor:pointer;border-radius:10px;transition:transform .2s ease,box-shadow .2s ease}
+  .task-choice:hover{transform:translateY(-4px)}
+  .task-choice.selected{outline:3px solid #ffe66d;outline-offset:4px}
+  .choice-letter{position:absolute;top:11px;left:11px;width:31px;height:31px;border-radius:7px;display:grid;place-items:center;background:#fff;color:#14172d;font-weight:900;z-index:3;box-shadow:0 5px 14px rgba(0,0,0,.25)}
+  .task-shell{min-height:390px;padding:52px 18px 18px;border-radius:10px;position:relative;overflow:hidden}
+  .task-title{font-size:19px;font-weight:900;margin-bottom:12px;letter-spacing:0}.tags{display:flex;gap:7px;flex-wrap:wrap}.tag{padding:5px 8px;border-radius:6px;font-size:10px;font-weight:800}
+  .publisher{display:flex;align-items:center;gap:10px;margin-top:18px}.publisher img{width:48px;height:48px;object-fit:cover;border-radius:50%}.publisher-name{font-weight:900;font-size:14px}.publisher-role{font-size:10px;margin-top:2px}.rewards{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.reward{padding:7px 8px;border-radius:6px;font-size:11px;font-weight:900}
+  .task-copy{font-size:13px;line-height:1.7;margin:18px 0;min-height:66px}.task-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px dashed;padding-top:16px}.people{font-size:18px;font-weight:900}.open-task{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:18px;font-weight:900}
+  .a{background:#fbfdff;color:#14203a;border:1px solid #78b9ff;box-shadow:0 14px 38px rgba(42,113,255,.18)}.a:before{content:'';position:absolute;inset:0 0 auto;height:7px;background:linear-gradient(90deg,#3979ff,#20d6f5,#4af0ad)}.a .tag{background:#dbeaff;color:#2364c8}.a .tag:nth-child(2){background:#d8f8e7;color:#09754a}.a .tag:nth-child(3){background:#dff4ff;color:#087da8}.a .publisher img{border:3px solid #3b8cff;box-shadow:0 0 0 4px #d9e9ff}.a .publisher-role{color:#67738d}.a .reward:first-child{background:#ffe5ee;color:#dd286a}.a .reward:last-child{background:#fff1b9;color:#976900}.a .task-copy{color:#36425c}.a .task-footer{border-color:#9fb7da}.a .open-task{background:#276dff;color:#fff}
+  .b{background:#14182d;color:#fff;border:1px solid rgba(97,232,255,.55);box-shadow:0 18px 44px rgba(44,211,255,.18),0 0 38px rgba(255,62,145,.12)}.b:before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(44,229,255,.10),transparent 38%,rgba(255,65,151,.11));pointer-events:none}.b .task-title,.b .publisher,.b .task-copy,.b .task-footer,.b .tags{position:relative}.b .tag{background:#253a63;color:#7feaff;border:1px solid rgba(127,234,255,.25)}.b .tag:nth-child(2){background:#193f38;color:#65f3bd}.b .tag:nth-child(3){background:#38284e;color:#d6a8ff}.b .publisher img{border:3px solid #64ecff;box-shadow:0 0 0 4px rgba(100,236,255,.12),0 0 20px rgba(100,236,255,.4)}.b .publisher-role{color:#94a2c8}.b .reward:first-child{background:#41233a;color:#ff79b2}.b .reward:last-child{background:#423a1e;color:#ffe66d}.b .task-copy{color:#c9d1eb}.b .task-footer{border-color:#3d4668}.b .people{color:#7feaff}.b .open-task{background:#ff3f88;color:#fff;box-shadow:0 0 20px rgba(255,63,136,.42)}
+  .c{background:#fff7fb;color:#281633;border:1px solid #ff79b5;box-shadow:0 16px 42px rgba(255,53,138,.18)}.c:before{content:'';position:absolute;right:-50px;top:-60px;width:160px;height:160px;border-radius:50%;background:linear-gradient(135deg,#ff3f8e,#765dff);opacity:.14}.c .tag{background:#ffe1ef;color:#bd1f67}.c .tag:nth-child(2){background:#e7e1ff;color:#5d42cf}.c .tag:nth-child(3){background:#d8f8ec;color:#087554}.c .publisher img{border:3px solid #ff4d99;box-shadow:0 0 0 4px #ffe0ee}.c .publisher-role{color:#806d87}.c .reward:first-child{background:#ffe0ed;color:#d4216a}.c .reward:last-child{background:#fff0b7;color:#8d6500}.c .task-copy{color:#57415f}.c .task-footer{border-color:#e5a9c4}.c .people{color:#d82772}.c .open-task{background:#6d55f3;color:#fff}
+  .design-note{padding:14px 16px;background:#11162a;border-radius:0 0 10px 10px}.design-note h3{margin:0 0 5px;color:#fff;font-size:15px}.design-note p{margin:0;color:#9fa9c9;font-size:12px;line-height:1.5}
+  @media(max-width:1000px){.task-options{grid-template-columns:1fr}.task-shell{min-height:340px}}
+</style>
+
+<h2>任务广场卡片视觉方向</h2>
+<p class="subtitle">参考你发来的卡片结构，并提升色彩、层次和状态识别。点击选择你最喜欢的一款。</p>
+
+<div class="task-options">
+  <div class="task-choice" data-choice="task-a" onclick="toggleSelect(this)">
+    <span class="choice-letter">A</span>
+    <article class="task-shell a">
+      <div class="task-title">25考研计算机 一起备战</div>
+      <div class="tags"><span class="tag">考研考证</span><span class="tag">已审核</span><span class="tag">组队型</span><span class="tag">多人</span></div>
+      <div class="publisher"><img src="/files/char-eggy-study-v2.jpg" alt="学习蛋"><div><div class="publisher-name">发布者 张妍</div><div class="publisher-role">学习蛋 · 研友召集</div></div><div class="rewards"><span class="reward">经验 156</span><span class="reward">蛋蛋币 300</span></div></div>
+      <p class="task-copy">二战上岸选手带队，找 2 个认真备考的搭子，每日打卡、互相监督，共同冲刺。</p>
+      <div class="task-footer"><span class="people">1 / 3 人</span><span class="open-task">›</span></div>
+    </article>
+    <div class="design-note"><h3>A · 鲜亮竞技蓝</h3><p>明亮、清晰，最接近参考图，阅读负担最低。</p></div>
+  </div>
+
+  <div class="task-choice" data-choice="task-b" onclick="toggleSelect(this)">
+    <span class="choice-letter">B</span>
+    <article class="task-shell b">
+      <div class="task-title">25考研计算机 一起备战</div>
+      <div class="tags"><span class="tag">考研考证</span><span class="tag">已审核</span><span class="tag">组队型</span><span class="tag">多人</span></div>
+      <div class="publisher"><img src="/files/char-eggy-study-v2.jpg" alt="学习蛋"><div><div class="publisher-name">发布者 张妍</div><div class="publisher-role">学习蛋 · 研友召集</div></div><div class="rewards"><span class="reward">经验 156</span><span class="reward">蛋蛋币 300</span></div></div>
+      <p class="task-copy">二战上岸选手带队，找 2 个认真备考的搭子，每日打卡、互相监督，共同冲刺。</p>
+      <div class="task-footer"><span class="people">1 / 3 人</span><span class="open-task">›</span></div>
+    </article>
+    <div class="design-note"><h3>B · 霓虹赛事面板</h3><p>更炫酷、颜色更艳丽，适合蛋蛋校园的游戏化气质。推荐方案。</p></div>
+  </div>
+
+  <div class="task-choice" data-choice="task-c" onclick="toggleSelect(this)">
+    <span class="choice-letter">C</span>
+    <article class="task-shell c">
+      <div class="task-title">25考研计算机 一起备战</div>
+      <div class="tags"><span class="tag">考研考证</span><span class="tag">已审核</span><span class="tag">组队型</span><span class="tag">多人</span></div>
+      <div class="publisher"><img src="/files/char-eggy-study-v2.jpg" alt="学习蛋"><div><div class="publisher-name">发布者 张妍</div><div class="publisher-role">学习蛋 · 研友召集</div></div><div class="rewards"><span class="reward">经验 156</span><span class="reward">蛋蛋币 300</span></div></div>
+      <p class="task-copy">二战上岸选手带队，找 2 个认真备考的搭子，每日打卡、互相监督，共同冲刺。</p>
+      <div class="task-footer"><span class="people">1 / 3 人</span><span class="open-task">›</span></div>
+    </article>
+    <div class="design-note"><h3>C · 高饱和潮玩粉</h3><p>活泼、亲和，辨识度高，整体更偏校园社交感。</p></div>
+  </div>
+</div>

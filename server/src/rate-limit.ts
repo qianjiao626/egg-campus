@@ -6,9 +6,14 @@ export class InMemoryRateLimiter {
   check(key: string, limit: number, windowMs: number, now = Date.now()) {
     const entry = this.entries.get(key) ?? { timestamps: [] };
     entry.timestamps = entry.timestamps.filter((timestamp) => timestamp > now - windowMs);
+    if (entry.timestamps.length === 0) this.entries.delete(key);
     const allowed = entry.timestamps.length < limit;
-    if (allowed) entry.timestamps.push(now);
-    this.entries.set(key, entry);
+    if (allowed) {
+      entry.timestamps.push(now);
+      this.entries.set(key, entry);
+    } else if (entry.timestamps.length > 0) {
+      this.entries.set(key, entry);
+    }
     const oldest = entry.timestamps[0] ?? now;
     return {
       allowed,
