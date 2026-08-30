@@ -1734,8 +1734,9 @@
 
   /* ===== Light neutral theme ===== */
   :root{
-    --bg:#F5F7FA;--white:#FFFFFF;--ink:#212529;--ink2:#6C757D;--muted:#6C757D;--faint:#ADB5BD;--border:#CED4DA;
+    --bg:#F5F7FA;--bg2:#F8F9FA;--white:#FFFFFF;--card:#FFFFFF;--rule:#E9ECEF;--ink:#212529;--ink2:#6C757D;--muted:#6C757D;--faint:#ADB5BD;--border:#CED4DA;
     --primary:#165DFF;--primary-dark:#0D47D9;--primary-tint:#E7EEFF;
+    --coral:#E85D3A;
     --shadow:0 3px 10px rgba(33,37,41,.08);--shadow-md:0 6px 20px rgba(33,37,41,.12);--shadow-lg:0 10px 30px rgba(33,37,41,.16);
   }
   html,body{background:#F5F7FA!important;color:#212529!important}
@@ -1774,10 +1775,26 @@
   .bell-btn,.icon-btn,.chat-fab,.back-btn{background:#FFFFFF!important;color:#212529!important;border:1px solid #CED4DA!important;box-shadow:none!important}
   .page .link,.edit-btn,.trow .op{color:#165DFF!important}
   .page::-webkit-scrollbar-thumb{background:#CED4DA!important}
-  .plaza-card{border:1px solid #DEE2E6!important;border-radius:14px!important;box-shadow:0 8px 24px rgba(33,37,41,.10)!important}
-  .plaza-card::before{height:3px!important;border-radius:14px 14px 0 0!important}
+  .plaza-card{border:2px solid transparent!important;border-radius:14px!important;background:linear-gradient(#FFFFFF,#FFFFFF) padding-box,linear-gradient(90deg,#F2387A 0%,#F59E0B 20%,#16A34A 40%,#0891B2 60%,#165DFF 80%,#8B5CF6 100%) border-box!important;box-shadow:0 8px 24px rgba(33,37,41,.10)!important}
+  .plaza-card::before{height:3px!important;border-radius:14px 14px 0 0!important;background:linear-gradient(90deg,#F2387A 0%,#F59E0B 20%,#16A34A 40%,#0891B2 60%,#165DFF 80%,#8B5CF6 100%)!important;opacity:1!important}
   .plaza-card .task-card-title-row,.plaza-card .task-card-publisher,.plaza-card .task-card-tags,.plaza-card .task-card-rewards,.plaza-card .task-card-progress{background:transparent!important;background-image:none!important;border:0!important;border-radius:0!important;box-shadow:none!important}
   .plaza-card .task-card-progress{border-top:1px solid #E9ECEF!important;padding-top:12px!important}
+  #page-mytasks .task-published-block > .card,#page-mytasks .task-claimed-block > .card{position:relative!important;overflow:hidden!important;padding:18px 20px!important;gap:12px!important;border:1px solid #CED4DA!important;border-radius:16px!important;background:linear-gradient(135deg,#FFFFFF 0%,#F8FAFF 100%)!important;box-shadow:0 8px 20px rgba(33,37,41,.08)!important;color:#212529!important}
+  #page-mytasks .task-published-block > .card::before,#page-mytasks .task-claimed-block > .card::before{content:'';position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#165DFF,#7C5CFC,#C084FC)!important}
+  #page-mytasks .task-published-block > .card.pub-help::before,#page-mytasks .task-claimed-block > .card[data-task-type="help"]::before{background:linear-gradient(90deg,#10B981,#34D399,#6EE7B7)!important}
+  #page-mytasks .task-published-block > .card.pub-team::before,#page-mytasks .task-claimed-block > .card[data-task-type="team"]::before{background:linear-gradient(90deg,#0891B2,#22D3EE,#67E8F9)!important}
+  #page-mytasks .task-published-block > .card.pub-reward::before,#page-mytasks .task-claimed-block > .card[data-task-type="reward"]::before{background:linear-gradient(90deg,#F59E0B,#FBBF24,#FCD34D)!important}
+  #page-mytasks .task-published-block > .card > div:first-child,#page-mytasks .task-claimed-block > .card > div:first-child{padding-bottom:10px;border-bottom:1px solid #E9ECEF!important}
+  #page-mytasks .task-published-block > .card > div:nth-child(2),#page-mytasks .task-claimed-block > .card > div:nth-child(2){font-size:17px!important;font-weight:750!important;line-height:1.35;color:#212529!important}
+  #page-mytasks .task-published-block > .card .done-txt,#page-mytasks .task-claimed-block > .card > div:nth-child(3){color:#6C757D!important;background:#F5F7FA!important;border-radius:10px;padding:10px 12px;line-height:1.65!important}
+  #page-mytasks .task-published-block > .card [style*="color:var(--muted)"],#page-mytasks .task-claimed-block > .card [style*="color:var(--muted)"]{color:#6C757D!important}
+  #page-profile .points-rule .rule .txt,#page-profile [style*="color:var(--muted)"],#page-profile [style*="color:var(--coral)"]{color:#6C757D!important}
+  #page-profile .points-rule .rule .num{color:#165DFF!important}
+  #page-profile .points-rule .rule:nth-child(1) .num{color:#198754!important}
+  #page-profile .points-rule .rule:nth-child(2) .num{color:#E85D3A!important}
+  #page-profile .profile-rules-card > div{color:#212529}
+  #page-profile .profile-rules-card [style*="color:var(--muted)"],#page-profile .profile-rules-card [style*="font-size:11px"]{color:#6C757D!important}
+  #page-profile .profile-rules-card [style*="background:var(--bg2)"]{background:#F8F9FA!important;border:1px solid #E9ECEF}
   .banner-text .badges .rainbow-label{display:inline-block;background:linear-gradient(90deg,#F2387A 0%,#F59E0B 25%,#16A34A 50%,#0891B2 75%,#165DFF 100%);background-clip:text;-webkit-background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent!important;font-weight:700}
   .banner-text .badges .rainbow-label b{color:inherit!important;-webkit-text-fill-color:inherit!important}
 </style>
@@ -2632,7 +2649,7 @@
             <div id="pointLogList"></div>
           </div>
           <div class="sec-head"><h3>等级与参数说明</h3></div>
-          <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:18px">
+          <div class="card profile-rules-card" style="padding:20px;display:flex;flex-direction:column;gap:18px">
 
             <!-- 经验值 -->
             <div>
