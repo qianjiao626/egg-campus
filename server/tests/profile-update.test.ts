@@ -38,23 +38,24 @@ describe('profile update rules', () => {
     expect(result.buddyData).toEqual({ mbtiType: 'INTJ', hobbies: ['摄影', '跑步'] });
   });
 
-  it('starts a 30-day cooldown only when nickname changes', () => {
+  it('allows nickname changes without a cooldown', () => {
     expect(prepareProfileUpdate(current, profileUpdateSchema.parse({ nickname: '旧昵称' }), now).userData)
       .not.toHaveProperty('nicknameChangedAt');
-    expect(prepareProfileUpdate(current, profileUpdateSchema.parse({ nickname: '新昵称' }), now).userData)
-      .toMatchObject({ nickname: '新昵称', nicknameChangedAt: now });
+    const result = prepareProfileUpdate(current, profileUpdateSchema.parse({ nickname: '新昵称' }), now).userData;
+    expect(result).toMatchObject({ nickname: '新昵称' });
+    expect(result).not.toHaveProperty('nicknameChangedAt');
   });
 
-  it('rejects nickname changes during cooldown', () => {
+  it('allows nickname changes even when the previous change was recent', () => {
     const changedYesterday = { ...current, nicknameChangedAt: new Date('2026-08-25T12:00:00.000Z') };
-    expect(() => prepareProfileUpdate(changedYesterday, profileUpdateSchema.parse({ nickname: '新昵称' }), now))
-      .toThrowError(/NICKNAME_CHANGE_COOLDOWN/);
+    expect(prepareProfileUpdate(changedYesterday, profileUpdateSchema.parse({ nickname: '新昵称' }), now).userData)
+      .toMatchObject({ nickname: '新昵称' });
   });
 
-  it('locks protected administrator nicknames', () => {
+  it('allows protected administrators to change their nickname', () => {
     const administrator = { ...current, protectedAdminKey: 'fixed-admin-1' };
-    expect(() => prepareProfileUpdate(administrator, profileUpdateSchema.parse({ nickname: '新昵称' }), now))
-      .toThrowError(/PROTECTED_ADMIN_NICKNAME/);
+    expect(prepareProfileUpdate(administrator, profileUpdateSchema.parse({ nickname: '新昵称' }), now).userData)
+      .toMatchObject({ nickname: '新昵称' });
   });
 
   it('clears email verification only when email changes', () => {

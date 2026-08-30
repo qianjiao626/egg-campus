@@ -42,6 +42,19 @@ describe('frontend UX regressions', () => {
     expect(html).toContain('@keyframes plazaCardIn');
   });
 
+  it('visually separates rewarded tasks from standard tasks', () => {
+    expect(html).toContain("type === 'reward' ? 'task-card-rewarded' : 'task-card-standard'");
+    expect(html).toContain('task-card-prize-ribbon');
+    expect(html).toContain('.plaza-card.task-card-standard');
+    expect(html).toContain('.plaza-card.task-card-rewarded');
+  });
+
+  it('uses focused extreme-school cards and removes the inquiry card outline', () => {
+    expect(html).toContain('.bl-extreme-card{');
+    expect(html).toContain('.bl-extreme-card{border:0!important');
+    expect(html).toContain('.gossip-card{border:0!important');
+  });
+
   it('describes cancellation refund as returning to the original payer', () => {
     expect(html).toContain('蛋蛋币将退回发布者账户余额');
     expect(server).toContain('applyBuddyPointDelta(tx, task.userId, refund');

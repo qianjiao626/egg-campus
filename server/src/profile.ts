@@ -70,16 +70,7 @@ export function prepareProfileUpdate(
   const userData: Record<string, unknown> = { ...input };
   const buddyData: Record<string, unknown> = {};
 
-  if (input.nickname !== undefined && input.nickname !== current.nickname) {
-    if (current.protectedAdminKey) throw new ProfileRuleError('PROTECTED_ADMIN_NICKNAME');
-    if (current.nicknameChangedAt) {
-      const availableAt = new Date(current.nicknameChangedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
-      if (availableAt.getTime() > now.getTime()) {
-        throw new ProfileRuleError('NICKNAME_CHANGE_COOLDOWN', availableAt);
-      }
-    }
-    userData.nicknameChangedAt = now;
-  } else {
+  if (input.nickname === undefined || input.nickname === current.nickname) {
     delete userData.nickname;
   }
 

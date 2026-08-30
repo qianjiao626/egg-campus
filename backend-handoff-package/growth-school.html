@@ -1825,6 +1825,28 @@
   .char-frame.frame-N{border:0!important;box-shadow:none!important}
   .banner-text .badges .rainbow-label{display:inline-block;background:linear-gradient(90deg,#F2387A 0%,#F59E0B 25%,#16A34A 50%,#0891B2 75%,#165DFF 100%);background-clip:text;-webkit-background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent!important;font-weight:700}
   .banner-text .badges .rainbow-label b{color:inherit!important;-webkit-text-fill-color:inherit!important}
+  .plaza-card.task-card-standard{position:relative!important;overflow:hidden!important;padding:20px!important;border:1px solid #E2E7ED!important;border-radius:18px!important;background:#FFFFFF!important;background-image:none!important;box-shadow:0 8px 22px rgba(33,37,41,.08)!important}
+  .plaza-card.task-card-standard::before{content:none!important;display:none!important}
+  .plaza-card.task-card-rewarded{position:relative!important;overflow:hidden!important;padding:28px 24px 20px!important;border:3px solid transparent!important;border-radius:22px!important;background:linear-gradient(#FFFFFF,#FFFFFF) padding-box,linear-gradient(135deg,#FFC107 0%,#FF8A2A 55%,#FF5D72 100%) border-box!important;box-shadow:0 10px 28px rgba(255,138,42,.18)!important}
+  .plaza-card.task-card-rewarded::before{content:none!important;display:none!important}
+  .task-card-prize-ribbon{position:absolute;top:0;left:0;z-index:2;padding:6px 14px 7px;border-radius:0 0 12px 0;background:linear-gradient(135deg,#FFC107 0%,#FF8A2A 100%);color:#FFFFFF;font-size:12px;font-weight:800;line-height:1;box-shadow:0 4px 12px rgba(255,138,42,.24)}
+  .plaza-card.task-card-rewarded .task-card-title-row .nm{color:#E85D3A!important}
+  .plaza-card .task-card-title-row{align-items:flex-start!important;gap:10px;flex-wrap:wrap}
+  .plaza-card .task-card-title-row .nm{min-width:0;overflow-wrap:anywhere;line-height:1.4}
+  .plaza-card .task-card-tags,.plaza-card .task-card-publisher{flex-wrap:wrap}
+  .plaza-card.task-card-standard .claim-btn{background:#FFFFFF!important;color:#344054!important;border:2px solid #D8DEE6!important;box-shadow:none!important}
+  .plaza-card.task-card-standard .claim-btn:hover{background:#F5F7FA!important;border-color:#AEB8C5!important;color:#212529!important}
+  .plaza-card.task-card-rewarded .claim-btn{background:linear-gradient(135deg,#55CDD2 0%,#43B9C4 100%)!important;color:#FFFFFF!important;border:0!important;box-shadow:0 5px 12px rgba(67,185,196,.24)!important}
+  .plaza-card.task-card-rewarded .claim-btn:hover{background:linear-gradient(135deg,#45BEC6 0%,#31A9B6 100%)!important;color:#FFFFFF!important}
+  .bl-extreme-card{border:0!important;border-radius:20px!important;padding:18px 20px!important;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#FFFFFF!important;background-image:none!important;box-shadow:0 10px 26px rgba(255,138,101,.12)!important}
+  .bl-extreme-left{background:linear-gradient(180deg,#FFFFFF 0%,#FFF8FA 100%)!important}
+  .bl-extreme-right{background:linear-gradient(180deg,#FFFFFF 0%,#F6FFF9 100%)!important}
+  .bl-extreme-tag{margin-bottom:10px!important;padding:5px 14px!important;border-radius:999px!important;font-size:12px!important}
+  .bl-extreme-school{max-width:100%;margin-bottom:7px!important;color:#493B38!important;font-size:17px!important;line-height:1.35!important;overflow-wrap:anywhere}
+  .bl-extreme-score{font-size:30px!important;line-height:1.1!important;font-variant-numeric:tabular-nums}
+  .gossip-card{border:0!important;box-shadow:0 8px 24px rgba(33,37,41,.10)!important}
+  .gossip-card:hover{border:0!important;box-shadow:0 12px 28px rgba(124,77,255,.14)!important}
+  @media(max-width:620px){.plaza-card.task-card-rewarded{padding:30px 16px 18px!important}.plaza-card.task-card-standard{padding:18px 16px!important}.bl-extreme-card{min-height:132px;padding:16px!important}}
 </style>
 </head>
 <body>
@@ -2816,7 +2838,7 @@
       <button class="rank-modal-close" onclick="closeProfileEditor()" aria-label="关闭">×</button>
       <div style="padding:24px">
         <h3 style="font-size:18px;margin-bottom:4px">编辑个人资料</h3>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:18px">昵称每 30 天只能修改一次；固定管理员昵称不可修改。邮箱为选填，修改后需重新验证才能用于安全功能。</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:18px">登录用户可随时修改自己的资料。邮箱为选填，修改后需重新验证才能用于安全功能。</p>
         <div class="profile-edit-grid">
           <div><div class="field-lbl">昵称</div><input class="input" id="profileEditNickname" maxlength="30"></div>
           <div><div class="field-lbl">邮箱（选填）</div><input class="input" id="profileEditEmail" type="email"></div>
@@ -5201,7 +5223,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var publisherClick = publisher && publisher.id ? ' onclick="event.stopPropagation();showUserEggModal(\'' + escapeInlineString(publisherName) + '\',\'' + escapeInlineString(publisher.id) + '\')"' : '';
     var publishExpReward = Number(task.publishExpReward || 0);
     var card = document.createElement('div');
-    card.className = 'plaza-card';
+    card.className = 'plaza-card ' + (type === 'reward' ? 'task-card-rewarded' : 'task-card-standard');
     card.setAttribute('data-task-id', String(task.id));
     card.setAttribute('data-publisher-id', publisher && publisher.id ? String(publisher.id) : '');
     card.setAttribute('data-publisher-egg-category', publisherEggCategory);
@@ -5219,7 +5241,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var mode = task.claimMode === 'multiple' ? '多人' : '单人';
     var kind = type === 'help' ? '求助型' : type === 'team' ? '组队型' : type === 'reward' ? '奖励型' : '教学型';
     var taskTags = [task.skillCategory, task.skillSubcategory, kind, mode].filter(Boolean);
-    card.innerHTML = '<div class="head task-card-title-row"><span class="nm">' + escapeHtml(task.title || '未命名任务') + '</span><div class="gap6 task-card-tags">' + taskTags.slice(0, 4).map(function(tag){ return '<span class="claim-mode">' + escapeHtml(tag) + '</span>'; }).join('') + '<span class="tag tag-green">' + status + '</span></div></div>' +
+    var prizeRibbon = type === 'reward' ? '<span class="task-card-prize-ribbon">💰 有奖</span>' : '';
+    card.innerHTML = prizeRibbon + '<div class="head task-card-title-row"><span class="nm">' + escapeHtml(task.title || '未命名任务') + '</span><div class="gap6 task-card-tags">' + taskTags.slice(0, 4).map(function(tag){ return '<span class="claim-mode">' + escapeHtml(tag) + '</span>'; }).join('') + '<span class="tag tag-green">' + status + '</span></div></div>' +
       '<div class="publisher task-card-publisher"><span class="task-card-avatar" style="background:' + publisherColor + '"' + (publisher && publisher.isAdministrator ? ' data-admin-avatar data-avatar-size="30"' : '') + publisherClick + '>' + publisherAvatar + '</span><span class="pname"' + publisherClick + '>发布者 ' + escapeHtml(publisherName) + '</span>' + publisherAdminBadge + '<span class="tag tag-lilac">' + escapeHtml(publisherCategoryLabel) + ' · ' + escapeHtml(publisherRarityLabel) + '</span><span class="tag tag-gold">' + (type === 'reward' ? '完成奖励 ' : '蛋蛋币 ') + Number(task.reward || 0) + '</span><span class="tag tag-blue">经验值 ' + publishExpReward + '</span></div>' +
       '<div class="desc">' + escapeHtml(task.description || '') + '</div>' +
       '<div class="foot task-card-rewards task-card-progress"><span class="claim-info"><span class="claim-count">' + Number(task.activeClaimCount || 0) + (task.maxClaimers ? '/' + Number(task.maxClaimers) : '') + '</span></span><button class="btn btn-primary btn-sm claim-btn">查看详情</button></div>';
@@ -7611,7 +7634,6 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     };
     Object.keys(values).forEach(function(id){ var input = document.getElementById(id); if(input) input.value = values[id] == null ? '' : values[id]; });
     document.getElementById('profileEditMbti').value = USER.mbtiType || '';
-    document.getElementById('profileEditNickname').disabled = Boolean(USER.isProtectedAdmin);
     document.getElementById('profileEditModal').style.display = 'flex';
   }
   function closeProfileEditor(){ document.getElementById('profileEditModal').style.display = 'none'; }

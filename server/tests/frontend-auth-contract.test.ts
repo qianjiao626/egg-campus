@@ -178,7 +178,10 @@ describe('profile, task hub and administrator UI contract', () => {
     expect(html).toContain('id="profileEditNickname"');
     expect(html).toContain('id="profileEditInterests"');
     expect(html).toContain('id="profileEditSkills"');
-    expect(html).toContain('昵称每 30 天只能修改一次');
+    expect(html).toContain('登录用户可随时修改自己的资料');
+    expect(html).not.toContain('昵称每 30 天只能修改一次');
+    expect(html).not.toMatch(/id="profileEditNickname"[^>]*disabled/);
+    expect(html).not.toContain("profileEditNickname').disabled");
     expect(client).toContain("updateMe: function");
     expect(client).toContain("request('/api/users/me', { method: 'PUT'");
   });
