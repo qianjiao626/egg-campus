@@ -55,6 +55,12 @@ describe('frontend UX regressions', () => {
     expect(restore?.[0]).not.toMatch(/await hydrateUserState\(\);[\s\S]*revealStage\(\);/);
   });
 
+  it('cinematic theme keeps semantic status colors distinct', () => {
+    const themeBlock = html.slice(html.indexOf('Cinematic glass theme'));
+    expect(themeBlock).not.toMatch(/--red:\s*#fff/);
+    expect(themeBlock).not.toMatch(/--green:\s*#fff/);
+  });
+
   it('escapes leaderboard names and inline attribute values in both HTML variants', () => {
     for (const page of [html, rollbackHtml]) {
       expect(page).toContain('escapeHtml(u.name)');

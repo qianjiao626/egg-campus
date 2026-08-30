@@ -59,3 +59,5 @@ docs/obsidian-sync/.obsidian/workspace.json
 workflow/runtime/
 workflow/worktrees/
 workflow/__pycache__/
+.walkthrough-harness/
+fix-white-screen.cjs

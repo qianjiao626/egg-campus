@@ -12,6 +12,7 @@ const releaseIndex = JSON.parse(readFileSync(resolve(root, 'docs/releases/index.
 const frontendDeployScript = readFileSync(resolve(root, 'deploy-frontend.sh'), 'utf8');
 const expectedFrontendTargets = [
   'api-client.js',
+  'assets/theme-bg.jpg',
   'blacklist.js',
   'blind-box/app.js',
   'blind-box/buddy-box-api.js',
