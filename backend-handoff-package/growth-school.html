@@ -1778,6 +1778,8 @@
   .plaza-card::before{height:3px!important;border-radius:14px 14px 0 0!important}
   .plaza-card .task-card-title-row,.plaza-card .task-card-publisher,.plaza-card .task-card-tags,.plaza-card .task-card-rewards,.plaza-card .task-card-progress{background:transparent!important;background-image:none!important;border:0!important;border-radius:0!important;box-shadow:none!important}
   .plaza-card .task-card-progress{border-top:1px solid #E9ECEF!important;padding-top:12px!important}
+  .banner-text .badges .rainbow-label{display:inline-block;background:linear-gradient(90deg,#F2387A 0%,#F59E0B 25%,#16A34A 50%,#0891B2 75%,#165DFF 100%);background-clip:text;-webkit-background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent!important;font-weight:700}
+  .banner-text .badges .rainbow-label b{color:inherit!important;-webkit-text-fill-color:inherit!important}
 </style>
 </head>
 <body>
@@ -2161,7 +2163,7 @@
             <div class="banner-text">
               <h2>蛋蛋拜师学艺</h2>
               <p>真蛋匹配，交出一技之长，帮助蛋蛋们成长，同时赚取蛋蛋币</p>
-              <div class="badges"><span class="tag" style="background:var(--gold-tint);color:var(--gold);font-size:12px">💰 蛋蛋币 <b id="plazaPoints">0</b></span><span class="tag" style="background:var(--primary-tint);color:var(--primary);font-size:12px">⚡ 经验值 <b id="plazaExp">0</b></span><button class="banner-publish-btn orange" onclick="goPublish('teach', null, 'plaza')">＋ 发布教学任务</button></div>
+              <div class="badges"><span class="tag" style="background:var(--gold-tint);color:var(--gold);font-size:12px"><span class="tag-icon">💰</span> <span class="rainbow-label">蛋蛋币 <b id="plazaPoints">0</b></span></span><span class="tag" style="background:var(--primary-tint);color:var(--primary);font-size:12px"><span class="tag-icon">⚡</span> <span class="rainbow-label">经验值 <b id="plazaExp">0</b></span></span><button class="banner-publish-btn orange" onclick="goPublish('teach', null, 'plaza')">＋ 发布教学任务</button></div>
             </div>
             <div class="banner-tasks"></div>
           </div>
@@ -2193,7 +2195,7 @@
             <div class="banner-text">
               <h2>蛋蛋要求助 🆘</h2>
               <p>发布你的需求，让有经验的蛋蛋来帮你 · 有难题？发个悬赏，全校蛋蛋帮你解决</p>
-              <div class="badges"><span class="tag" style="background:var(--gold-tint);color:var(--gold);font-size:12px">💰 蛋蛋币 <b id="helpPoints">0</b></span><span class="tag" style="background:var(--primary-tint);color:var(--primary);font-size:12px">⚡ 经验值 <b id="helpExp">0</b></span><button class="banner-publish-btn" onclick="goPublish('help', null, 'helpplaza')">＋ 发布求助</button></div>
+              <div class="badges"><span class="tag" style="background:var(--gold-tint);color:var(--gold);font-size:12px"><span class="tag-icon">💰</span> <span class="rainbow-label">蛋蛋币 <b id="helpPoints">0</b></span></span><span class="tag" style="background:var(--primary-tint);color:var(--primary);font-size:12px"><span class="tag-icon">⚡</span> <span class="rainbow-label">经验值 <b id="helpExp">0</b></span></span><button class="banner-publish-btn" onclick="goPublish('help', null, 'helpplaza')">＋ 发布求助</button></div>
             </div>
             <div class="banner-tasks"></div>
           </div>
@@ -2221,7 +2223,7 @@
             <div class="banner-text">
               <h2 style="color:#FFE66D">蛋蛋要组队 👥</h2>
               <p style="color:rgba(255,255,255,.85)">找搭子一起做事 · 你出资悬赏，和搭子并肩作战 · 双方确认完成后蛋蛋币到账</p>
-              <div class="badges"><span class="tag" style="background:var(--gold-tint);color:var(--gold);font-size:12px">💰 蛋蛋币 <b id="teamPoints">0</b></span><span class="tag" style="background:rgba(255,255,255,.15);color:#fff;font-size:12px">⚡ 经验值 <b id="teamExp">0</b></span><button class="banner-publish-btn teal" onclick="goPublish('team', null, 'teamplaza')">＋ 发布组队</button></div>
+              <div class="badges"><span class="tag" style="background:var(--gold-tint);color:var(--gold);font-size:12px"><span class="tag-icon">💰</span> <span class="rainbow-label">蛋蛋币 <b id="teamPoints">0</b></span></span><span class="tag" style="background:rgba(255,255,255,.15);color:#fff;font-size:12px"><span class="tag-icon">⚡</span> <span class="rainbow-label">经验值 <b id="teamExp">0</b></span></span><button class="banner-publish-btn teal" onclick="goPublish('team', null, 'teamplaza')">＋ 发布组队</button></div>
             </div>
             <div class="banner-tasks"></div>
           </div>
