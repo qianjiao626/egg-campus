@@ -1832,6 +1832,8 @@
   .task-card-prize-ribbon{position:absolute;top:0;left:0;z-index:2;padding:6px 14px 7px;border-radius:0 0 12px 0;background:linear-gradient(135deg,#FFC107 0%,#FF8A2A 100%);color:#FFFFFF;font-size:12px;font-weight:800;line-height:1;box-shadow:0 4px 12px rgba(255,138,42,.24)}
   .plaza-card.task-card-rewarded .task-card-title-row .nm{color:#E85D3A!important}
   .plaza-card .task-card-title-row{align-items:flex-start!important;gap:10px;flex-wrap:wrap}
+  .claimed-badge{position:absolute;top:8px;left:8px;z-index:3;background:#16A34A;color:#fff!important;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;line-height:1.2}
+  .plaza-card.is-claimed .claim-btn{opacity:.52!important;color:#6C757D!important;background:#E9ECEF!important;border-color:#CED4DA!important;cursor:not-allowed!important}
   .plaza-card .task-card-title-row .nm{min-width:0;overflow-wrap:anywhere;line-height:1.4}
   .plaza-card .task-card-tags,.plaza-card .task-card-publisher{flex-wrap:wrap}
   .plaza-card.task-card-standard .claim-btn{background:#FFFFFF!important;color:#344054!important;border:2px solid #D8DEE6!important;box-shadow:none!important}
@@ -2689,7 +2691,7 @@
           <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:10px">
             <div style="display:flex;align-items:center;justify-content:space-between">
               <div><span style="font-size:13px;font-weight:600">收到的评价</span><span style="font-size:12px;color:var(--muted);margin-left:8px">用户间任务互评（蛋总任务不参与）</span></div>
-              <div style="display:flex;align-items:center;gap:6px"><span style="font-size:24px;font-weight:700;color:var(--gold)" id="myAvgRating">0.0</span><span style="font-size:13px;color:var(--muted)">/ 5.0</span><span style="font-size:12px;color:var(--muted);margin-left:4px" id="myRatingCount">(0 条评价)</span></div>
+              <div style="display:flex;align-items:center;gap:6px"><span style="font-size:24px;font-weight:700;color:var(--gold)" id="myAvgRating">暂无评价</span><span style="font-size:13px;color:var(--muted)">/ 5.0</span><span style="font-size:12px;color:var(--muted);margin-left:4px" id="myRatingCount">(0 条评价)</span></div>
             </div>
             <div id="myRatingList" style="display:flex;flex-direction:column;gap:8px"></div>
           </div>
@@ -3223,6 +3225,7 @@
 <script src="identity-view.js"></script>
 <script>
   var USER = { id:0, nickname:'', role:'guest', registered:false, isAdmin:false, points:0, exp:0, stats:{knowledge:0,skills:0,charm:0,money:0,reputation:0}, invites:[], notifications:[] };
+  var latestRatingAverage = null;
   var ADMIN_AVATAR_DEFAULT = 'char-eggy-hermit.jpg';
   var ADMIN_AVATAR_ASSETS = ['char-eggy-hermit.jpg','char-eggy-study-v2.jpg','char-eggy-job-v2.jpg','char-eggy-side.jpg','char-eggy-hobby-v2.jpg','char-eggy-game.jpg','char-eggy-life-v2.jpg'];
   var adminAvatarPath = ADMIN_AVATAR_DEFAULT;
@@ -3392,7 +3395,7 @@
     catBadge.style.backgroundColor = char.color;
 
     // 口碑值星级徽章
-    var rep = USER.stats.reputation || 0;
+    var rep = latestRatingAverage == null ? (USER.stats.reputation || 0) : latestRatingAverage;
     var repStars = document.getElementById('repStars');
     var repScore = document.getElementById('repScore');
     if(repStars && repScore){
@@ -4039,7 +4042,9 @@
       return;
     }
     var mine = Array.isArray(result.ratings) ? result.ratings : [];
-    var avg = result.average == null ? '—' : Number(result.average).toFixed(1);
+    var avg = result.average == null ? '暂无评价' : Number(result.average).toFixed(1);
+    latestRatingAverage = result.average == null ? null : Number(result.average);
+    if(typeof renderChar === 'function') renderChar();
     var avgEl = document.getElementById('myAvgRating');
     var cntEl = document.getElementById('myRatingCount');
     if(avgEl) avgEl.textContent = avg;
@@ -4350,6 +4355,7 @@
     var table = document.getElementById('usersTableBody');
     if(!table) return;
     var usersBadge = document.getElementById('usersCount');
+    document.getElementById('usersCount').textContent = adminWorkspace.users.length;
     if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(usersBadge, adminWorkspace.users.length);
     else if(usersBadge){ usersBadge.textContent = adminWorkspace.users.length ? String(adminWorkspace.users.length) : ''; usersBadge.hidden = adminWorkspace.users.length === 0; }
     if(!adminWorkspace.users.length){ table.innerHTML = '<div class="empty-state">暂无用户数据</div>'; return; }
@@ -5119,14 +5125,18 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.setAttribute('data-max-claimers', task.maxClaimers == null ? '' : String(task.maxClaimers));
     card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : '');
     card.setAttribute('data-claimed', '0');
+    card.setAttribute('data-task-description', task.description || '');
+    card.setAttribute('data-contact', task.contact || '');
+    card.setAttribute('data-requirements', task.requirements || '');
     card.style.cssText = 'padding:20px;display:flex;flex-direction:column;gap:10px';
     card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag ' + (group === 'completed' ? 'tag-green' : group === 'cancelled' || group === 'revision' ? 'tag-red' : 'tag-orange') + '">' + label + '</span><span style="font-size:12px;color:var(--muted)">发布于 ' + formatDateYmd(task.createdAt) + '</span></div>' +
       '<div style="font-size:15px;font-weight:600">' + escapeHtml(task.title) + '</div>' +
       '<div class="done-txt" style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description) + '</div>' +
       (task.reviewReason ? '<div style="font-size:12px;color:var(--red)">修改意见：' + escapeHtml(task.reviewReason) + '</div>' : '') +
-      ((group === 'pending' || group === 'approved') ? '<div style="display:flex;justify-content:flex-end;gap:8px">' +
+      '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'publisher\')">查看详情</button>' +
+      ((group === 'pending' || group === 'approved') ?
         (group === 'approved' ? '<button class="btn btn-ghost btn-sm" onclick="openClaimerManager(this)">认领管理</button><button class="btn btn-primary btn-sm" onclick="reviewMyTask(this)">确认完成</button>' : '') +
-        '<button class="btn btn-ghost btn-sm" onclick="cancelPublishedTask(this)">取消任务</button></div>' : '');
+        '<button class="btn btn-ghost btn-sm" onclick="cancelPublishedTask(this)">取消任务</button>' : '') + '</div>';
     list.appendChild(card);
   }
   function renderSyncedClaimedTask(claim){
@@ -5136,7 +5146,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     if(!list) list = document.getElementById('myClaimedListTeach');
     var card = document.createElement('div');
     card.className = 'card'; card.setAttribute('data-claim-id', String(claim.id)); card.setAttribute('data-task-id', String(task.id || ''));
-    card.setAttribute('data-task-type', task.taskType || 'teach'); card.setAttribute('data-task-title', task.title || '任务'); card.setAttribute('data-publisher-id', String(task.userId || '')); card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : '');
+    card.setAttribute('data-task-type', task.taskType || 'teach'); card.setAttribute('data-task-title', task.title || '任务'); card.setAttribute('data-publisher-id', String(task.userId || '')); card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : ''); card.setAttribute('data-task-description', task.description || ''); card.setAttribute('data-contact', task.contact || ''); card.setAttribute('data-claim-status', claim.status || '');
     card.style.cssText = 'padding:20px;display:flex;flex-direction:column;gap:10px';
     var canSubmit = claim.status === 'pending' || claim.status === 'assigned';
     var cancellationRequest = getTaskCancellationRequest(card);
@@ -5146,17 +5156,35 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         ? '<div class="cancel-req-banner received"><div class="cr-icon">📨</div><div><b>收到协商取消申请</b><br>原因：' + escapeHtml(cancellationRequest.reason || '无') + '<br><div class="cr-actions"><button class="btn btn-primary btn-sm" onclick="respondSyncedTaskCancellationRequest(\'' + task.id + '\',\'' + cancellationRequest.id + '\',\'accepted\')">同意取消</button><button class="btn btn-sm" onclick="respondSyncedTaskCancellationRequest(\'' + task.id + '\',\'' + cancellationRequest.id + '\',\'rejected\')">拒绝</button></div></div></div>'
         : '<div class="cancel-req-banner pending"><div class="cr-icon">⏳</div><div><b>取消申请已发送</b><br>原因：' + escapeHtml(cancellationRequest.reason || '无') + '</div></div>';
     }
-    var completedRatingAction = claim.status === 'completed' && !claim.ratedByCurrentUser && task.id && task.userId
+    var completedRatingAction = claim.status === 'completed' && !claim.ratedByCurrentUser && task.id && task.userId && (task.taskType === 'teach' || task.taskType === 'team')
       ? '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-primary btn-sm" onclick="openClaimerRating(this)">评价发布者</button></div>' : '';
     var controls = canSubmit && !(cancellationRequest && cancellationRequest.status === 'pending')
       ? '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-primary btn-sm" onclick="submitClaimedTask(\'' + task.id + '\')">提交完成</button></div>' : '';
     var claimLabel = claim.status === 'completed' ? '已完成' : claim.status === 'submitted' ? '待确认' : claim.status === 'assigned' ? '进行中' : claim.status === 'abandoned' || claim.status === 'cancelled' ? '已取消' : '待配对';
     var rewardLabel = type === 'reward' ? '<span class="tag tag-gold">完成奖励 ' + Number(task.reward || 0) + ' 蛋蛋币</span>' : '';
-    card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag tag-lilac">' + claimLabel + '</span><span style="font-size:12px;color:var(--muted)">发布于 ' + formatDateYmd(task.createdAt) + '</span></div><div style="font-size:15px;font-weight:600">' + escapeHtml(task.title || '任务') + '</div><div style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description || '') + '</div>' + rewardLabel + cancellationActions + controls + completedRatingAction;
+    card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag tag-lilac">' + claimLabel + '</span><span style="font-size:12px;color:var(--muted)">发布于 ' + formatDateYmd(task.createdAt) + '</span></div><div style="font-size:15px;font-weight:600">' + escapeHtml(task.title || '任务') + '</div><div style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description || '') + '</div>' + rewardLabel + cancellationActions + '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'claimer\')">查看详情</button>' + controls + completedRatingAction + '</div>';
     list.appendChild(card);
+  }
+  function openSyncedTaskDetail(button, role){
+    var card = button && button.closest('.card');
+    if(!card) return;
+    var titleEl = card.querySelector('div[style*="font-weight:600"]');
+    var title = titleEl ? titleEl.textContent : '任务详情';
+    var type = card.getAttribute('data-task-type') || 'teach';
+    var status = card.getAttribute('data-status') || card.getAttribute('data-claim-status') || '进行中';
+    var description = card.getAttribute('data-task-description') || '';
+    var contact = card.getAttribute('data-contact') || '';
+    var paired = ['assigned','submitted','completed'].indexOf(status) >= 0;
+    var typeLabels = {teach:'教学型',help:'求助型',team:'组队型',reward:'奖励型'};
+    var reward = Number(card.getAttribute('data-task-cost') || card.getAttribute('data-reward') || 0);
+    var contactHtml = paired && contact ? '<div class="td-req">' + escapeHtml(contact) + '</div>' : '<div class="td-contact-locked">配对后可查看联系方式</div>';
+    var action = role === 'claimer' && (status === 'pending' || status === 'assigned') ? '<button class="btn btn-primary btn-sm" onclick="submitClaimedTask(\'' + escapeInlineString(card.getAttribute('data-task-id') || '') + '\');closeMyTaskDetail()">提交完成</button>' : '';
+    document.getElementById('myTaskDetailCard').innerHTML = '<button class="td-close" onclick="closeMyTaskDetail()">×</button><div class="td-title">' + escapeHtml(title) + '</div><div class="td-info"><div class="td-info-row"><span class="td-info-lbl">任务类型</span><span class="td-info-val">' + escapeHtml(typeLabels[type] || type) + '</span></div><div class="td-info-row"><span class="td-info-lbl">状态</span><span class="td-info-val">' + escapeHtml(status) + '</span></div><div class="td-info-row"><span class="td-info-lbl">蛋蛋币</span><span class="td-info-val">' + reward + '</span></div></div><div class="td-section-title">任务描述</div><div class="td-req">' + escapeHtml(description) + '</div><div class="td-section-title">联系方式</div>' + contactHtml + '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">' + action + '</div>';
+    var modal = document.getElementById('myTaskDetailModal'); modal.style.display = 'flex'; requestAnimationFrame(function(){ modal.classList.add('show'); });
   }
   function ensureMyTaskEmptyState(list, kind){
     if(!list || list.querySelector('[data-task-id]')) return;
+    // 兼容旧契约：没有已认领的任务时使用下方引导文案。
     var text = kind === 'claimed' ? '您还没认领任务呢~~快去认领你的第一个任务吧~~' : '您还没发布任务呢~~快去发布你的第一个任务吧~~';
     list.innerHTML = '<div class="mytask-empty" data-empty-kind="' + kind + '">' + text + '</div>';
   }
@@ -5223,7 +5251,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var publisherClick = publisher && publisher.id ? ' onclick="event.stopPropagation();showUserEggModal(\'' + escapeInlineString(publisherName) + '\',\'' + escapeInlineString(publisher.id) + '\')"' : '';
     var publishExpReward = Number(task.publishExpReward || 0);
     var card = document.createElement('div');
-    card.className = 'plaza-card ' + (type === 'reward' ? 'task-card-rewarded' : 'task-card-standard');
+    var isClaimed = Boolean(task.claimStatus);
+    card.className = 'plaza-card ' + (type === 'reward' ? 'task-card-rewarded' : 'task-card-standard') + (isClaimed ? ' is-claimed' : '');
     card.setAttribute('data-task-id', String(task.id));
     card.setAttribute('data-publisher-id', publisher && publisher.id ? String(publisher.id) : '');
     card.setAttribute('data-publisher-egg-category', publisherEggCategory);
@@ -5242,10 +5271,11 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var kind = type === 'help' ? '求助型' : type === 'team' ? '组队型' : type === 'reward' ? '奖励型' : '教学型';
     var taskTags = [task.skillCategory, task.skillSubcategory, kind, mode].filter(Boolean);
     var prizeRibbon = type === 'reward' ? '<span class="task-card-prize-ribbon">💰 有奖</span>' : '';
-    card.innerHTML = prizeRibbon + '<div class="head task-card-title-row"><span class="nm">' + escapeHtml(task.title || '未命名任务') + '</span><div class="gap6 task-card-tags">' + taskTags.slice(0, 4).map(function(tag){ return '<span class="claim-mode">' + escapeHtml(tag) + '</span>'; }).join('') + '<span class="tag tag-green">' + status + '</span></div></div>' +
+    var claimButton = isClaimed ? '<button class="btn btn-disabled btn-sm claim-btn" aria-disabled="true">查看详情</button>' : '<button class="btn btn-primary btn-sm claim-btn">查看详情</button>';
+    card.innerHTML = (isClaimed ? '<span class="claimed-badge">✓ 已认领</span>' : '') + prizeRibbon + '<div class="head task-card-title-row"><span class="nm">' + escapeHtml(task.title || '未命名任务') + '</span><div class="gap6 task-card-tags">' + taskTags.slice(0, 4).map(function(tag){ return '<span class="claim-mode">' + escapeHtml(tag) + '</span>'; }).join('') + '<span class="tag tag-green">' + status + '</span></div></div>' +
       '<div class="publisher task-card-publisher"><span class="task-card-avatar" style="background:' + publisherColor + '"' + (publisher && publisher.isAdministrator ? ' data-admin-avatar data-avatar-size="30"' : '') + publisherClick + '>' + publisherAvatar + '</span><span class="pname"' + publisherClick + '>发布者 ' + escapeHtml(publisherName) + '</span>' + publisherAdminBadge + '<span class="tag tag-lilac">' + escapeHtml(publisherCategoryLabel) + ' · ' + escapeHtml(publisherRarityLabel) + '</span><span class="tag tag-gold">' + (type === 'reward' ? '完成奖励 ' : '蛋蛋币 ') + Number(task.reward || 0) + '</span><span class="tag tag-blue">经验值 ' + publishExpReward + '</span></div>' +
       '<div class="desc">' + escapeHtml(task.description || '') + '</div>' +
-      '<div class="foot task-card-rewards task-card-progress"><span class="claim-info"><span class="claim-count">' + Number(task.activeClaimCount || 0) + (task.maxClaimers ? '/' + Number(task.maxClaimers) : '') + '</span></span><button class="btn btn-primary btn-sm claim-btn">查看详情</button></div>';
+      '<div class="foot task-card-rewards task-card-progress"><span class="claim-info"><span class="claim-count">' + Number(task.activeClaimCount || 0) + (task.maxClaimers ? '/' + Number(task.maxClaimers) : '') + '</span></span>' + claimButton + '</div>';
     return card;
   }
   async function syncPublicTaskPlazas(){
@@ -6543,6 +6573,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   function bindDetailBtn(btn){
     btn.addEventListener('click', function(e){
       e.stopPropagation();
+      if(btn.closest('.is-claimed')){ toast('你已经认领过了呦~'); return; }
       showTaskDetail(btn);
     });
   }
@@ -6735,8 +6766,13 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     if(!selectedClaim) { toast('该提交已处理，请刷新任务列表'); return; }
     button.disabled = true;
     try {
-      await window.apiClient.completeTask(reviewSubmitCtx.taskId, selectedClaim.id);
+      var completionResult = await window.apiClient.completeTask(reviewSubmitCtx.taskId, selectedClaim.id);
       await Promise.all([syncMyTasks(), syncPublicTaskPlazas(), syncPointTransactions()]);
+      if(completionResult && completionResult.unlockedCharacter){
+        var unlockedNames = {study:'学业技术',job:'就业技能',side:'副业技能',hobby:'兴趣爱好'};
+        toast('恭喜解锁「' + (unlockedNames[completionResult.unlockedCharacter] || completionResult.unlockedCharacter) + '」角色！');
+        await hydrateUserState(); renderChar();
+      }
     } catch(error) {
       button.disabled = false;
       toast(error.message || '确认完成失败，请稍后重试');
@@ -7321,7 +7357,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         var statPct = statVal / maxVal * 100;
         if(cat === 'gossip'){
           // 八卦帮用户渲染
-          html += '<div class="podium-item ' + pc + '" onclick="showUserEggModal(\'' + escapeInlineString(u.name) + '\')" style="cursor:pointer">';
+          html += '<div class="podium-item ' + pc + '" onclick="showRankUserDetail(\'' + escapeInlineString(String(u.id || '')) + '\')" style="cursor:pointer">';
           html += '<span class="podium-crown">' + crowns[pi] + '</span>';
           html += '<div class="podium-avatar" style="background:' + (u.avatarColor || '#FF6B9D') + ';color:#fff;font-size:28px;font-weight:700;display:flex;align-items:center;justify-content:center">' + (u.avatar || '🥚') + '</div>';
           html += '<div class="podium-name">' + escapeHtml(u.name) + '</div>';
@@ -7333,7 +7369,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         } else {
           var mbtiColor = getMBTIColor(u.mbti);
           var imgSrc = EGG_IMG[u.egg] || '';
-          html += '<div class="podium-item ' + pc + '" onclick="showRankUserDetail(' + u.id + ')" style="cursor:pointer">';
+          html += '<div class="podium-item ' + pc + '" onclick="showRankUserDetail(\'' + escapeInlineString(String(u.id || '')) + '\')" style="cursor:pointer">';
           html += '<span class="podium-crown">' + crowns[pi] + '</span>';
           if(imgSrc){
             html += '<div class="podium-avatar" style="background:' + info.color + '22;overflow:hidden"><img src="' + imgSrc + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>';
@@ -7362,7 +7398,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
 
         if(cat === 'gossip'){
           // 八卦帮用户列表渲染
-          html += '<div class="rank-item' + (isTop10 ? ' top10' : '') + '" onclick="showUserEggModal(\'' + escapeInlineString(u.name) + '\')" style="cursor:pointer">';
+          html += '<div class="rank-item' + (isTop10 ? ' top10' : '') + '" onclick="showRankUserDetail(\'' + escapeInlineString(String(u.id || '')) + '\')" style="cursor:pointer">';
           html += '<div class="rank-num">' + rankNum + '</div>';
           html += '<div class="rank-avatar" style="background:' + (u.avatarColor || '#FF6B9D') + ';color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">' + (u.avatar || '🥚') + '</div>';
           html += '<div class="rank-info">';
@@ -7383,7 +7419,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
           var mbtiColor = getMBTIColor(u.mbti);
           var rarityColor = getRarityColor(u.rarity);
           var imgSrc = EGG_IMG[u.egg] || '';
-          html += '<div class="rank-item' + (isTop10 ? ' top10' : '') + '" onclick="showRankUserDetail(' + u.id + ')" style="cursor:pointer">';
+          html += '<div class="rank-item' + (isTop10 ? ' top10' : '') + '" onclick="showRankUserDetail(\'' + escapeInlineString(String(u.id || '')) + '\')" style="cursor:pointer">';
           html += '<div class="rank-num">' + rankNum + '</div>';
           if(imgSrc){
             html += '<div class="rank-avatar" style="background:' + info.color + '18;overflow:hidden"><img src="' + imgSrc + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>';
@@ -7447,15 +7483,16 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   }
   var endorsedUsers = {};
   async function showRankUserDetail(userId){
-    var u = RANK_USERS.find(function(r){ return r.id === userId; });
+    var normalizedUserId = String(userId || '');
+    var u = RANK_USERS.find(function(r){ return String(r.id) === normalizedUserId; });
     if(!u) return;
     if(!window.apiClient || typeof window.apiClient.publicProfile !== 'function'){ toast('用户资料暂不可用'); return; }
     try {
-      var result = await window.apiClient.publicProfile(userId);
+      var result = await window.apiClient.publicProfile(normalizedUserId);
       var profile = result.user || {};
       var catInfo = RANK_CAT_MAP[u.egg] || RANK_CAT_MAP['all'];
       publicProfiles[u.name] = {
-        id: String(userId),
+        id: normalizedUserId,
         nickname: profile.nickname || u.name,
         avatar: (profile.nickname || u.name || '蛋').charAt(0),
         avatarColor: catInfo.color + '',
@@ -7479,7 +7516,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     // 关闭排行榜弹窗，打开统一的用户资料弹窗
     closeRankUserModal();
     setTimeout(function(){
-      showUserEggModal(u.name, userId);
+      showUserEggModal(u.name, normalizedUserId);
     }, 200);
   }
   function closeRankUserModal(){

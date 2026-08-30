@@ -615,17 +615,21 @@ export function buildApp(): FastifyInstance {
   function taskListInclude(userId: bigint) {
     return {
       _count: { select: { claims: { where: { status: { in: [...activeTaskClaimStatuses] } } } } },
-      claims: { where: { claimerId: userId }, select: { status: true }, take: 1 },
+      claims: { select: { status: true, claimerId: true } },
       user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true, role: true } },
     };
   }
   function serializeTask(task: any, viewerId?: bigint) {
     const { _count, claims, user, ...record } = task;
     const owner = viewerId != null && viewerId === task.userId;
-    const paired = claims?.[0]?.status && ['assigned', 'submitted', 'completed'].includes(claims[0].status);
+    const viewerClaim = claims?.find((claim: any) => viewerId != null && claim.claimerId === viewerId)
+      ?? (claims?.length === 1 && claims[0]?.claimerId == null ? claims[0] : undefined);
+    const pairedStatuses = ['assigned', 'submitted', 'completed'];
+    const paired = Boolean(viewerClaim?.status && pairedStatuses.includes(viewerClaim.status));
+    const hasPairedClaim = Boolean(claims?.some((claim: any) => pairedStatuses.includes(claim.status)));
     return {
       ...record,
-      contact: owner || paired ? task.contact : null,
+      contact: owner ? (hasPairedClaim ? task.contact : null) : (paired ? task.contact : null),
       id: task.id.toString(),
       userId: task.userId.toString(),
       publisher: user ? {
@@ -636,7 +640,7 @@ export function buildApp(): FastifyInstance {
         isAdministrator: user.role === 'admin',
       } : null,
       activeClaimCount: _count?.claims ?? 0,
-      claimStatus: claims?.[0]?.status ?? null,
+      claimStatus: viewerClaim?.status ?? null,
     };
   }
   function serializeTaskCancellationRequest(request: any) {
@@ -1617,7 +1621,7 @@ export function buildApp(): FastifyInstance {
         taskId: claim.taskId.toString(),
         claimerId: claim.claimerId.toString(),
         ratedByCurrentUser: ratedTaskIds.has(claim.taskId.toString()),
-        task: serializeTask({ ...claim.task, claims: [{ status: claim.status }] }, userId),
+        task: serializeTask({ ...claim.task, claims: [{ status: claim.status, claimerId: claim.claimerId }] }, userId),
       })),
     };
   });
@@ -1748,7 +1752,7 @@ export function buildApp(): FastifyInstance {
     if (!task) return reply.code(404).send({ error: 'TASK_NOT_FOUND', message: '任务不存在' });
     const canManageClaims = task.userId === userId || await hasRequestPermission(request, PERMISSION_KEYS.taskClaimManage);
     const claims = await prisma.taskClaim.findMany({ where: { taskId: params.id, ...(canManageClaims ? {} : { claimerId: userId }) }, orderBy: { createdAt: 'asc' }, include: { claimer: { select: { id: true, nickname: true, mbtiType: true, reputation: true, bio: true, eggCategory: true, eggRarity: true } } } });
-    return { claims: claims.map((claim) => ({ ...claim, contact: canManageClaims || ['assigned', 'submitted', 'completed'].includes(claim.status) ? claim.contact : null, id: claim.id.toString(), taskId: claim.taskId.toString(), claimerId: claim.claimerId.toString(), claimer: claim.claimer ? { ...claim.claimer, id: claim.claimer.id.toString(), reputation: Number(claim.claimer.reputation) } : null })) };
+    return { claims: claims.map((claim) => ({ ...claim, contact: ['assigned', 'submitted', 'completed'].includes(claim.status) ? claim.contact : null, id: claim.id.toString(), taskId: claim.taskId.toString(), claimerId: claim.claimerId.toString(), claimer: claim.claimer ? { ...claim.claimer, id: claim.claimer.id.toString(), reputation: Number(claim.claimer.reputation) } : null })) };
   });
 
   app.patch('/api/tasks/:id/claims/assign', { preHandler: app.authenticate }, async (request, reply) => {
@@ -1795,14 +1799,27 @@ export function buildApp(): FastifyInstance {
             if (refund > 0) await applyBuddyPointDelta(tx, currentTask.userId, refund, `task-team-complete-refund:${currentTask.id.toString()}`, 'task_reward_refund', `组队任务未使用奖励退回:${currentTask.id.toString()}`);
           }
         }
+        const categoryMap: Record<string, string> = { teach: 'study', help: 'job', team: 'side', reward: 'hobby' };
+        const statMap: Record<string, 'knowledge' | 'skills' | 'charm' | 'money'> = { teach: 'knowledge', help: 'skills', team: 'charm', reward: 'money' };
+        const unlockCategory = categoryMap[currentTask.taskType];
+        let unlockedCharacter: string | null = null;
+        if (unlockCategory) {
+          const character = await tx.userCharacter.findFirst({ where: { userId: currentClaim.claimerId, category: unlockCategory } });
+          if (character && !character.unlocked) {
+            await tx.userCharacter.update({ where: { id: character.id }, data: { unlocked: true, unlockedAt: new Date() } });
+            unlockedCharacter = unlockCategory;
+          }
+        }
+        const statField = statMap[currentTask.taskType];
+        if (statField) await tx.userStats.updateMany({ where: { userId: currentClaim.claimerId }, data: { [statField]: { increment: 1 }, completedTasks: { increment: 1 } } });
         const updatedTask = await tx.task.update({ where: { id: currentTask.id }, data: { status: 'completed', rewardFrozen: false, completedAt: new Date() } });
         await tx.notification.create({ data: { userId: currentClaim.claimerId, type: 'task_completed', refId: currentTask.id.toString(), payload: { taskId: currentTask.id.toString(), claimId: currentClaim.id.toString() } } });
-        return { claim: completed, task: updatedTask };
+        return { claim: completed, task: updatedTask, unlockedCharacter };
       });
       publishRealtime(() => realtime.publishPublic(realtimeEvent('task.completed', task.id, 'public')));
       publishRealtime(() => realtime.publishPrivate([task.userId, claim.claimerId], realtimeEvent('task.completed', task.id, 'private')));
       if (task.reward > 0) publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', task.taskType === 'teach' ? task.userId : claim.claimerId, 'public')));
-      return { claim: { ...result.claim, id: result.claim.id.toString(), taskId: result.claim.taskId.toString(), claimerId: result.claim.claimerId.toString() }, task: serializeTask(result.task, userId) };
+      return { claim: { ...result.claim, id: result.claim.id.toString(), taskId: result.claim.taskId.toString(), claimerId: result.claim.claimerId.toString() }, task: serializeTask(result.task, userId), unlockedCharacter: result.unlockedCharacter };
     } catch (error) {
       if (error instanceof Error && error.message === 'TASK_SUBMISSION_NOT_FOUND') return reply.code(409).send({ error: 'TASK_SUBMISSION_NOT_FOUND', message: '没有待确认的提交' });
       if (error instanceof BuddyPrestigeError) return reply.code(409).send({ error: error.message, message: '结算蛋蛋币失败' });
@@ -1899,10 +1916,16 @@ export function buildApp(): FastifyInstance {
     const input = taskRatingSchema.parse(request.body);
     assertSafeText(input.comment);
     const userId = currentUserId(request);
-    const task = await prisma.task.findUnique({ where: { id: params.id }, select: { id: true, userId: true } });
+    const task = await prisma.task.findUnique({ where: { id: params.id }, select: { id: true, userId: true, taskType: true } });
     if (!task) return reply.code(404).send({ error: 'TASK_NOT_FOUND', message: '任务不存在' });
     const claim = await prisma.taskClaim.findFirst({ where: { taskId: task.id, status: 'completed', OR: [{ claimerId: userId }, { task: { userId } }] }, select: { claimerId: true } });
     if (!claim) return reply.code(403).send({ error: 'RATING_FORBIDDEN', message: '只有已完成任务的参与者可以评价' });
+    if (task.taskType && task.taskType !== 'team') {
+      const isPublisher = task.userId === userId;
+      const isClaimer = claim.claimerId === userId;
+      const canRate = task.taskType === 'teach' ? isClaimer : isPublisher;
+      if (!canRate) return reply.code(403).send({ error: 'RATING_NOT_PAYER', message: '只有消耗蛋蛋币的一方才能评价' });
+    }
     const partnerId = task.userId === userId ? claim.claimerId : task.userId;
     if (input.toUserId !== partnerId || input.toUserId === userId) return reply.code(403).send({ error: 'RATING_TARGET_INVALID', message: '评价对象不属于该任务' });
     const existing = await prisma.rating.findUnique({ where: { taskId_fromUserId_toUserId: { taskId: task.id, fromUserId: userId, toUserId: input.toUserId } } });
