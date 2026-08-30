@@ -6,6 +6,11 @@
   var accessToken = null;
   var refreshPromise = null;
   var featureNamePattern = /^[a-z][a-z0-9-]{1,39}$/;
+  function safeApiErrorMessage(body, status) {
+    var message = body && typeof body.message === 'string' ? body.message.trim() : '';
+    if (!message || /\bRoute\s+(GET|POST|PUT|PATCH|DELETE)\b|Prisma|\bSQL\b|stack trace|\.ts:\d+|\.js:\d+/i.test(message)) return status === 404 ? '请求的功能暂不可用，请稍后重试' : '请求失败，请稍后重试';
+    return message;
+  }
 
   async function awaitParentSessionRestore() {
     try {
@@ -47,7 +52,7 @@
     }
     var body = await response.json().catch(function () { return {}; });
     if (!response.ok) {
-      var error = new Error(body.message || '请求失败');
+      var error = new Error(safeApiErrorMessage(body, response.status));
       error.status = response.status;
       error.body = body;
       throw error;

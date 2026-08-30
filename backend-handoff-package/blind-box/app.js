@@ -616,7 +616,7 @@ $('#addWish').addEventListener('click', () => {
   const input = $('#customWish'); const value = input.value.trim();
   if (!value) { showToast('先写一个今天想做的事'); return; }
   if (!validateUserText(value)) return;
-  const chip = document.createElement('span'); chip.className = 'wish-chip'; chip.dataset.wish = value; chip.innerHTML = `${value}<button type="button" aria-label="删除愿望">×</button>`;
+  const chip = document.createElement('span'); chip.className = 'wish-chip'; chip.dataset.wish = value; chip.innerHTML = `${escapeHtml(value)}<button type="button" aria-label="删除愿望">×</button>`;
   $('#wishPool').appendChild(chip); input.value = ''; updatePreferenceStatus(); showToast('愿望已加入抓阄池');
 });
 const wishPool = $('#wishPool');

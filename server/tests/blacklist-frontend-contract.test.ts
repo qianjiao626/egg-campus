@@ -28,6 +28,12 @@ describe('blacklist frontend contract', () => {
     expect(controller).toContain("if (typeof prefill !== 'string') prefill = '';");
   });
 
+  it('normalizes blacklist counts and escapes inline values', () => {
+    expect(controller).toContain('Number(result.count) || 0');
+    expect(page).toContain("replace(/&/g,'&amp;')");
+    expect(page).not.toContain("user.nickname.replace(/'/g, \"\\\\'\")");
+  });
+
   it('keeps blind-box entry temporarily hidden without deleting its implementation', () => {
     expect(page).toContain('html:not([data-buddybox-enabled="true"]) [data-page="buddybox"]');
     expect(page).toContain("document.documentElement.dataset.buddyboxEnabled !== 'true' && id === 'buddybox'");

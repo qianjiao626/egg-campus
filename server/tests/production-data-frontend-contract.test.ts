@@ -204,6 +204,13 @@ describe('production frontend data contract', () => {
     expect(drawBody![1]).not.toContain('selectedTodayAction = options[');
   });
 
+  it('keeps blind-box errors and user HTML rendering safe', () => {
+    const buddyApi = readText(resolve(packageRoot, 'blind-box', 'buddy-box-api.js'));
+    expect(buddyApi).toContain('safeApiErrorMessage');
+    expect(blindBoxApp).toContain('escapeHtml(value)');
+    expect(blindBoxApp).toMatch(/chip\.innerHTML\s*=\s*`\$\{escapeHtml\(value\)\}/);
+  });
+
   it('does not fabricate profile data or cache local profile records', () => {
     const saveBioBody = html.match(/async function saveBio\(\)\{([\s\S]*?)\n  \}\n\n  async function renderMyRatings/);
     expect(saveBioBody).not.toBeNull();
