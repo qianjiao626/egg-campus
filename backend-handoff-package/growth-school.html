@@ -1752,6 +1752,9 @@
   .nav-item{color:#6C757D!important}
   .nav-item:hover{background:#DEE2E6!important;color:#165DFF!important}
   .nav-item.active,.nav-item.student-item.active{background:#FFFFFF!important;color:#165DFF!important;border:1px solid #165DFF!important;box-shadow:none!important}
+  .task-hub-tab{background:#FFFFFF!important;color:#6C757D!important;border:1px solid #CED4DA!important}
+  .task-hub-tab:hover{background:#DEE2E6!important;color:#212529!important;border-color:#ADB5BD!important}
+  .task-hub-tab.active{background:#165DFF!important;color:#FFFFFF!important;border-color:#165DFF!important;box-shadow:0 3px 10px rgba(22,93,255,.18)!important}
   .user-card,.guest-card{background:#FFFFFF!important;border:1px solid #CED4DA!important}
   .user-card .info .u-name,.user-card .info .u-role,.logout{color:#212529!important}
   .guest-btn,.role-btn{background:#FFFFFF!important;color:#212529!important;border:1px solid #CED4DA!important}
@@ -5436,6 +5439,9 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     if(type === 'ranking.updated' && pageId === 'profile' && typeof hydrateUserState === 'function'){
       hydrateUserState().then(refreshProfile);
     }
+    if(type === 'task.completed' && typeof hydrateUserState === 'function'){
+      hydrateUserState().then(refreshProfile);
+    }
   }
   function bindRealtimeForPage(pageId){
     activeRealtimePage = pageId;
@@ -6768,10 +6774,11 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     try {
       var completionResult = await window.apiClient.completeTask(reviewSubmitCtx.taskId, selectedClaim.id);
       await Promise.all([syncMyTasks(), syncPublicTaskPlazas(), syncPointTransactions()]);
+      await hydrateUserState();
+      refreshProfile();
       if(completionResult && completionResult.unlockedCharacter){
         var unlockedNames = {study:'学业技术',job:'就业技能',side:'副业技能',hobby:'兴趣爱好'};
         toast('恭喜解锁「' + (unlockedNames[completionResult.unlockedCharacter] || completionResult.unlockedCharacter) + '」角色！');
-        await hydrateUserState(); renderChar();
       }
     } catch(error) {
       button.disabled = false;

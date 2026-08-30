@@ -68,6 +68,14 @@ describe('frontend UX regressions', () => {
     expect(restore?.[0]).not.toMatch(/await hydrateUserState\(\);[\s\S]*revealStage\(\);/);
   });
 
+  it('keeps task hub tabs readable and refreshes stats after task completion', () => {
+    const lightTheme = html.slice(html.indexOf('Light neutral theme'));
+    expect(lightTheme).toContain('.task-hub-tab{background:#FFFFFF!important;color:#6C757D!important');
+    expect(lightTheme).toContain('.task-hub-tab.active{background:#165DFF!important;color:#FFFFFF!important');
+    expect(html).toContain("if(type === 'task.completed' && typeof hydrateUserState === 'function')");
+    expect(html).toContain('await hydrateUserState();\n      refreshProfile();');
+  });
+
   it('cinematic theme keeps semantic status colors distinct', () => {
     const themeBlock = html.slice(html.indexOf('Cinematic glass theme'));
     expect(themeBlock).not.toMatch(/--red:\s*#fff/);
