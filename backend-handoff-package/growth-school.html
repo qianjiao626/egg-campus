@@ -538,6 +538,7 @@
   .bell-btn svg{width:20px;height:20px}
   .bell-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
   .bell-badge.hide{display:none}
+  .tag[hidden],.bell-badge[hidden]{display:none!important}
   .notif-panel{position:absolute;top:42px;right:0;width:360px;max-height:480px;overflow-y:auto;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid var(--border);z-index:400;display:none;flex-direction:column}
   .notif-panel.open{display:flex}
   .notif-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
@@ -1406,6 +1407,8 @@
   .task-hub-panel[hidden]{display:none!important}
   .administrator-badge{display:none;align-items:center;gap:5px;margin-top:4px;width:max-content;max-width:100%;padding:3px 8px;border:1px solid #D4A017;border-radius:6px;background:#FBF3D9;color:#8A6500;font-size:10px;font-weight:700;position:relative;overflow:hidden}
   .administrator-badge.visible{display:inline-flex}
+  .task-card-admin-badge{margin-top:0;padding:2px 7px;font-size:10px}
+  .user-egg-admin-badge{margin:0 auto 8px;padding:3px 10px}
   .administrator-badge::after{content:'';position:absolute;inset:0;transform:translateX(-120%);background:linear-gradient(100deg,transparent,rgba(255,255,255,.8),transparent);animation:adminSheen 3.8s ease-in-out infinite}
   @keyframes adminSheen{0%,58%{transform:translateX(-120%)}82%,100%{transform:translateX(120%)}}
   .permission-layout{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:16px;min-height:0}
@@ -1752,6 +1755,10 @@
   .user-card,.guest-card{background:#FFFFFF!important;border:1px solid #CED4DA!important}
   .user-card .info .u-name,.user-card .info .u-role,.logout{color:#212529!important}
   .guest-btn,.role-btn{background:#FFFFFF!important;color:#212529!important;border:1px solid #CED4DA!important}
+  .role-btn.active{background:#165DFF!important;color:#FFFFFF!important;border-color:#0D47D9!important;box-shadow:0 3px 10px rgba(22,93,255,.24)!important}
+  .role-btn.student.active{background:#495057!important;color:#FFFFFF!important;border-color:#343A40!important;box-shadow:0 3px 10px rgba(73,80,87,.22)!important}
+  .role-btn:not(.active):hover{background:#DEE2E6!important;color:#212529!important;border-color:#ADB5BD!important}
+  .administrator-badge.visible{background:linear-gradient(135deg,#FFF0A8 0%,#FFD54F 52%,#F0B429 100%)!important;color:#6B4F00!important;border-color:#D4A017!important;box-shadow:0 0 0 2px rgba(212,160,23,.16),0 4px 14px rgba(212,160,23,.24)!important}
   .guest-btn.register{background:#165DFF!important;color:#FFFFFF!important}
   .crumb,.topbar .right,.title-row .t p,.banner-text p{color:#6C757D!important}
   .title-row .t h2,.banner-text h2,.sec-head h3,.page h1,.page h2,.page h3{color:#212529!important}
@@ -1955,11 +1962,11 @@
         <nav class="nav" id="adminNav">
           <div class="nav-item active" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>工作台</span></div>
           <div class="nav-item" data-page="taskgroups"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2L22 7L12 12L2 7L12 2Z"/><path d="M2 12L12 17L22 12"/><path d="M2 17L12 22L22 17"/></svg><span>任务组管理</span></div>
-           <div class="nav-item" data-page="reviewcenter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 11L12 14L20 6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12V18C20 19.1 19.1 20 18 20H6C4.9 20 4 19.1 4 18V6C4 4.9 4.9 4 6 4H14" stroke-linecap="round"/></svg><span>审核中心</span><span class="tag tag-orange" style="margin-left:auto" id="pendingBadge">0</span></div>
+           <div class="nav-item" data-page="reviewcenter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 11L12 14L20 6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12V18C20 19.1 19.1 20 18 20H6C4.9 20 4 19.1 4 18V6C4 4.9 4.9 4 6 4H14" stroke-linecap="round"/></svg><span>审核中心</span><span class="tag tag-orange" style="margin-left:auto" id="pendingBadge" hidden></span></div>
            <div class="nav-item" data-page="submissions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5H15V4"/><path d="M9 10H15M9 14H13" stroke-linecap="round"/></svg><span>待批改</span><span class="tag tag-orange" style="margin-left:auto" id="submissionsBadge" hidden></span></div>
-          <div class="nav-item" data-page="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.5"/><path d="M2 20C2 16.5 5.1 14.5 9 14.5C12.9 14.5 16 16.5 16 20" stroke-linecap="round"/><circle cx="17" cy="7" r="2.5"/><path d="M16 14C19 14 22 15.5 22 18.5" stroke-linecap="round"/></svg><span>用户管理</span><span class="tag tag-lilac" style="margin-left:auto" id="usersCount">0</span></div>
+          <div class="nav-item" data-page="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.5"/><path d="M2 20C2 16.5 5.1 14.5 9 14.5C12.9 14.5 16 16.5 16 20" stroke-linecap="round"/><circle cx="17" cy="7" r="2.5"/><path d="M16 14C19 14 22 15.5 22 18.5" stroke-linecap="round"/></svg><span>用户管理</span><span class="tag tag-lilac" style="margin-left:auto" id="usersCount" hidden></span></div>
           <div class="nav-item" data-page="permissions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l7 3v5c0 4.6-2.8 8.2-7 10-4.2-1.8-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>用户与权限</span></div>
-           <div class="nav-item" data-page="feedback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1 4.7-7.6 8.5 8.5 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke-linejoin="round"/></svg><span>反馈工单</span><span class="tag tag-red" style="margin-left:auto" id="feedbackBadge">0</span></div>
+           <div class="nav-item" data-page="feedback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1 4.7-7.6 8.38 8.38 0 0 1 8 8v.5z" stroke-linejoin="round"/></svg><span>反馈工单</span><span class="tag tag-red" style="margin-left:auto" id="feedbackBadge" hidden></span></div>
           <div class="nav-item" data-page="admin-shop" data-shop-ui><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h16l-1 12H5L4 8Z"/><path d="M8 8a4 4 0 0 1 8 0"/></svg><span>商城管理</span></div>
         </nav>
 
@@ -2228,7 +2235,7 @@
 
         <!-- ===== STUDENT: 蛋蛋要求助 ===== -->
         <section class="page" id="page-helpplaza">
-          <div class="topbar"><span class="crumb">蛋蛋世界 / 蛋蛋要求助</span><div class="right"><div class="bell-wrap user-only"><div class="bell-btn" onclick="toggleNotif(event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 9C6 5.7 8.7 3 12 3C15.3 3 18 5.7 18 9V15L20 18H4L6 15V9Z" stroke-linejoin="round"/><path d="M10 21H14" stroke-linecap="round"/></svg><span class="bell-badge">0</span></div><div class="notif-panel"></div></div></div></div>
+          <div class="topbar"><span class="crumb">蛋蛋世界 / 蛋蛋要求助</span><div class="right"><div class="bell-wrap user-only"><div class="bell-btn" onclick="toggleNotif(event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 9C6 5.7 8.7 3 12 3C15.3 3 18 5.7 18 9V15L20 18H4L6 15V9Z" stroke-linejoin="round"/><path d="M10 21H14" stroke-linecap="round"/></svg><span class="bell-badge" hidden></span></div><div class="notif-panel"></div></div></div></div>
           <div class="plaza-banner">
             <div class="banner-text">
               <h2>蛋蛋要求助 🆘</h2>
@@ -2256,7 +2263,7 @@
 
         <!-- ===== STUDENT: 蛋蛋要组队 ===== -->
         <section class="page" id="page-teamplaza">
-          <div class="topbar"><span class="crumb">蛋蛋世界 / 蛋蛋要组队</span><div class="right"><div class="bell-wrap user-only"><div class="bell-btn" onclick="toggleNotif(event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 9C6 5.7 8.7 3 12 3C15.3 3 18 5.7 18 9V15L20 18H4L6 15V9Z" stroke-linejoin="round"/><path d="M10 21H14" stroke-linecap="round"/></svg><span class="bell-badge">0</span></div><div class="notif-panel"></div></div></div></div>
+          <div class="topbar"><span class="crumb">蛋蛋世界 / 蛋蛋要组队</span><div class="right"><div class="bell-wrap user-only"><div class="bell-btn" onclick="toggleNotif(event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 9C6 5.7 8.7 3 12 3C15.3 3 18 5.7 18 9V15L20 18H4L6 15V9Z" stroke-linejoin="round"/><path d="M10 21H14" stroke-linecap="round"/></svg><span class="bell-badge" hidden></span></div><div class="notif-panel"></div></div></div></div>
           <div class="plaza-banner team-banner">
             <div class="banner-text">
               <h2 style="color:#FFE66D">蛋蛋要组队 👥</h2>
@@ -2553,7 +2560,7 @@
 
         <!-- ===== STUDENT: 个人中心 ===== -->
         <section class="page" id="page-profile">
-          <div class="topbar"><span class="crumb">蛋蛋世界 / 个人中心</span><div class="profile-top-actions"><div class="profile-identity-summary" id="profileIdentitySummary"><span class="profile-identity-avatar" id="profileIdentityAvatar">蛋</span><span class="profile-identity-text"><span class="name" id="profileNickname">登录后加载</span><span class="school" id="profileSchool">学校未填写</span></span></div><button class="btn btn-ghost btn-sm" onclick="openCharModal()">切换角色</button></div></div>
+          <div class="topbar"><span class="crumb">蛋蛋世界 / 个人中心</span><div class="profile-top-actions"><div class="profile-identity-summary" id="profileIdentitySummary"><span class="profile-identity-avatar" id="profileIdentityAvatar">蛋</span><span class="profile-identity-text"><span class="name" id="profileNickname">登录后加载</span><span class="administrator-badge" id="profileAdministratorBadge" title="该账号拥有管理权限">◆ 管理员</span><span class="school" id="profileSchool">学校未填写</span></span></div><button class="btn btn-ghost btn-sm" onclick="openCharModal()">切换角色</button></div></div>
 
           <!-- 蛋仔角色展示区 -->
           <div class="char-section" id="charSection">
@@ -3179,6 +3186,7 @@
           <div class="user-egg-rarity-badge" id="userEggRarityBadge">SSR</div>
         </div>
         <div class="user-egg-name" id="userEggName">用户资料</div>
+        <div class="administrator-badge user-egg-admin-badge" id="userEggAdminBadge" title="该账号拥有管理权限">◆ 管理员</div>
         <div class="user-egg-subtitle" id="userEggSubtitle">正在加载</div>
         <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
           <span class="user-egg-exp-badge" id="userEggExpBadge">⚡ 经验值 0</span>
@@ -3205,6 +3213,9 @@
     var px = Number(size) || 30;
     var path = isAdminAvatarAsset(pathOverride) ? pathOverride : (isAdminAvatarAsset(adminAvatarPath) ? adminAvatarPath : ADMIN_AVATAR_DEFAULT);
     return '<img src="' + escapeHtml(path) + '" alt="管理员头像" style="width:' + px + 'px;height:' + px + 'px;object-fit:cover;border-radius:50%;display:block">';
+  }
+  function administratorBadgeMarkup(extraClass){
+    return '<span class="administrator-badge visible' + (extraClass ? ' ' + extraClass : '') + '" title="该账号拥有管理权限">◆ 管理员</span>';
   }
   /* Inquiry records are hydrated from the API after login; start with no bundled records. */
   var GOSSIP_POSTS = [];
@@ -3709,14 +3720,11 @@
   }
   function updateNotifBadge(){
     var cnt = notifications.filter(function(n){ return n.unread; }).length;
-    var adminBadge = document.getElementById('notifBadge');
-    var stuBadge = document.getElementById('notifBadgeStudent');
+    var badges = document.querySelectorAll('.bell-badge');
     if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge){
-      window.DandanIdentityView.renderUnreadBadge(adminBadge, cnt);
-      window.DandanIdentityView.renderUnreadBadge(stuBadge, cnt);
+      badges.forEach(function(badge){ window.DandanIdentityView.renderUnreadBadge(badge, cnt); });
     } else {
-      if(adminBadge){ adminBadge.textContent = cnt > 0 ? String(cnt) : ''; adminBadge.hidden = cnt === 0; }
-      if(stuBadge){ stuBadge.textContent = cnt > 0 ? String(cnt) : ''; stuBadge.hidden = cnt === 0; }
+      badges.forEach(function(badge){ badge.textContent = cnt > 0 ? String(cnt) : ''; badge.hidden = cnt === 0; });
     }
   }
   function renderNotifPanel(){
@@ -4278,7 +4286,8 @@
     if(submissionsSummary) submissionsSummary.textContent = subs.length ? '共 ' + subs.length + ' 份提交待批改，请尽快处理' : '暂无待批改提交';
 
     var revBadge = document.getElementById('pendingBadge');
-    if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(revBadge, pending.length, {showZero:true});
+    if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(revBadge, pending.length);
+    else if(revBadge){ revBadge.textContent = pending.length ? String(pending.length) : ''; revBadge.hidden = pending.length === 0; }
   }
 
   function renderAdminReviewQueue(tasks){
@@ -4318,7 +4327,9 @@
   function renderUsers(){
     var table = document.getElementById('usersTableBody');
     if(!table) return;
-    document.getElementById('usersCount').textContent = adminWorkspace.users.length;
+    var usersBadge = document.getElementById('usersCount');
+    if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(usersBadge, adminWorkspace.users.length);
+    else if(usersBadge){ usersBadge.textContent = adminWorkspace.users.length ? String(adminWorkspace.users.length) : ''; usersBadge.hidden = adminWorkspace.users.length === 0; }
     if(!adminWorkspace.users.length){ table.innerHTML = '<div class="empty-state">暂无用户数据</div>'; return; }
     table.innerHTML = adminWorkspace.users.map(function(u){
       var lv = getLevel(u.exp);
@@ -4521,7 +4532,7 @@
   function updateFeedbackBadge(){
     var pending = feedbackWorkspace.admin.filter(function(record){ return record.status === 'pending'; }).length;
     var replied = feedbackWorkspace.admin.filter(function(record){ return Array.isArray(record.messages) && record.messages.some(function(message){ return message.authorType === 'admin'; }); }).length;
-    var badge = document.getElementById('feedbackBadge'); if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(badge, pending, {showZero:true});
+    var badge = document.getElementById('feedbackBadge'); if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(badge, pending); else if(badge){ badge.textContent = pending ? String(pending) : ''; badge.hidden = pending === 0; }
     var pendingTag = document.getElementById('fbPendingTag'); if(pendingTag) pendingTag.textContent = '待处理 ' + pending;
     var repliedTag = document.getElementById('fbRepliedTag'); if(repliedTag) repliedTag.textContent = '已回复 ' + replied;
   }
@@ -5186,6 +5197,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var publisherInitial = publisherName.charAt(0) || '蛋';
     var publisherColor = publisherEggCategory === '学业技术' ? '#E91E63' : publisherEggCategory === '就业技能' ? '#2196F3' : publisherEggCategory === '副业技能' ? '#F59E0B' : publisherEggCategory === '兴趣爱好' ? '#8B5CF6' : publisherEggCategory === '游戏搭子' ? '#10B981' : '#64748B';
     var publisherAvatar = publisher && publisher.isAdministrator ? adminAvatarMarkup(30) : escapeHtml(publisherInitial);
+    var publisherAdminBadge = publisher && publisher.isAdministrator ? administratorBadgeMarkup('task-card-admin-badge') : '';
     var publisherClick = publisher && publisher.id ? ' onclick="event.stopPropagation();showUserEggModal(\'' + escapeInlineString(publisherName) + '\',\'' + escapeInlineString(publisher.id) + '\')"' : '';
     var publishExpReward = Number(task.publishExpReward || 0);
     var card = document.createElement('div');
@@ -5208,7 +5220,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var kind = type === 'help' ? '求助型' : type === 'team' ? '组队型' : type === 'reward' ? '奖励型' : '教学型';
     var taskTags = [task.skillCategory, task.skillSubcategory, kind, mode].filter(Boolean);
     card.innerHTML = '<div class="head task-card-title-row"><span class="nm">' + escapeHtml(task.title || '未命名任务') + '</span><div class="gap6 task-card-tags">' + taskTags.slice(0, 4).map(function(tag){ return '<span class="claim-mode">' + escapeHtml(tag) + '</span>'; }).join('') + '<span class="tag tag-green">' + status + '</span></div></div>' +
-      '<div class="publisher task-card-publisher"><span class="task-card-avatar" style="background:' + publisherColor + '"' + (publisher && publisher.isAdministrator ? ' data-admin-avatar data-avatar-size="30"' : '') + publisherClick + '>' + publisherAvatar + '</span><span class="pname"' + publisherClick + '>发布者 ' + escapeHtml(publisherName) + '</span><span class="tag tag-lilac">' + escapeHtml(publisherCategoryLabel) + ' · ' + escapeHtml(publisherRarityLabel) + '</span><span class="tag tag-gold">' + (type === 'reward' ? '完成奖励 ' : '蛋蛋币 ') + Number(task.reward || 0) + '</span><span class="tag tag-blue">经验值 ' + publishExpReward + '</span></div>' +
+      '<div class="publisher task-card-publisher"><span class="task-card-avatar" style="background:' + publisherColor + '"' + (publisher && publisher.isAdministrator ? ' data-admin-avatar data-avatar-size="30"' : '') + publisherClick + '>' + publisherAvatar + '</span><span class="pname"' + publisherClick + '>发布者 ' + escapeHtml(publisherName) + '</span>' + publisherAdminBadge + '<span class="tag tag-lilac">' + escapeHtml(publisherCategoryLabel) + ' · ' + escapeHtml(publisherRarityLabel) + '</span><span class="tag tag-gold">' + (type === 'reward' ? '完成奖励 ' : '蛋蛋币 ') + Number(task.reward || 0) + '</span><span class="tag tag-blue">经验值 ' + publishExpReward + '</span></div>' +
       '<div class="desc">' + escapeHtml(task.description || '') + '</div>' +
       '<div class="foot task-card-rewards task-card-progress"><span class="claim-info"><span class="claim-count">' + Number(task.activeClaimCount || 0) + (task.maxClaimers ? '/' + Number(task.maxClaimers) : '') + '</span></span><button class="btn btn-primary btn-sm claim-btn">查看详情</button></div>';
     return card;
@@ -6366,6 +6378,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       var avatarEl = publisher.querySelector('.task-card-avatar');
       var avatarHtml = avatarEl ? avatarEl.innerHTML : escapeHtml(pname.charAt(0) || '蛋');
       var avatarAttrs = avatarEl && avatarEl.hasAttribute('data-admin-avatar') ? ' data-admin-avatar data-avatar-size="44"' : '';
+      var publisherAdminBadge = avatarEl && avatarEl.hasAttribute('data-admin-avatar') ? administratorBadgeMarkup('task-detail-admin-badge') : '';
       var publisherIdForClick = card.getAttribute('data-publisher-id') || '';
       var publisherClick = publisherIdForClick ? ' onclick="showUserEggModal(\'' + escapeInlineString(pname) + '\',\'' + escapeInlineString(publisherIdForClick) + '\')"' : '';
       var pubTagsHtml = '';
@@ -6376,7 +6389,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         '<div class="td-pub-header">' +
         '<div class="td-pub-avatar-wrap"' + avatarAttrs + publisherClick + ' style="width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--primary-tint);display:flex;align-items:center;justify-content:center;font-weight:700">' + avatarHtml + '</div>' +
         '<div class="td-pub-info">' +
-          '<div class="td-pub-name"' + publisherClick + '>' + escapeHtml(pname) + '</div>' +
+          '<div class="td-pub-name"' + publisherClick + '>' + escapeHtml(pname) + '</div>' + publisherAdminBadge +
         '<div class="td-pub-tags">' + pubTagsHtml + '</div></div></div>' +
       '</div>';
     } else {
@@ -7436,7 +7449,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         stats: u.stats || {},
         skills: Array.isArray(profile.skills) ? profile.skills : [],
         likes: Number(profile.likes || 0),
-        eggCoins: Number(u.coins || 0)
+        eggCoins: Number(u.coins || 0),
+        isAdministrator: Boolean(profile.isAdministrator)
       };
     } catch(error) { toast(error.message || '用户资料加载失败'); return; }
     // 关闭排行榜弹窗，打开统一的用户资料弹窗
@@ -7654,6 +7668,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     if(schoolEl) schoolEl.textContent = USER.school || '学校未填写';
     var identityAvatar = document.getElementById('profileIdentityAvatar');
     if(identityAvatar){ identityAvatar.innerHTML = USER.isAdministrator ? adminAvatarMarkup(34) : escapeHtml((USER.nickname || '蛋').charAt(0)); }
+    var profileAdminBadge = document.getElementById('profileAdministratorBadge');
+    if(profileAdminBadge) profileAdminBadge.classList.toggle('visible', Boolean(USER.isAdministrator));
     document.getElementById('infoEmail').textContent = USER.email || '未填写';
     document.getElementById('infoSchool').textContent = USER.school || '未填写';
     document.getElementById('infoCity').textContent = USER.city || '未填写';
@@ -8280,7 +8296,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         var profileId = String(profile.id || userId);
         var profileName = profile.nickname || userName;
         var profileRep = Number(profile.reputation || 0);
-        user = { id:profileId, nickname:profileName, avatar:profileName.charAt(0), avatarColor:'#4A90D9', egg:profile.eggCategory || null, rarity:profile.eggRarity || 'N', mbtiType:profile.mbtiType || '—', mbtiNick:profile.mbtiType ? (MBTI_NICKNAMES[profile.mbtiType] || '') : '', level:getLevel(0).name, exp:0, reputation:profileRep, school:profile.school || '未填写', major:profile.major || '未填写', grade:profile.grade || '未填写', city:profile.city || '未填写', bio:profile.bio || '暂未填写自我介绍', stats:{knowledge:0,skills:0,charm:0,money:0,reputation:profileRep}, skills:Array.isArray(profile.skills) ? profile.skills : [], likes:Number(profile.likes || 0), eggCoins:'—' };
+        user = { id:profileId, nickname:profileName, avatar:profileName.charAt(0), avatarColor:'#4A90D9', egg:profile.eggCategory || null, rarity:profile.eggRarity || 'N', mbtiType:profile.mbtiType || '—', mbtiNick:profile.mbtiType ? (MBTI_NICKNAMES[profile.mbtiType] || '') : '', level:getLevel(0).name, exp:0, reputation:profileRep, school:profile.school || '未填写', major:profile.major || '未填写', grade:profile.grade || '未填写', city:profile.city || '未填写', bio:profile.bio || '暂未填写自我介绍', stats:{knowledge:0,skills:0,charm:0,money:0,reputation:profileRep}, skills:Array.isArray(profile.skills) ? profile.skills : [], likes:Number(profile.likes || 0), eggCoins:'—', isAdministrator:Boolean(profile.isAdministrator) };
         publicProfiles[profileName] = user;
       } catch(error){ toast(error.message || '用户资料加载失败'); return; }
     }
@@ -8307,7 +8323,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
           stats: USER.stats,
           skills: USER.skills || [],
           likes: 0,
-          eggCoins: USER.eggCoins || 0
+          eggCoins: USER.eggCoins || 0,
+          isAdministrator: Boolean(USER.isAdministrator)
         };
       } else { toast('该用户资料暂不可用'); return; }
     }
@@ -8348,6 +8365,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     document.getElementById('userEggAvatar').style.background = avatarBg;
     document.getElementById('userEggRarityBadge').textContent = user.rarity || 'N';
     document.getElementById('userEggName').textContent = user.nickname;
+    var userEggAdminBadge = document.getElementById('userEggAdminBadge');
+    if(userEggAdminBadge) userEggAdminBadge.classList.toggle('visible', Boolean(user.isAdministrator));
     document.getElementById('userEggSubtitle').textContent = (user.mbtiType || 'MBTI 未设置') + ' ' + (user.mbtiNick || '') + ' · ' + eggLabel + ' ' + (user.egg || '角色未设置');
     document.getElementById('userEggExpBadge').textContent = '⚡ 经验值 ' + user.exp;
 
@@ -8604,4 +8623,3 @@ async function createPublisherProduct(){var type=document.getElementById('publis
 </script>
 </body>
 </html>
-

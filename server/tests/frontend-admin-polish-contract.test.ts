@@ -24,6 +24,14 @@ describe('frontend admin and interaction polish contract', () => {
     expect(host).toContain("publisher && publisher.isAdministrator ? adminAvatarMarkup(30)");
   });
 
+  it('surfaces administrator identity on task, profile, and user surfaces', () => {
+    expect(host).toContain("administratorBadgeMarkup('task-card-admin-badge')");
+    expect(host).toContain('administratorBadgeMarkup(\'task-detail-admin-badge\')');
+    expect(host).toContain('id="profileAdministratorBadge"');
+    expect(host).toContain('id="userEggAdminBadge"');
+    expect(host).toContain('user.isAdministrator');
+  });
+
   it('keeps the profile edit entry below the identity area and hides invite code UI', () => {
     const profileTop = host.slice(host.indexOf('id="page-profile"'), host.indexOf('id="charSection"'));
     expect(profileTop).not.toContain('openProfileEditor()');

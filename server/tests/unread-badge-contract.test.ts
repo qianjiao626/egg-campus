@@ -45,13 +45,16 @@ describe('unread badge contract', () => {
     expect(badge).toEqual({ hidden: false, textContent: '0' });
   });
 
-  it('ships notification and submission badges as empty hidden badges', () => {
+  it('ships all static unread badges as empty hidden badges', () => {
     const html = readFileSync(resolve(process.cwd(), '..', 'backend-handoff-package', 'growth-school.html'), 'utf8');
-    for (const id of ['notifBadge', 'notifBadgeStudent', 'submissionsBadge']) {
+    for (const id of ['notifBadge', 'notifBadgeStudent', 'submissionsBadge', 'pendingBadge', 'usersCount', 'feedbackBadge']) {
       expect(html).toMatch(new RegExp(`<span[^>]*id="${id}"[^>]*hidden[^>]*><\\/span>`));
     }
-    expect(html).toMatch(/<span[^>]*id="pendingBadge"[^>]*>0<\/span>/);
-    expect(html).toMatch(/<span[^>]*id="feedbackBadge"[^>]*>0<\/span>/);
+    expect(html).toContain('.tag[hidden],.bell-badge[hidden]{display:none!important}');
+    expect(html).not.toMatch(/id="(?:pendingBadge|usersCount|feedbackBadge)"[^>]*>0<\/span>/);
+    expect(html).toContain('renderUnreadBadge(revBadge, pending.length)');
+    expect(html).toContain('renderUnreadBadge(usersBadge, adminWorkspace.users.length)');
+    expect(html).toContain('renderUnreadBadge(badge, pending)');
     expect(html).toContain('class="bell-btn"');
     expect(html).toContain('data-page="reviewcenter"');
     expect(html).toContain('data-page="submissions"');
