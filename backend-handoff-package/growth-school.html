@@ -1788,6 +1788,13 @@
   #page-mytasks .task-published-block > .card > div:nth-child(2),#page-mytasks .task-claimed-block > .card > div:nth-child(2){font-size:17px!important;font-weight:750!important;line-height:1.35;color:#212529!important}
   #page-mytasks .task-published-block > .card .done-txt,#page-mytasks .task-claimed-block > .card > div:nth-child(3){color:#6C757D!important;background:#F5F7FA!important;border-radius:10px;padding:10px 12px;line-height:1.65!important}
   #page-mytasks .task-published-block > .card [style*="color:var(--muted)"],#page-mytasks .task-claimed-block > .card [style*="color:var(--muted)"]{color:#6C757D!important}
+  #page-mytasks .task-published-block > .card.pub-teach,#page-mytasks .task-claimed-block > .card[data-task-type="teach"]{background:linear-gradient(135deg,#FFFFFF 0%,#F2F5FF 100%)!important}
+  #page-mytasks .task-published-block > .card.pub-help,#page-mytasks .task-claimed-block > .card[data-task-type="help"]{background:linear-gradient(135deg,#FFFFFF 0%,#F0FBF7 100%)!important}
+  #page-mytasks .task-published-block > .card.pub-team,#page-mytasks .task-claimed-block > .card[data-task-type="team"]{background:linear-gradient(135deg,#FFFFFF 0%,#EFFBFD 100%)!important}
+  #page-mytasks .task-published-block > .card.pub-reward,#page-mytasks .task-claimed-block > .card[data-task-type="reward"]{background:linear-gradient(135deg,#FFFFFF 0%,#FFF8E8 100%)!important}
+  #page-mytasks .mytask-empty{padding:30px 20px!important;text-align:center;background:linear-gradient(135deg,#F2F5FF 0%,#FFF4F8 52%,#FFF8E8 100%)!important;border:1px dashed #B8C6E8!important;border-radius:16px!important;color:#495057!important;font-size:14px!important;font-weight:650!important;box-shadow:0 8px 20px rgba(22,93,255,.08)!important}
+  .user-card .administrator-badge{background:linear-gradient(135deg,#FFF3C4 0%,#FFE08A 100%)!important;border-color:#D4A017!important;color:#6B4F00!important;box-shadow:0 0 0 2px rgba(212,160,23,.16),0 4px 14px rgba(212,160,23,.22)!important}
+  .user-card .administrator-badge::after{background:radial-gradient(circle at 12% 45%,rgba(255,255,255,.95) 0 1px,transparent 1.7px),radial-gradient(circle at 68% 30%,rgba(255,255,255,.8) 0 1px,transparent 1.7px),linear-gradient(100deg,transparent 30%,rgba(255,255,255,.85) 50%,transparent 70%)!important;background-size:23px 18px,31px 21px,100% 100%!important;opacity:.82!important}
   #page-profile .points-rule .rule .txt,#page-profile [style*="color:var(--muted)"],#page-profile [style*="color:var(--coral)"]{color:#6C757D!important}
   #page-profile .points-rule .rule .num{color:#165DFF!important}
   #page-profile .points-rule .rule:nth-child(1) .num{color:#198754!important}
@@ -2437,12 +2444,12 @@
           <div class="mytask-tab-panel active" id="mytask-tab-teach">
             <div class="sec-head task-claimed-block"><h3>我认领的任务</h3></div>
             <div class="task-claimed-block" id="myClaimedListTeach" style="display:flex;flex-direction:column;gap:16px">
-              <div style="font-size:13px;color:var(--muted);padding:24px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border)">没有已认领的任务（教学）</div>
+              <div class="mytask-empty" data-empty-kind="claimed" >您还没认领任务呢~~快去认领你的第一个任务吧~~</div>
             </div>
 
             <div class="sec-head task-published-block"><h3>我发布的任务</h3></div>
             <div class="task-published-block" id="myPublishedListTeach" style="display:flex;flex-direction:column;gap:16px">
-              <div class="empty-state">暂无发布记录</div>
+              <div class="mytask-empty" data-empty-kind="published">您还没发布任务呢~~快去发布你的第一个任务吧~~</div>
             </div>
           </div>
 
@@ -2450,12 +2457,12 @@
           <div class="mytask-tab-panel" id="mytask-tab-team">
             <div class="sec-head task-claimed-block"><h3>我认领的任务</h3></div>
             <div class="task-claimed-block" id="myClaimedListTeam" style="display:flex;flex-direction:column;gap:16px">
-              <div style="font-size:13px;color:var(--muted);padding:24px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border)">没有已认领的组队任务</div>
+              <div class="mytask-empty" data-empty-kind="claimed">您还没认领任务呢~~快去认领你的第一个任务吧~~</div>
             </div>
 
             <div class="sec-head task-published-block"><h3>我发布的任务</h3></div>
             <div class="task-published-block" id="myPublishedListTeam" style="display:flex;flex-direction:column;gap:16px">
-              <div class="empty-state">暂无发布记录</div>
+              <div class="mytask-empty" data-empty-kind="published">您还没发布任务呢~~快去发布你的第一个任务吧~~</div>
             </div>
           </div>
 
@@ -2463,19 +2470,19 @@
           <div class="mytask-tab-panel" id="mytask-tab-help">
             <div class="sec-head task-claimed-block"><h3>我认领的任务</h3></div>
             <div class="task-claimed-block" id="myClaimedListHelp" style="display:flex;flex-direction:column;gap:16px">
-              <div style="font-size:13px;color:var(--muted);padding:24px;text-align:center;background:var(--card);border-radius:14px;border:1px dashed var(--border)">没有已认领的求助任务</div>
+              <div class="mytask-empty" data-empty-kind="claimed">您还没认领任务呢~~快去认领你的第一个任务吧~~</div>
             </div>
 
             <div class="sec-head task-published-block"><h3>我发布的任务</h3></div>
             <div class="task-published-block" id="myPublishedListHelp" style="display:flex;flex-direction:column;gap:16px">
-              <div class="empty-state">暂无发布记录</div>
+              <div class="mytask-empty" data-empty-kind="published">您还没发布任务呢~~快去发布你的第一个任务吧~~</div>
             </div>
           </div>
           <div class="mytask-tab-panel" id="mytask-tab-reward">
             <div class="sec-head task-claimed-block"><h3>我认领的奖励任务</h3></div>
-            <div class="task-claimed-block" id="myClaimedListReward" style="display:flex;flex-direction:column;gap:16px"><div class="empty-state">没有已认领的奖励任务</div></div>
+            <div class="task-claimed-block" id="myClaimedListReward" style="display:flex;flex-direction:column;gap:16px"><div class="mytask-empty" data-empty-kind="claimed">您还没认领任务呢~~快去认领你的第一个任务吧~~</div></div>
             <div class="sec-head task-published-block"><h3>我发布的奖励任务</h3></div>
-            <div class="task-published-block" id="myPublishedListReward" style="display:flex;flex-direction:column;gap:16px"><div class="empty-state">暂无发布记录</div></div>
+            <div class="task-published-block" id="myPublishedListReward" style="display:flex;flex-direction:column;gap:16px"><div class="mytask-empty" data-empty-kind="published">您还没发布任务呢~~快去发布你的第一个任务吧~~</div></div>
           </div>
           </div>
           <div class="task-hub-panel" id="myTaskInquiryHub" hidden>
@@ -5115,6 +5122,11 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag tag-lilac">' + claimLabel + '</span><span style="font-size:12px;color:var(--muted)">发布于 ' + formatDateYmd(task.createdAt) + '</span></div><div style="font-size:15px;font-weight:600">' + escapeHtml(task.title || '任务') + '</div><div style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description || '') + '</div>' + rewardLabel + cancellationActions + controls + completedRatingAction;
     list.appendChild(card);
   }
+  function ensureMyTaskEmptyState(list, kind){
+    if(!list || list.querySelector('[data-task-id]')) return;
+    var text = kind === 'claimed' ? '您还没认领任务呢~~快去认领你的第一个任务吧~~' : '您还没发布任务呢~~快去发布你的第一个任务吧~~';
+    list.innerHTML = '<div class="mytask-empty" data-empty-kind="' + kind + '">' + text + '</div>';
+  }
   function openClaimerRating(button){
     var card = button && button.closest('[data-claim-id]');
     if(!card) return;
@@ -5157,6 +5169,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       });
       (result.tasks || []).filter(function(task){ return String(task.userId) === String(USER.id); }).forEach(renderSyncedPublishedTask);
       (claimedResult.claims || []).forEach(renderSyncedClaimedTask);
+      ['myPublishedListTeach','myPublishedListTeam','myPublishedListHelp','myPublishedListReward'].forEach(function(id){ ensureMyTaskEmptyState(document.getElementById(id), 'published'); });
+      ['myClaimedListTeach','myClaimedListTeam','myClaimedListHelp','myClaimedListReward'].forEach(function(id){ ensureMyTaskEmptyState(document.getElementById(id), 'claimed'); });
       filterMyPublishedTasks(currentMyPublishedStatus);
     }catch(error){ toast(error.message || '任务加载失败，请稍后重试'); }
   }
