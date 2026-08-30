@@ -1795,11 +1795,18 @@
   #page-profile .profile-rules-card > div{color:#212529}
   #page-profile .profile-rules-card [style*="color:var(--muted)"],#page-profile .profile-rules-card [style*="font-size:11px"]{color:#6C757D!important}
   #page-profile .profile-rules-card [style*="background:var(--bg2)"]{background:#F8F9FA!important;border:1px solid #E9ECEF}
+  #page-profile .profile-rule-metric{display:flex;align-items:center;justify-content:space-between;gap:8px;line-height:1.3}
+  #page-profile .profile-rule-score{flex:none;padding:3px 8px;border:1px solid currentColor;border-radius:999px;background:rgba(255,255,255,.78);font-size:12px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:inherit}
   .user-card{min-width:0!important;gap:8px!important}
   .user-card .info{min-width:0!important;overflow:hidden!important}
   .user-card .info .u-name,.user-card .info .u-role{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .user-card .administrator-badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .user-card .logout{flex:0 0 auto;white-space:nowrap}
+  .user-card{height:auto!important;min-height:64px!important;padding:8px 12px!important}
+  .invite-row-btn{background:linear-gradient(135deg,#E85D3A 0%,#C94A54 100%)!important;color:#FFFFFF!important;box-shadow:0 4px 12px rgba(201,74,84,.28)!important}
+  .invite-row-btn:hover{background:linear-gradient(135deg,#D94F35 0%,#B83F4A 100%)!important}
+  #page-profile .profile-rules-card [style*="color:var(--muted)"],#page-profile .profile-rules-card [style*="font-size:11px"],#page-profile .profile-rules-card .txt{color:#495057!important}
+  #page-profile .profile-rules-card > div{color:#343A40}
   .char-display{box-shadow:0 10px 24px rgba(33,37,41,.16)!important}
   .char-frame.frame-N{border:0!important;box-shadow:none!important}
   .banner-text .badges .rainbow-label{display:inline-block;background:linear-gradient(90deg,#F2387A 0%,#F59E0B 25%,#16A34A 50%,#0891B2 75%,#165DFF 100%);background-clip:text;-webkit-background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent!important;font-weight:700}
@@ -2687,11 +2694,11 @@
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span style="font-size:14px;font-weight:700;color:var(--purple)">📊 五维能力值</span><span class="tag" style="background:var(--purple-tint);color:var(--purple);font-size:11px">前四维每完成+1</span></div>
               <div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:8px">定义：学识/打工/魅力/搞钱四项通过完成任务提升（初始0，上限10）。口碑值由任务参与方互评决定（0-5星平均分，满分5）。五维总分影响蛋蛋要上榜排行。</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
-                <div style="padding:8px 12px;border-radius:8px;background:var(--bg2)"><div style="font-weight:600;color:#4ECDC4">📖 学识值</div><div style="font-size:11px;color:var(--muted)">学业技术类任务</div></div>
-                <div style="padding:8px 12px;border-radius:8px;background:var(--bg2)"><div style="font-weight:600;color:#FFB84D">💼 打工值</div><div style="font-size:11px;color:var(--muted)">就业技能类任务</div></div>
-                <div style="padding:8px 12px;border-radius:8px;background:var(--bg2)"><div style="font-weight:600;color:#FF6B6B">💰 搞钱值</div><div style="font-size:11px;color:var(--muted)">副业技能类任务</div></div>
-                <div style="padding:8px 12px;border-radius:8px;background:var(--bg2)"><div style="font-weight:600;color:#A78BFA">🎯 魅力值</div><div style="font-size:11px;color:var(--muted)">兴趣/游戏/生活类任务</div></div>
-                <div style="padding:8px 12px;border-radius:8px;background:#FF980015;grid-column:span 2;border:1px solid #FF980038"><div style="font-weight:600;color:#FF9800">⭐ 口碑值</div><div style="font-size:11px;color:var(--muted)">任务完成后参与方互评（0-5星平均分，满分5分）</div></div>
+                <div style="padding:8px 12px;border-radius:8px;background:var(--bg2)"><div class="profile-rule-metric" style="font-weight:600;color:#4ECDC4"><span>📖 学识值</span><span class="profile-rule-score" data-profile-stat="knowledge">0/10</span></div><div style="font-size:11px;color:var(--muted)">学业技术类任务</div></div>
+                <div style="padding:8px 12px;border-radius:8px;background:var(--bg2)"><div class="profile-rule-metric" style="font-weight:600;color:#FFB84D"><span>💼 打工值</span><span class="profile-rule-score" data-profile-stat="skills">0/10</span></div><div style="font-size:11px;color:var(--muted)">就业技能类任务</div></div>
+                <div style="padding:8px 12px;border-radius:8px;background:var(--bg2)"><div class="profile-rule-metric" style="font-weight:600;color:#FF6B6B"><span>💰 搞钱值</span><span class="profile-rule-score" data-profile-stat="money">0/10</span></div><div style="font-size:11px;color:var(--muted)">副业技能类任务</div></div>
+                <div style="padding:8px 12px;border-radius:8px;background:var(--bg2)"><div class="profile-rule-metric" style="font-weight:600;color:#A78BFA"><span>🎯 魅力值</span><span class="profile-rule-score" data-profile-stat="charm">0/10</span></div><div style="font-size:11px;color:var(--muted)">兴趣/游戏/生活类任务</div></div>
+                <div style="padding:8px 12px;border-radius:8px;background:#FF980015;grid-column:span 2;border:1px solid #FF980038"><div class="profile-rule-metric" style="font-weight:600;color:#FF9800"><span>⭐ 口碑值</span><span class="profile-rule-score" data-profile-stat="reputation">0/5</span></div><div style="font-size:11px;color:var(--muted)">任务完成后参与方互评（0-5星平均分，满分5分）</div></div>
               </div>
             </div>
 
@@ -3383,6 +3390,7 @@
     // 五维属性芯片
     var statChipsEl = document.getElementById('profileStatChips');
     if(statChipsEl) statChipsEl.innerHTML = renderStatChips(USER.stats);
+    renderProfileRuleScores(USER.stats);
 
     // 已解锁栏
     renderCharUnlocked();
@@ -3534,6 +3542,17 @@
   };
 
   /* 五维属性芯片HTML */
+  function renderProfileRuleScores(stats){
+    document.querySelectorAll('[data-profile-stat]').forEach(function(node){
+      var key = node.getAttribute('data-profile-stat');
+      var sl = STAT_LABELS[key];
+      if(!sl) return;
+      var val = Number(stats && stats[key] || 0);
+      var max = Number(sl.max || 10);
+      node.textContent = Math.max(0, Math.min(max, val)) + '/' + max;
+    });
+  }
+
   function renderStatChips(stats){
     var keys = ['knowledge','skills','charm','money','reputation'];
     var descs = {knowledge:'学习', skills:'就业', charm:'娱乐', money:'搞钱', reputation:'互评'};
