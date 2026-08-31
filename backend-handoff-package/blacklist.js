@@ -66,34 +66,9 @@
     var title = root('blRankHeadTitle'); if (title) { var metric = metrics.find(function (item) { return item.key === state.metric; }); title.textContent = '🔥 蛋蛋大学吐槽榜 - ' + (metric ? metric.name : '吐槽总榜'); }
   }
 
-  var AVATAR_GRADIENTS = [
-    'linear-gradient(135deg,#667EEA,#764BA2)',
-    'linear-gradient(135deg,#F093FB,#F5576C)',
-    'linear-gradient(135deg,#4FACFE,#00F2FE)',
-    'linear-gradient(135deg,#43E97B,#38F9D7)',
-    'linear-gradient(135deg,#FA709A,#FEE140)',
-    'linear-gradient(135deg,#30CFD0,#330867)'
-  ];
-  function schoolAvatar(name) {
-    var s = String(name || '校');
-    var sum = 0;
-    for (var i = 0; i < s.length; i++) sum += s.charCodeAt(i);
-    var ch = s.replace(/^蛋蛋世界的?/, '').replace(/^🏫\s*/, '').charAt(0) || s.charAt(0);
-    return '<span class="bl-avatar" style="background:' + AVATAR_GRADIENTS[sum % AVATAR_GRADIENTS.length] + '">' + esc(ch) + '</span>';
-  }
-  function starRating(score) {
-    var full = Math.max(0, Math.min(5, Math.round((Number(score) || 0) / 2)));
-    var html = '<span class="bl-stars" aria-label="' + (Number(score) || 0).toFixed(1) + ' 分">';
-    for (var i = 1; i <= 5; i++) html += '<span class="' + (i <= full ? 's-on' : 's-off') + '">★</span>';
-    return html + '</span>';
-  }
   function wallCard(row) {
-    var schoolName = row.displayName || row.schoolName || '';
     var score = Number(row.averageScore || row.score || 0);
-    var content = row.content || row.text || '仅留下评分';
-    var maskedUser = row.nickname || row.userName || '匿名用户';
-    var timeStr = formatTime(row.createdAt || row.time);
-    return '<article class="bl-wall-card">' + schoolAvatar(schoolName) + '<div class="bl-wall-card-main"><div class="bl-wall-card-head"><span class="bl-wall-card-school">' + esc(schoolName) + '</span><span class="bl-wall-card-meta">' + starRating(score) + '<span class="bl-wall-card-score">' + score.toFixed(1) + ' 分</span><span class="bl-wall-card-time">' + esc(timeStr) + '</span></span></div>' + (content ? '<div class="bl-wall-card-text">' + esc(content) + '</div>' : '') + '<div class="bl-wall-card-user">' + esc(maskedUser) + '</div></div></article>';
+    return '<article class="bl-wall-card"><div class="bl-wall-card-head"><span class="bl-wall-card-school">🏫 ' + esc(row.displayName || row.schoolName || '') + '</span><span class="bl-wall-card-score" style="color:' + scoreColor(score) + ';background:' + scoreBg(score) + '">' + score.toFixed(1) + ' 分</span><time class="bl-wall-card-time">' + esc(formatTime(row.createdAt || row.time)) + '</time></div><div class="bl-wall-card-text">' + esc(row.content || row.text || '仅留下评分') + '</div><div class="bl-wall-card-user">— ' + esc(row.nickname || row.userName || '匿名用户') + '</div></article>';
   }
 
   function renderWall(result) {
