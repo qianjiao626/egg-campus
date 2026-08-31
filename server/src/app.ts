@@ -229,6 +229,44 @@ async function applyBuddyPointDelta(
   return { duplicate: false, availableBalance: next.availableBalance, frozenBalance: next.frozenBalance };
 }
 
+export async function trySettleTeamTask(tx: Prisma.TransactionClient, taskId: bigint): Promise<boolean> {
+  const task = await tx.task.findUnique({ where: { id: taskId } });
+  if (!task || task.taskType !== 'team' || task.teamSettledAt) return false;
+
+  const completedClaims = await tx.taskClaim.findMany({ where: { taskId, status: 'completed' } });
+  const members = [task.userId, ...completedClaims.map((claim) => claim.claimerId)];
+  if (members.length < 2) return false;
+
+  const requiredPairs = members.length * (members.length - 1);
+  const ratings = await tx.rating.findMany({ where: { taskId, fromUserId: { in: members }, toUserId: { in: members } } });
+  const deadlinePassed = task.completedAt ? Date.now() - task.completedAt.getTime() > 7 * 24 * 60 * 60 * 1000 : false;
+  if (ratings.length < requiredPairs && !deadlinePassed) return false;
+
+  const locked = await tx.task.updateMany({ where: { id: taskId, teamSettledAt: null }, data: { teamSettledAt: new Date() } });
+  if (locked.count !== 1) return false;
+
+  for (const claim of completedClaims) {
+    if (!claim.frozenAmount || claim.frozenAmount <= 0) continue;
+    const incoming = ratings.filter((rating) => rating.toUserId === claim.claimerId);
+    const count = incoming.length;
+    if (count === 0) continue;
+    const dropoutVotes = incoming.filter((rating) => rating.isDropoutVote).length;
+    const average = incoming.reduce((sum, rating) => sum + rating.score, 0) / count;
+    if (dropoutVotes * 2 > count || average < 4) continue;
+    const refund = Math.floor(claim.frozenAmount * 0.8);
+    if (refund <= 0) continue;
+    await applyBuddyPointDelta(
+      tx,
+      claim.claimerId,
+      refund,
+      `team-rating-refund:${taskId.toString()}:${claim.claimerId.toString()}`,
+      'team_rating_refund',
+      '组队任务互评达标，退回80%报名费',
+    );
+  }
+  return true;
+}
+
 async function recordAudit(input: {
   actorId?: bigint;
   action: string;
@@ -587,6 +625,14 @@ export function buildApp(): FastifyInstance {
   const taskCancellationRequestParamsSchema = z.object({ id: z.coerce.bigint(), requestId: z.coerce.bigint() });
   const taskCancellationResponseSchema = z.object({ status: z.enum(['accepted', 'rejected']) });
   const taskRatingSchema = z.object({ toUserId: z.coerce.bigint(), score: z.coerce.number().int().min(1).max(5), comment: z.string().trim().max(2000).nullable().optional() });
+  const teamRatingBatchSchema = z.object({
+    ratings: z.array(z.object({
+      toUserId: z.coerce.bigint(),
+      score: z.number().int().min(1).max(5),
+      isDropoutVote: z.boolean().optional().default(false),
+      comment: z.string().trim().max(200).optional(),
+    })).min(1),
+  });
   const feedbackSchema = z.object({ type: z.string().trim().min(1).max(50), content: z.string().trim().min(1).max(10000), contact: z.string().trim().max(160).nullable().optional(), source: z.string().trim().max(100).nullable().optional() });
   const feedbackAdminSchema = z.object({ status: feedbackStatusSchema.optional(), adminRemark: z.string().trim().max(10000).nullable().optional() });
   const feedbackMessageSchema = z.object({ content: z.string().trim().min(1).max(10000) });
@@ -619,7 +665,29 @@ export function buildApp(): FastifyInstance {
       user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true, role: true } },
     };
   }
-  function serializeTask(task: any, viewerId?: bigint) {
+  async function buildTeamRatingSummary(task: any, viewerId?: bigint, settledOverride?: boolean) {
+    if (task.taskType !== 'team') return null;
+    const completedClaims = await prisma.taskClaim.findMany({ where: { taskId: task.id, status: 'completed' }, select: { claimerId: true } });
+    const members = [task.userId, ...completedClaims.map((claim: any) => claim.claimerId)];
+    const ratings = members.length > 1
+      ? await prisma.rating.findMany({ where: { taskId: task.id, fromUserId: { in: members }, toUserId: { in: members } }, select: { fromUserId: true, toUserId: true } })
+      : [];
+    const hasRatedEveryone = (fromUserId: bigint) => members.filter((memberId) => memberId !== fromUserId).every((memberId) => ratings.some((rating: any) => rating.fromUserId === fromUserId && rating.toUserId === memberId));
+    const ratedByMe = viewerId != null && members.includes(viewerId) ? hasRatedEveryone(viewerId) : false;
+    const ratedMemberCount = members.filter((memberId) => hasRatedEveryone(memberId)).length;
+    const settled = settledOverride ?? Boolean(task.teamSettledAt);
+    const refunded = settled && viewerId != null && Boolean(await prisma.pointTransaction.findUnique({ where: { idempotencyKey: `team-rating-refund:${task.id.toString()}:${viewerId.toString()}` }, select: { id: true } }));
+    return { settled, ratedByMe, totalMembers: members.length, ratedMemberCount, refunded };
+  }
+  async function serializeTaskForViewer(task: any, viewerId: bigint) {
+    let settled = Boolean(task.teamSettledAt);
+    if (task.taskType === 'team' && task.status === 'completed' && !settled) {
+      settled = await prisma.$transaction((tx) => trySettleTeamTask(tx, task.id));
+      if (settled) task.teamSettledAt = new Date();
+    }
+    return serializeTask(task, viewerId, task.taskType === 'team' ? await buildTeamRatingSummary(task, viewerId, settled) : null);
+  }
+  function serializeTask(task: any, viewerId?: bigint, teamRating?: any) {
     const { _count, claims, user, ...record } = task;
     const owner = viewerId != null && viewerId === task.userId;
     const viewerClaim = claims?.find((claim: any) => viewerId != null && claim.claimerId === viewerId)
@@ -641,6 +709,7 @@ export function buildApp(): FastifyInstance {
       } : null,
       activeClaimCount: _count?.claims ?? 0,
       claimStatus: viewerClaim?.status ?? null,
+      teamRating: task.taskType === 'team' ? (teamRating ?? null) : null,
     };
   }
   function serializeTaskCancellationRequest(request: any) {
@@ -1596,7 +1665,7 @@ export function buildApp(): FastifyInstance {
     const query = taskMineQuerySchema.parse(request.query);
     const userId = currentUserId(request);
     const tasks = await prisma.task.findMany({ where: { ...taskVisibilityWhere({ userId, canReview: false, view: 'mine' }), ...(query.status ? { status: query.status } : {}) }, orderBy: { createdAt: 'desc' }, take: query.limit, include: taskListInclude(userId) });
-    return { tasks: tasks.map((task) => serializeTask(task, userId)) };
+    return { tasks: await Promise.all(tasks.map((task) => serializeTaskForViewer(task, userId))) };
   });
 
   app.get('/api/tasks/claimed', { preHandler: app.authenticate }, async (request) => {
@@ -1615,14 +1684,14 @@ export function buildApp(): FastifyInstance {
       : []
     ).map((rating) => rating.taskId.toString()));
     return {
-      claims: claims.map((claim) => ({
+      claims: await Promise.all(claims.map(async (claim) => ({
         ...claim,
         id: claim.id.toString(),
         taskId: claim.taskId.toString(),
         claimerId: claim.claimerId.toString(),
         ratedByCurrentUser: ratedTaskIds.has(claim.taskId.toString()),
-        task: serializeTask({ ...claim.task, claims: [{ status: claim.status, claimerId: claim.claimerId }] }, userId),
-      })),
+        task: await serializeTaskForViewer({ ...claim.task, claims: [{ status: claim.status, claimerId: claim.claimerId }] }, userId),
+      }))),
     };
   });
 
@@ -1744,6 +1813,25 @@ export function buildApp(): FastifyInstance {
     if (task) await prisma.notification.create({ data: { userId: task.userId, type: 'task_submitted', refId: params.id.toString(), payload: { taskId: params.id.toString(), claimId: claim.id.toString() } } });
     publishRealtime(() => realtime.publishPrivate(task ? [task.userId, userId] : [userId], realtimeEvent('task.submitted', params.id, 'private')));
     return { claim: { ...updated, id: updated.id.toString(), taskId: updated.taskId.toString(), claimerId: updated.claimerId.toString() } };
+  });
+
+  app.get('/api/tasks/:id', { preHandler: app.authenticate }, async (request, reply) => {
+    const params = notificationParamsSchema.parse(request.params);
+    const userId = currentUserId(request);
+    const task = await prisma.task.findFirst({
+      where: { id: params.id, ...taskVisibilityWhere({ userId, canReview: false, view: 'public' }) },
+      include: taskListInclude(userId),
+    });
+    if (!task) return reply.code(404).send({ error: 'TASK_NOT_FOUND', message: '任务不存在' });
+    const serialized = await serializeTaskForViewer(task, userId);
+    if (task.taskType === 'team') {
+      const completedClaims = await prisma.taskClaim.findMany({ where: { taskId: task.id, status: 'completed' }, include: { claimer: { select: { id: true, nickname: true } } } });
+      (serialized as any).teamMembers = [
+        { userId: task.userId.toString(), name: task.user?.nickname || '任务发布者', role: 'publisher' },
+        ...completedClaims.map((claim) => ({ userId: claim.claimerId.toString(), name: claim.claimer?.nickname || '匿名队友', role: 'claimer' })),
+      ].filter((member) => member.userId !== userId.toString());
+    }
+    return { task: serialized };
   });
 
   app.get('/api/tasks/:id/claims', { preHandler: app.authenticate }, async (request, reply) => {
@@ -1932,11 +2020,34 @@ export function buildApp(): FastifyInstance {
 
   app.post('/api/tasks/:id/rating', { preHandler: app.authenticate }, async (request, reply) => {
     const params = notificationParamsSchema.parse(request.params);
-    const input = taskRatingSchema.parse(request.body);
-    assertSafeText(input.comment);
     const userId = currentUserId(request);
     const task = await prisma.task.findUnique({ where: { id: params.id }, select: { id: true, userId: true, taskType: true } });
     if (!task) return reply.code(404).send({ error: 'TASK_NOT_FOUND', message: '任务不存在' });
+    if (task.taskType === 'team' && Array.isArray((request.body as { ratings?: unknown } | null)?.ratings)) {
+      const input = teamRatingBatchSchema.parse(request.body);
+      input.ratings.forEach((rating) => assertSafeText(rating.comment));
+      const completedClaims = await prisma.taskClaim.findMany({ where: { taskId: task.id, status: 'completed' }, select: { claimerId: true } });
+      const members = [task.userId, ...completedClaims.map((claim) => claim.claimerId)];
+      if (!members.includes(userId)) return reply.code(403).send({ error: 'RATING_FORBIDDEN', message: '只有已完成任务的参与者可以评价' });
+      for (const rating of input.ratings) {
+        if (rating.toUserId === userId || !members.includes(rating.toUserId)) return reply.code(400).send({ error: 'RATING_TARGET_INVALID', message: '评价对象不属于该任务' });
+      }
+      const result = await prisma.$transaction(async (tx) => {
+        for (const rating of input.ratings) {
+          await tx.rating.upsert({
+            where: { taskId_fromUserId_toUserId: { taskId: task.id, fromUserId: userId, toUserId: rating.toUserId } },
+            update: { score: rating.score, isDropoutVote: rating.isDropoutVote, comment: rating.comment ?? null },
+            create: { taskId: task.id, fromUserId: userId, toUserId: rating.toUserId, score: rating.score, isDropoutVote: rating.isDropoutVote, comment: rating.comment ?? null },
+          });
+        }
+        return { settled: await trySettleTeamTask(tx, task.id) };
+      });
+      publishRealtime(() => realtime.publishPrivate([userId, ...input.ratings.map((rating) => rating.toUserId)], realtimeEvent('task.rated', task.id, 'private')));
+      publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', task.id, 'public')));
+      return { ok: true, settled: result.settled };
+    }
+    const input = taskRatingSchema.parse(request.body);
+    assertSafeText(input.comment);
     const claim = await prisma.taskClaim.findFirst({ where: { taskId: task.id, status: 'completed', OR: [{ claimerId: userId }, { task: { userId } }] }, select: { claimerId: true } });
     if (!claim) return reply.code(403).send({ error: 'RATING_FORBIDDEN', message: '只有已完成任务的参与者可以评价' });
     if (task.taskType && task.taskType !== 'team') {
