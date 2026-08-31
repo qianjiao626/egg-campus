@@ -38,7 +38,7 @@
     {"path":"backend-handoff-package/blind-box/region-data.json","component":"frontend","target":"blind-box/region-data.json","sha256":"c20bfab8c4e871efe7021c2be7bfe0444c0d480bc89c8d856a96d11837531153"},
     {"path":"backend-handoff-package/blind-box/app.js","component":"frontend","target":"blind-box/app.js","sha256":"87033daa81d3fe1c45ec3f22ebf34762bca95477608341e61ce26f46c8c37ee4"},
     {"path":"backend-handoff-package/blind-box/buddy-box-api.js","component":"frontend","target":"blind-box/buddy-box-api.js","sha256":"112305f0c1dc26ccedd31a7456e279ec4b4731b65d5c8f4da5f7b7e1c32d5fad"},
-    {"path":"server/src/app.ts","component":"backend","sha256":"6bfe9e65ef64e32644c68e98c095eac97b836c68d21f1947b10f4738194cfa7a"},
+    {"path":"server/src/app.ts","component":"backend","sha256":"eb50ff245397284d742d2d16ba8e273e8f882047cb6f98a4f75d94ebe4a447cb"},
     {"path":"backend-handoff-package/blacklist.js","component":"frontend","target":"blacklist.js","sha256":"68ae57883449e1a1a1efd100f3c90ba55b44471cf89bd08afdebff9893423801"}
   ],
   "forbiddenInRelease": [".env", "node_modules", "*.rollback-*", "*.screenshot.*", "output/playwright", "server/.vitest-full-result.json"],

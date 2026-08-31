@@ -34,6 +34,7 @@ function makeTx(options: {
     id: 1n,
     userId: 1n,
     taskType: 'team',
+    status: 'completed',
     teamSettledAt: null,
     completedAt: new Date(),
     ...options.task,
@@ -142,6 +143,15 @@ describe('team rating settlement', () => {
 
   it('does nothing for non-team tasks so the existing one-to-one path remains unchanged', async () => {
     const { tx, updateMany, pointTransactionCreate } = makeTx({ task: { taskType: 'help' } });
+
+    await expect(trySettleTeamTask(tx as never, 1n)).resolves.toBe(false);
+
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(pointTransactionCreate).not.toHaveBeenCalled();
+  });
+
+  it('does not settle while the team task is still open even if current members have rated', async () => {
+    const { tx, updateMany, pointTransactionCreate } = makeTx({ task: { status: 'in_progress' } });
 
     await expect(trySettleTeamTask(tx as never, 1n)).resolves.toBe(false);
 

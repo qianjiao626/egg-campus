@@ -231,7 +231,7 @@ async function applyBuddyPointDelta(
 
 export async function trySettleTeamTask(tx: Prisma.TransactionClient, taskId: bigint): Promise<boolean> {
   const task = await tx.task.findUnique({ where: { id: taskId } });
-  if (!task || task.taskType !== 'team' || task.teamSettledAt) return false;
+  if (!task || task.taskType !== 'team' || task.teamSettledAt || task.status !== 'completed') return false;
 
   const completedClaims = await tx.taskClaim.findMany({ where: { taskId, status: 'completed' } });
   const members = [task.userId, ...completedClaims.map((claim) => claim.claimerId)];
