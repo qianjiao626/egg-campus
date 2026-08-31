@@ -1802,6 +1802,37 @@
   #page-mytasks .task-published-block > .card.pub-help,#page-mytasks .task-claimed-block > .card[data-task-type="help"]{background:linear-gradient(135deg,#FFFFFF 0%,#F0FBF7 100%)!important}
   #page-mytasks .task-published-block > .card.pub-team,#page-mytasks .task-claimed-block > .card[data-task-type="team"]{background:linear-gradient(135deg,#FFFFFF 0%,#EFFBFD 100%)!important}
   #page-mytasks .task-published-block > .card.pub-reward,#page-mytasks .task-claimed-block > .card[data-task-type="reward"]{background:linear-gradient(135deg,#FFFFFF 0%,#FFF8E8 100%)!important}
+  /* 我的任务：四类任务统一卡片系统 */
+  #page-mytasks .mytask-card{--task-accent:#5B5FEF;--task-accent-soft:#F2F3FF;--task-border:#D9DBFF;position:relative!important;display:flex!important;flex-direction:column!important;gap:14px!important;min-width:0;overflow:hidden!important;padding:20px 22px 18px!important;border:1px solid var(--task-border)!important;border-radius:18px!important;background:linear-gradient(135deg,#FFFFFF 0%,var(--task-accent-soft) 100%)!important;box-shadow:0 8px 22px rgba(33,37,41,.08)!important;color:#212529!important;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease!important}
+  #page-mytasks .mytask-card::before{content:'';position:absolute;inset:0 0 auto;height:5px;background:linear-gradient(90deg,var(--task-accent),color-mix(in srgb,var(--task-accent) 58%,#FFFFFF))!important}
+  #page-mytasks .mytask-card:hover{transform:translateY(-2px)!important;box-shadow:0 12px 28px rgba(33,37,41,.12)!important;border-color:var(--task-accent)!important}
+  #page-mytasks .mytask-card.pub-teach,#page-mytasks .mytask-card[data-task-type="teach"]{--task-accent:#5B5FEF;--task-accent-soft:#F2F3FF;--task-border:#D9DBFF}
+  #page-mytasks .mytask-card.pub-team,#page-mytasks .mytask-card[data-task-type="team"]{--task-accent:#F08A24;--task-accent-soft:#FFF6E8;--task-border:#F6D4A8}
+  #page-mytasks .mytask-card.pub-help,#page-mytasks .mytask-card[data-task-type="help"]{--task-accent:#0F9F92;--task-accent-soft:#ECFBF7;--task-border:#B9E8E0}
+  #page-mytasks .mytask-card.pub-reward,#page-mytasks .mytask-card[data-task-type="reward"]{--task-accent:#B7791F;--task-accent-soft:#FFF8E7;--task-border:#E8C982}
+  #page-mytasks .mytask-card__meta{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding-bottom:12px;border-bottom:1px solid rgba(33,37,41,.08)!important;font-size:12px;color:#6C757D!important}
+  #page-mytasks .mytask-card__time{white-space:nowrap;color:#6C757D!important}
+  #page-mytasks .mytask-card__title{margin:0!important;min-width:0;font-size:18px!important;font-weight:760!important;line-height:1.35!important;color:#212529!important;overflow-wrap:anywhere}
+  #page-mytasks .mytask-card__description{min-width:0;min-height:42px;margin:0!important;padding:11px 13px!important;border-radius:11px!important;background:rgba(255,255,255,.72)!important;color:#495057!important;font-size:13px!important;line-height:1.65!important;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  #page-mytasks .mytask-card__note{margin:0!important;color:#B42318!important;font-size:12px!important;line-height:1.5!important}
+  #page-mytasks .mytask-card__info{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+  #page-mytasks .mytask-card__info .tag{border:0!important;background:rgba(255,255,255,.75)!important;color:var(--task-accent)!important;font-weight:700!important}
+  #page-mytasks .mytask-card__actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding-top:4px}
+  #page-mytasks .mytask-card__actions .btn{min-height:34px;white-space:nowrap}
+  #page-mytasks .mytask-status{display:inline-flex;align-items:center;min-height:24px;padding:3px 9px;border-radius:999px!important;border:1px solid transparent!important;font-size:11px!important;font-weight:750!important;line-height:1.2!important;white-space:nowrap}
+  #page-mytasks .mytask-status--pending{background:#FFF4E5!important;border-color:#F6C98B!important;color:#A15C00!important}
+  #page-mytasks .mytask-status--approved{background:#EAF1FF!important;border-color:#B8CCFF!important;color:#2456B5!important}
+  #page-mytasks .mytask-status--completed{background:#E8F8F0!important;border-color:#A9DFC4!important;color:#157347!important}
+  #page-mytasks .mytask-status--revision{background:#FFF0F0!important;border-color:#F3B4B4!important;color:#B42318!important}
+  #page-mytasks .mytask-status--cancelled{background:#F1F3F5!important;border-color:#D0D5DA!important;color:#6C757D!important}
+  @media(max-width:620px){
+    #page-mytasks .mytask-card{padding:18px 16px 16px!important;gap:12px!important}
+    #page-mytasks .mytask-card__meta{align-items:flex-start;flex-wrap:wrap}
+    #page-mytasks .mytask-card__time{white-space:normal}
+    #page-mytasks .mytask-card__title{font-size:16px!important}
+    #page-mytasks .mytask-card__actions{justify-content:stretch}
+    #page-mytasks .mytask-card__actions .btn{flex:1 1 auto}
+  }
   #page-mytasks .mytask-empty{padding:30px 20px!important;text-align:center;background:linear-gradient(135deg,#F2F5FF 0%,#FFF4F8 52%,#FFF8E8 100%)!important;border:1px dashed #B8C6E8!important;border-radius:16px!important;color:#495057!important;font-size:14px!important;font-weight:650!important;box-shadow:0 8px 20px rgba(22,93,255,.08)!important}
   .user-card .administrator-badge{background:linear-gradient(135deg,#FFF3C4 0%,#FFE08A 100%)!important;border-color:#D4A017!important;color:#6B4F00!important;box-shadow:0 0 0 2px rgba(212,160,23,.16),0 4px 14px rgba(212,160,23,.22)!important}
   .user-card .administrator-badge::after{background:radial-gradient(circle at 12% 45%,rgba(255,255,255,.95) 0 1px,transparent 1.7px),radial-gradient(circle at 68% 30%,rgba(255,255,255,.8) 0 1px,transparent 1.7px),linear-gradient(100deg,transparent 30%,rgba(255,255,255,.85) 50%,transparent 70%)!important;background-size:23px 18px,31px 21px,100% 100%!important;opacity:.82!important}
@@ -5116,9 +5147,10 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var list = document.getElementById('myPublishedList' + type.charAt(0).toUpperCase() + type.slice(1));
     if(!list) list = document.getElementById('myPublishedListTeach');
     var group = normalizePublishedTaskStatus(task.status);
-    var label = group === 'completed' ? '已完成' : group === 'cancelled' ? '已取消' : group === 'approved' ? '进行中' : group === 'revision' ? '待修改' : '待审核';
+    var label = group === 'completed' ? '已完成' : group === 'cancelled' ? '已取消' : group === 'approved' ? '已审核' : group === 'revision' ? '待修改' : '待审核';
+    var typeLabel = type === 'team' ? '组队搭子' : type === 'help' ? '蛋蛋求助' : type === 'reward' ? '奖励任务' : '拜师学艺';
     var card = document.createElement('div');
-    card.className = 'card pub-' + type;
+    card.className = 'card mytask-card pub-' + type;
     card.setAttribute('data-task-id', String(task.id));
     card.setAttribute('data-owner-id', String(task.userId));
     card.setAttribute('data-status', task.status || 'pending_review');
@@ -5131,12 +5163,13 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.setAttribute('data-task-description', task.description || '');
     card.setAttribute('data-contact', task.contact || '');
     card.setAttribute('data-requirements', task.requirements || '');
-    card.style.cssText = 'padding:20px;display:flex;flex-direction:column;gap:10px';
-    card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag ' + (group === 'completed' ? 'tag-green' : group === 'cancelled' || group === 'revision' ? 'tag-red' : 'tag-orange') + '">' + label + '</span><span style="font-size:12px;color:var(--muted)">发布于 ' + formatDateYmd(task.createdAt) + '</span></div>' +
-      '<div style="font-size:15px;font-weight:600">' + escapeHtml(task.title) + '</div>' +
-      '<div class="done-txt" style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description) + '</div>' +
-      (task.reviewReason ? '<div style="font-size:12px;color:var(--red)">修改意见：' + escapeHtml(task.reviewReason) + '</div>' : '') +
-      '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'publisher\')">查看详情</button>' +
+    card.innerHTML = '<div class="mytask-card__meta"><span class="mytask-status mytask-status--' + group + '">' + label + '</span><span class="mytask-card__time">发布于 ' + formatDateYmd(task.createdAt) + '</span></div>' +
+      '<div class="mytask-card__title" style="font-weight:600">' + escapeHtml(task.title) + '</div>' +
+      '<div class="mytask-card__description">' + escapeHtml(task.description || '暂无简介') + '</div>' +
+      (task.reviewReason ? '<div class="mytask-card__note">修改意见：' + escapeHtml(task.reviewReason) + '</div>' : '') +
+      '<div class="mytask-card__info"><span class="tag">' + typeLabel + '</span><span class="tag">悬赏 ' + Number(task.reward || 0) + ' 蛋蛋币</span>' +
+      (task.claimMode === 'multiple' ? '<span class="tag">多人认领</span>' : '<span class="tag">单人认领</span>') + '</div>' +
+      '<div class="mytask-card__actions"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'publisher\')">查看详情</button>' +
       ((group === 'pending' || group === 'approved') ?
         (group === 'approved' ? '<button class="btn btn-ghost btn-sm" onclick="openClaimerManager(this)">认领管理</button><button class="btn btn-primary btn-sm" onclick="reviewMyTask(this)">确认完成</button>' : '') +
         '<button class="btn btn-ghost btn-sm" onclick="cancelPublishedTask(this)">取消任务</button>' : '') + '</div>';
@@ -5148,9 +5181,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var list = document.getElementById('myClaimedList' + type.charAt(0).toUpperCase() + type.slice(1));
     if(!list) list = document.getElementById('myClaimedListTeach');
     var card = document.createElement('div');
-    card.className = 'card'; card.setAttribute('data-claim-id', String(claim.id)); card.setAttribute('data-task-id', String(task.id || ''));
+    card.className = 'card mytask-card pub-' + type; card.setAttribute('data-claim-id', String(claim.id)); card.setAttribute('data-task-id', String(task.id || ''));
     card.setAttribute('data-task-type', task.taskType || 'teach'); card.setAttribute('data-task-title', task.title || '任务'); card.setAttribute('data-publisher-id', String(task.userId || '')); card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : ''); card.setAttribute('data-task-description', task.description || ''); card.setAttribute('data-contact', task.contact || ''); card.setAttribute('data-claim-status', claim.status || '');
-    card.style.cssText = 'padding:20px;display:flex;flex-direction:column;gap:10px';
     var canSubmit = claim.status === 'pending' || claim.status === 'assigned';
     var cancellationRequest = getTaskCancellationRequest(card);
     var cancellationActions = '';
@@ -5164,8 +5196,14 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var controls = canSubmit && !(cancellationRequest && cancellationRequest.status === 'pending')
       ? '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-primary btn-sm" onclick="submitClaimedTask(\'' + task.id + '\')">提交完成</button></div>' : '';
     var claimLabel = claim.status === 'completed' ? '已完成' : claim.status === 'submitted' ? '待确认' : claim.status === 'assigned' ? '进行中' : claim.status === 'abandoned' || claim.status === 'cancelled' ? '已取消' : '待配对';
+    var claimStatusGroup = claim.status === 'completed' ? 'completed' : claim.status === 'abandoned' || claim.status === 'cancelled' ? 'cancelled' : claim.status === 'assigned' || claim.status === 'submitted' ? 'approved' : 'pending';
+    var typeLabel = type === 'team' ? '组队搭子' : type === 'help' ? '蛋蛋求助' : type === 'reward' ? '奖励任务' : '拜师学艺';
     var rewardLabel = type === 'reward' ? '<span class="tag tag-gold">完成奖励 ' + Number(task.reward || 0) + ' 蛋蛋币</span>' : '';
-    card.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between"><span class="tag tag-lilac">' + claimLabel + '</span><span style="font-size:12px;color:var(--muted)">发布于 ' + formatDateYmd(task.createdAt) + '</span></div><div style="font-size:15px;font-weight:600">' + escapeHtml(task.title || '任务') + '</div><div style="font-size:12px;color:var(--muted);line-height:1.5">' + escapeHtml(task.description || '') + '</div>' + rewardLabel + cancellationActions + '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'claimer\')">查看详情</button>' + controls + completedRatingAction + '</div>';
+    card.innerHTML = '<div class="mytask-card__meta"><span class="mytask-status mytask-status--' + claimStatusGroup + '">' + claimLabel + '</span><span class="mytask-card__time">发布于 ' + formatDateYmd(task.createdAt) + '</span></div>' +
+      '<div class="mytask-card__title" style="font-weight:600">' + escapeHtml(task.title || '任务') + '</div>' +
+      '<div class="mytask-card__description">' + escapeHtml(task.description || '暂无简介') + '</div>' +
+      cancellationActions + '<div class="mytask-card__info"><span class="tag">' + typeLabel + '</span>' + rewardLabel + (task.claimMode === 'multiple' ? '<span class="tag">多人认领</span>' : '<span class="tag">单人认领</span>') + '</div>' +
+      '<div class="mytask-card__actions"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'claimer\')">查看详情</button>' + controls + completedRatingAction + '</div>';
     list.appendChild(card);
   }
   function openSyncedTaskDetail(button, role){
