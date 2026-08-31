@@ -124,6 +124,7 @@
     abandonTask: function (id) { return request('/api/tasks/' + encodeURIComponent(id) + '/abandon', { method: 'POST' }); },
     submitTask: function (id) { return request('/api/tasks/' + encodeURIComponent(id) + '/submit', { method: 'POST' }); },
     taskClaims: function (id) { return request('/api/tasks/' + encodeURIComponent(id) + '/claims'); },
+    taskDetail: function (id) { return request('/api/tasks/' + encodeURIComponent(id)); },
     assignTaskClaims: function (id, claimIds) { return request('/api/tasks/' + encodeURIComponent(id) + '/claims/assign', { method: 'PATCH', body: JSON.stringify({ claimIds: claimIds || [] }) }); },
     completeTask: function (id, claimId) { return request('/api/tasks/' + encodeURIComponent(id) + '/complete', { method: 'POST', body: JSON.stringify({ claimId: claimId || null }) }); },
     cancelTask: function (id) { return request('/api/tasks/' + encodeURIComponent(id) + '/cancel', { method: 'POST' }); },
