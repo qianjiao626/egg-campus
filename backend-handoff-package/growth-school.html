@@ -1877,6 +1877,174 @@
   .gossip-card{border:0!important;box-shadow:0 8px 24px rgba(33,37,41,.10)!important}
   .gossip-card:hover{border:0!important;box-shadow:0 12px 28px rgba(124,77,255,.14)!important}
   @media(max-width:620px){.plaza-card.task-card-rewarded{padding:30px 16px 18px!important}.plaza-card.task-card-standard{padding:18px 16px!important}.bl-extreme-card{min-height:132px;padding:16px!important}}
+
+  /* === 卡片风格统一：Light neutral theme overrides === */
+  #page-mytasks .task-published-block > .card,#page-mytasks .task-claimed-block > .card{
+    background:linear-gradient(135deg,#FAFBFC 0%,#F5F7FA 100%)!important;
+    border:1px solid #D0D5DD!important;
+    border-left:3px solid #8B5CF6!important;
+    padding:16px 20px!important;
+    gap:4px!important;
+    box-shadow:0 2px 8px rgba(0,0,0,.05)!important;
+  }
+  #page-mytasks .task-published-block > .card:hover,#page-mytasks .task-claimed-block > .card:hover{
+    box-shadow:0 6px 20px rgba(0,0,0,.10)!important;
+    border-color:#B8C0CC!important;
+  }
+  #page-mytasks .mt-actions{padding-top:10px!important;margin-top:2px!important}
+  #page-mytasks .mt-desc{margin-bottom:2px!important}
+
+  /* === 黑榜评论卡：列表行风格 === */
+  .bl-wall-card{
+    border:0!important;
+    border-bottom:1px solid #E5E7EB!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    padding:16px 4px!important;
+    background:transparent!important;
+    background-image:none!important;
+  }
+  .bl-wall-card:last-child{border-bottom:0!important}
+  .bl-wall-card > div:first-child,.bl-wall-card-head{
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    flex-wrap:wrap!important;
+    background:none!important;
+    border:0!important;
+    border-radius:0!important;
+    padding:0!important;
+    box-shadow:none!important;
+  }
+  .bl-wall-card > div:first-child .tag,.bl-wall-card > div:first-child [class*="badge"],.bl-wall-card-head .tag,.bl-wall-card-head [class*="badge"]{
+    background:none!important;
+    border:0!important;
+    padding:0!important;
+    box-shadow:none!important;
+  }
+  .bl-wall-card-school{
+    font-size:15px!important;
+    font-weight:700!important;
+    color:#111827!important;
+    background:none!important;
+    border:0!important;
+    padding:0!important;
+  }
+  .bl-wall-card-score,.bl-wall-card > div:first-child > span:nth-child(2){
+    font-size:13px!important;
+    font-weight:600!important;
+    color:#D97706!important;
+    background:none!important;
+    border:0!important;
+    padding:0!important;
+  }
+  .bl-wall-card-time{
+    font-size:12px!important;
+    color:#9CA3AF!important;
+    margin-left:auto!important;
+  }
+  .bl-wall-card-text{
+    font-size:14px!important;
+    color:#374151!important;
+    margin:8px 0 4px!important;
+    line-height:1.65!important;
+    background:none!important;
+    border:0!important;
+    border-radius:0!important;
+    padding:0!important;
+  }
+  .bl-wall-card-user{
+    font-size:12px!important;
+    color:#9CA3AF!important;
+    margin-top:0!important;
+    background:none!important;
+    border:0!important;
+    padding:0!important;
+  }
+
+  /* === 打听/八卦卡：问答列表风格 === */
+  .gossip-card{
+    border:1px solid #E5E7EB!important;
+    border-radius:14px!important;
+    padding:18px 20px!important;
+    background:#FFFFFF!important;
+    background-image:none!important;
+  }
+  .gossip-card > div:first-child,.gossip-card-head{
+    display:flex!important;
+    align-items:center!important;
+    gap:8px!important;
+    margin-bottom:4px!important;
+  }
+  .gossip-card > div:first-child .tag,.gossip-card .tag[class*="cat"],.gossip-card-tag,.gossip-card-tags .gossip-card-tag{
+    background:none!important;
+    border:0!important;
+    padding:0!important;
+    box-shadow:none!important;
+    color:#6B7280!important;
+    font-size:12px!important;
+    font-weight:600!important;
+  }
+  .gossip-card .tag[style*="剩"],.gossip-card > div:first-child .tag:last-child,.gossip-card-countdown{
+    color:#9CA3AF!important;
+    font-weight:500!important;
+    margin-left:auto!important;
+    background:none!important;
+    border:0!important;
+    padding:0!important;
+    box-shadow:none!important;
+  }
+  .gossip-card .title,.gossip-card-title{
+    font-size:16px!important;
+    font-weight:700!important;
+    color:#111827!important;
+    margin:6px 0 4px!important;
+    line-height:1.4!important;
+  }
+  .gossip-card .desc,.gossip-card-desc{
+    font-size:14px!important;
+    color:#6B7280!important;
+    line-height:1.65!important;
+    background:none!important;
+    border:0!important;
+    border-radius:0!important;
+    padding:0!important;
+    margin:0 0 6px!important;
+  }
+  .gossip-card .publisher,.gossip-card-publisher,.gossip-card [class*="author"]{
+    background:none!important;
+    border:0!important;
+    border-radius:0!important;
+    padding:6px 0 0!important;
+    box-shadow:none!important;
+  }
+  .gossip-card .foot,.gossip-card-stats,.gossip-card [class*="footer"]{
+    display:flex!important;
+    align-items:center!important;
+    gap:16px!important;
+    padding-top:12px!important;
+    margin-top:8px!important;
+    border-top:1px solid #F3F4F6!important;
+  }
+  .gossip-card .foot .tag,.gossip-card .foot span,.gossip-card-stats .gossip-stat{
+    background:none!important;
+    border:0!important;
+    padding:0!important;
+    font-size:13px!important;
+    color:#9CA3AF!important;
+  }
+  .gossip-card .foot .tag:last-child,.gossip-card .gossip-stat.bounty,.gossip-card [style*="蛋蛋币"],.gossip-card .tag[style*="background:var(--primary)"],.gossip-card .tag[style*="background:#165DFF"]{
+    background:none!important;
+    color:#D97706!important;
+    font-weight:700!important;
+    border:0!important;
+    padding:0!important;
+    box-shadow:none!important;
+  }
+  @media(max-width:620px){
+    .gossip-card{padding:14px 16px!important}
+    .bl-wall-card{padding:14px 2px!important}
+  }
 </style>
 </head>
 <body>
