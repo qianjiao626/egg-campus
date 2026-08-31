@@ -1651,7 +1651,8 @@ export function buildApp(): FastifyInstance {
           ? await rewardInvitationForApprovedTask(tx, current.userId, current.id, now)
           : { rewarded: false as const };
         await tx.notification.create({ data: { userId: current.userId, type: input.status === 'approved' ? 'task_review_approved' : 'task_review_needs_revision', refId: current.id.toString(), payload: { taskId: current.id.toString(), status: input.status, reviewReason: input.reviewReason ?? null, experienceReward: awardingExperience ? current.publishExpReward : 0 } } });
-        if (invitationReward.rewarded && invitationReward.inviterId) {
+        if (invitationReward.rewarded && invitationReward.inviterId && invitationReward.invitationId && invitationReward.amount) {
+          await applyBuddyPointDelta(tx, invitationReward.inviterId, invitationReward.amount, `invite-reward:${invitationReward.invitationId.toString()}`, 'invitation_reward', `邀请好友首次发布任务审核通过 +${invitationReward.amount} 蛋蛋币`);
           await tx.notification.create({ data: { userId: invitationReward.inviterId, type: 'invitation_reward', refId: current.id.toString(), payload: { taskId: current.id.toString(), invitedUserId: current.userId.toString(), reward: 20 } } });
         }
         return updated;
@@ -1793,14 +1794,10 @@ export function buildApp(): FastifyInstance {
         if (currentTask.reward > 0) {
           if (currentTask.taskType === 'teach') await applyBuddyPointDelta(tx, currentTask.userId, currentTask.reward, `task-complete-pay:${currentTask.id.toString()}:${currentClaim.claimerId.toString()}`, 'task_tuition_paid', `教学任务完成结算:${currentTask.id.toString()}`);
           else await applyBuddyPointDelta(tx, currentClaim.claimerId, currentTask.reward, `task-complete-reward:${currentTask.id.toString()}:${currentClaim.claimerId.toString()}`, 'task_reward_paid', `任务完成奖励:${currentTask.id.toString()}`);
-          if (currentTask.taskType === 'team') {
-            const completedCount = await tx.taskClaim.count({ where: { taskId: currentTask.id, status: 'completed' } });
-            const refund = Math.max(0, currentTask.maxClaimers - completedCount) * currentTask.reward;
-            if (refund > 0) await applyBuddyPointDelta(tx, currentTask.userId, refund, `task-team-complete-refund:${currentTask.id.toString()}`, 'task_reward_refund', `组队任务未使用奖励退回:${currentTask.id.toString()}`);
-          }
         }
         const categoryMap: Record<string, string> = { teach: 'study', help: 'job', team: 'side', reward: 'hobby' };
         const statMap: Record<string, 'knowledge' | 'skills' | 'charm' | 'money'> = { teach: 'knowledge', help: 'skills', team: 'charm', reward: 'money' };
+        const publisherStatMap: Record<string, 'knowledge' | 'skills' | 'charm' | 'money'> = { teach: 'knowledge', help: 'money', team: 'charm', reward: 'money' };
         const unlockCategory = categoryMap[currentTask.taskType];
         let unlockedCharacter: string | null = null;
         if (unlockCategory) {
@@ -1810,16 +1807,38 @@ export function buildApp(): FastifyInstance {
             unlockedCharacter = unlockCategory;
           }
         }
+        let publisherUnlockedCharacter: string | null = null;
+        if (unlockCategory) {
+          const character = await tx.userCharacter.findFirst({ where: { userId: currentTask.userId, category: unlockCategory } });
+          if (character && !character.unlocked) {
+            await tx.userCharacter.update({ where: { id: character.id }, data: { unlocked: true, unlockedAt: new Date() } });
+            publisherUnlockedCharacter = unlockCategory;
+          }
+        }
         const statField = statMap[currentTask.taskType];
-        if (statField) await tx.userStats.updateMany({ where: { userId: currentClaim.claimerId }, data: { [statField]: { increment: 1 }, completedTasks: { increment: 1 } } });
-        const updatedTask = await tx.task.update({ where: { id: currentTask.id }, data: { status: 'completed', rewardFrozen: false, completedAt: new Date() } });
+        const completeExpReward = Math.max(5, Math.min(20, currentTask.reward));
+        await tx.userStats.updateMany({ where: { userId: currentClaim.claimerId }, data: { ...(statField ? { [statField]: { increment: 1 } } : {}), completedTasks: { increment: 1 }, experience: { increment: completeExpReward } } });
+        const publisherStatField = publisherStatMap[currentTask.taskType];
+        if (publisherStatField) await tx.userStats.updateMany({ where: { userId: currentTask.userId }, data: { [publisherStatField]: { increment: 1 } } });
+        let taskShouldClose = true;
+        let completedCount = 1;
+        if (currentTask.taskType === 'team') {
+          completedCount = await tx.taskClaim.count({ where: { taskId: currentTask.id, status: 'completed' } });
+          const activeClaims = await tx.taskClaim.count({ where: { taskId: currentTask.id, status: { in: [...activeTaskClaimStatuses] } } });
+          taskShouldClose = completedCount >= currentTask.maxClaimers || activeClaims === 0;
+          if (taskShouldClose && currentTask.reward > 0) {
+            const refund = Math.max(0, currentTask.maxClaimers - completedCount) * currentTask.reward;
+            if (refund > 0) await applyBuddyPointDelta(tx, currentTask.userId, refund, `task-team-complete-refund:${currentTask.id.toString()}:${completedCount}`, 'task_reward_refund', `组队任务未使用奖励退回:${currentTask.id.toString()}`);
+          }
+        }
+        const updatedTask = await tx.task.update({ where: { id: currentTask.id }, data: taskShouldClose ? { status: 'completed', rewardFrozen: false, completedAt: new Date() } : {} });
         await tx.notification.create({ data: { userId: currentClaim.claimerId, type: 'task_completed', refId: currentTask.id.toString(), payload: { taskId: currentTask.id.toString(), claimId: currentClaim.id.toString() } } });
-        return { claim: completed, task: updatedTask, unlockedCharacter };
+        return { claim: completed, task: updatedTask, unlockedCharacter, publisherUnlockedCharacter };
       });
       publishRealtime(() => realtime.publishPublic(realtimeEvent('task.completed', task.id, 'public')));
       publishRealtime(() => realtime.publishPrivate([task.userId, claim.claimerId], realtimeEvent('task.completed', task.id, 'private')));
       if (task.reward > 0) publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', task.taskType === 'teach' ? task.userId : claim.claimerId, 'public')));
-      return { claim: { ...result.claim, id: result.claim.id.toString(), taskId: result.claim.taskId.toString(), claimerId: result.claim.claimerId.toString() }, task: serializeTask(result.task, userId), unlockedCharacter: result.unlockedCharacter };
+      return { claim: { ...result.claim, id: result.claim.id.toString(), taskId: result.claim.taskId.toString(), claimerId: result.claim.claimerId.toString() }, task: serializeTask(result.task, userId), unlockedCharacter: result.unlockedCharacter, publisherUnlockedCharacter: result.publisherUnlockedCharacter };
     } catch (error) {
       if (error instanceof Error && error.message === 'TASK_SUBMISSION_NOT_FOUND') return reply.code(409).send({ error: 'TASK_SUBMISSION_NOT_FOUND', message: '没有待确认的提交' });
       if (error instanceof BuddyPrestigeError) return reply.code(409).send({ error: error.message, message: '结算蛋蛋币失败' });

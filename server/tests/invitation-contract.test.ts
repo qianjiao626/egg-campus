@@ -33,27 +33,14 @@ describe('invitation domain contract', () => {
         findUnique: vi.fn().mockResolvedValue(invitation),
         updateMany: vi.fn().mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 }),
       },
-      pointAccount: {
-        update: vi.fn().mockResolvedValue({ userId: 1n, availableBalance: 120, frozenBalance: 0 }),
-      },
-      pointTransaction: { create: vi.fn().mockResolvedValue({ id: 30n }) },
     };
 
     const first = await rewardInvitationForApprovedTask(tx as never, 2n, 50n, new Date('2026-08-27T01:00:00.000Z'));
     const second = await rewardInvitationForApprovedTask(tx as never, 2n, 51n, new Date('2026-08-27T01:01:00.000Z'));
 
-    expect(first).toEqual({ rewarded: true, inviterId: 1n });
+    expect(first).toEqual({ rewarded: true, inviterId: 1n, invitationId: 8n, amount: 20 });
     expect(second).toEqual({ rewarded: false });
-    expect(tx.pointAccount.update).toHaveBeenCalledTimes(1);
-    expect(tx.pointAccount.update).toHaveBeenCalledWith({ where: { userId: 1n }, data: { availableBalance: { increment: 20 }, version: { increment: 1 } } });
-    expect(tx.pointTransaction.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-      userId: 1n,
-      type: 'invite_reward',
-      deltaAvailable: 20,
-      balanceAvailable: 120,
-      idempotencyKey: 'invite-reward:8',
-      remark: '邀请好友首次发布任务审核通过 +20 蛋蛋币',
-    }) });
+    expect(tx.invitation.updateMany).toHaveBeenCalledTimes(2);
   });
 
   it('exposes typed invitation errors', () => {

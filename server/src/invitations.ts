@@ -7,7 +7,7 @@ export class InvitationError extends Error {
   }
 }
 
-type InvitationClient = Pick<Prisma.TransactionClient, 'user' | 'invitation' | 'pointAccount' | 'pointTransaction'>;
+type InvitationClient = Pick<Prisma.TransactionClient, 'user' | 'invitation'>;
 
 export async function bindInvitation(tx: InvitationClient, invitedUserId: bigint, inviteCode: string): Promise<void> {
   const inviter = await tx.user.findUnique({ where: { inviteCode }, select: { id: true, status: true } });
@@ -28,7 +28,7 @@ export async function rewardInvitationForApprovedTask(
   invitedUserId: bigint,
   taskId: bigint,
   now = new Date(),
-): Promise<{ rewarded: boolean; inviterId?: bigint }> {
+): Promise<{ rewarded: boolean; inviterId?: bigint; invitationId?: bigint; amount?: number }> {
   const relation = await tx.invitation.findUnique({ where: { invitedUserId } });
   if (!relation || relation.rewardedAt) return { rewarded: false };
   const claimed = await tx.invitation.updateMany({
@@ -36,23 +36,5 @@ export async function rewardInvitationForApprovedTask(
     data: { rewardedAt: now, rewardedTaskId: taskId },
   });
   if (claimed.count !== 1) return { rewarded: false };
-  const account = await tx.pointAccount.update({
-    where: { userId: relation.inviterId },
-    data: { availableBalance: { increment: 20 }, version: { increment: 1 } },
-  });
-  await tx.pointTransaction.create({
-    data: {
-      userId: relation.inviterId,
-      type: 'invite_reward',
-      deltaAvailable: 20,
-      deltaFrozen: 0,
-      balanceAvailable: account.availableBalance,
-      balanceFrozen: account.frozenBalance,
-      taskId,
-      idempotencyKey: `invite-reward:${relation.id.toString()}`,
-      remark: '邀请好友首次发布任务审核通过 +20 蛋蛋币',
-      createdAt: now,
-    },
-  });
-  return { rewarded: true, inviterId: relation.inviterId };
+  return { rewarded: true, inviterId: relation.inviterId, invitationId: relation.id, amount: 20 };
 }

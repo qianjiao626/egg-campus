@@ -29,7 +29,7 @@ describe('task completion growth rewards', () => {
     const transaction = vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback({
       taskClaim: { findUnique: vi.fn().mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'submitted' }), update: vi.fn().mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'completed' }) },
       task: { findUnique: vi.fn().mockResolvedValue({ id: 10n, userId: 1n, taskType: 'help', reward: 0, status: 'approved', completedAt: null }), update: vi.fn().mockResolvedValue({ id: 10n, userId: 1n, taskType: 'help', reward: 0, status: 'completed', completedAt: now }) },
-      userCharacter: { findFirst: vi.fn().mockResolvedValue({ id: 30n, userId: 2n, category: 'job', unlocked: false }), update: updateCharacter },
+      userCharacter: { findFirst: vi.fn().mockResolvedValueOnce({ id: 30n, userId: 2n, category: 'job', unlocked: false }).mockResolvedValueOnce(null), update: updateCharacter },
       userStats: { updateMany: updateStats },
       notification: { create: vi.fn().mockResolvedValue({}) },
     }) as never);
@@ -38,7 +38,7 @@ describe('task completion growth rewards', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().unlockedCharacter).toBe('job');
     expect(updateCharacter).toHaveBeenCalledWith({ where: { id: 30n }, data: { unlocked: true, unlockedAt: expect.any(Date) } });
-    expect(updateStats).toHaveBeenCalledWith({ where: { userId: 2n }, data: { skills: { increment: 1 }, completedTasks: { increment: 1 } } });
+    expect(updateStats).toHaveBeenCalledWith({ where: { userId: 2n }, data: { skills: { increment: 1 }, completedTasks: { increment: 1 }, experience: { increment: 5 } } });
     expect(transaction).toHaveBeenCalledOnce();
   });
 
@@ -49,11 +49,11 @@ describe('task completion growth rewards', () => {
     app = buildApp();
     await app.ready();
     vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
-    vi.spyOn(prisma.task, 'findUnique').mockResolvedValue({ id: 10n, userId: 1n, taskType: 'team' } as never);
+    vi.spyOn(prisma.task, 'findUnique').mockResolvedValue({ id: 10n, userId: 1n, taskType: 'team', maxClaimers: 1 } as never);
     vi.spyOn(prisma.taskClaim, 'findFirst').mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'submitted' } as never);
     const updateCharacter = vi.fn();
     vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback({
-      taskClaim: { findUnique: vi.fn().mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'submitted' }), update: vi.fn().mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'completed' }) },
+      taskClaim: { findUnique: vi.fn().mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'submitted' }), update: vi.fn().mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'completed' }), count: vi.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(0) },
       task: { findUnique: vi.fn().mockResolvedValue({ id: 10n, userId: 1n, taskType: 'team', reward: 0, status: 'approved' }), update: vi.fn().mockResolvedValue({ id: 10n, userId: 1n, taskType: 'team', reward: 0, status: 'completed' }) },
       userCharacter: { findFirst: vi.fn().mockResolvedValue({ id: 30n, userId: 2n, category: 'side', unlocked: true }), update: updateCharacter },
       userStats: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
@@ -64,5 +64,31 @@ describe('task completion growth rewards', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().unlockedCharacter).toBeNull();
     expect(updateCharacter).not.toHaveBeenCalled();
+  });
+
+  it('increments publisher stats and unlocks the publisher character too', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+    vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({ id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60000) } as never);
+    vi.spyOn(prisma.task, 'findUnique').mockResolvedValue({ id: 10n, userId: 1n, taskType: 'teach' } as never);
+    vi.spyOn(prisma.taskClaim, 'findFirst').mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'submitted' } as never);
+    const updateCharacter = vi.fn().mockResolvedValue({});
+    const updateStats = vi.fn().mockResolvedValue({ count: 1 });
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback({
+      taskClaim: { findUnique: vi.fn().mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'submitted' }), update: vi.fn().mockResolvedValue({ id: 20n, taskId: 10n, claimerId: 2n, status: 'completed' }) },
+      task: { findUnique: vi.fn().mockResolvedValue({ id: 10n, userId: 1n, taskType: 'teach', reward: 0, status: 'approved' }), update: vi.fn().mockResolvedValue({ id: 10n, userId: 1n, taskType: 'teach', reward: 0, status: 'completed' }) },
+      userCharacter: { findFirst: vi.fn().mockResolvedValueOnce({ id: 30n, userId: 2n, category: 'study', unlocked: false }).mockResolvedValueOnce({ id: 31n, userId: 1n, category: 'study', unlocked: false }), update: updateCharacter },
+      userStats: { updateMany: updateStats },
+      notification: { create: vi.fn().mockResolvedValue({}) },
+    }) as never);
+    const token = await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
+    const response = await app.inject({ method: 'POST', url: '/api/tasks/10/complete', headers: { authorization: `Bearer ${token}` }, payload: { claimId: '20' } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().publisherUnlockedCharacter).toBe('study');
+    expect(updateCharacter).toHaveBeenCalledWith({ where: { id: 31n }, data: { unlocked: true, unlockedAt: expect.any(Date) } });
+    expect(updateStats).toHaveBeenCalledWith({ where: { userId: 1n }, data: { knowledge: { increment: 1 } } });
   });
 });
