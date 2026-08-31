@@ -71,9 +71,18 @@ describe('frontend UX regressions', () => {
   it('keeps task hub tabs readable and refreshes stats after task completion', () => {
     const lightTheme = html.slice(html.indexOf('Light neutral theme'));
     expect(lightTheme).toContain('.task-hub-tab{background:#FFFFFF!important;color:#6C757D!important');
-    expect(lightTheme).toContain('.task-hub-tab.active{background:#165DFF!important;color:#FFFFFF!important');
+    expect(lightTheme).toContain('.task-hub-tab.active{background:#165DFF!important;background-clip:border-box!important');
+    expect(lightTheme).toContain('background-clip:border-box!important');
+    expect(lightTheme).toContain('-webkit-text-fill-color:#FFFFFF!important');
     expect(html).toContain("if(type === 'task.completed' && typeof hydrateUserState === 'function')");
     expect(html).toContain('await hydrateUserState();\n      refreshProfile();');
+  });
+
+  it('renders profile stats even when no current character is selected', () => {
+    const renderChar = html.match(/function renderChar\(\)\{[\s\S]*?\n  \}\n\n  function renderCharUnlocked/);
+    expect(renderChar?.[0]).toContain('renderStatChips(USER.stats || {});');
+    expect(renderChar?.[0]).toContain('renderProfileRuleScores(USER.stats || {});');
+    expect(renderChar?.[0]).toMatch(/renderProfileRuleScores\(USER\.stats \|\| \{\}\);[\s\S]*?if\(!char\)/);
   });
 
   it('cinematic theme keeps semantic status colors distinct', () => {
