@@ -19,7 +19,7 @@
     "sha256": "ac700a2cab770309fead735c057678a3c0be0bd1ee40a9250d92e0611373c5ae"
   },
   "files": [
-    {"path":"backend-handoff-package/growth-school.html","component":"frontend","target":"growth-school.html","sha256":"fee5fe31a989d4e3da8baf4708fb9173c760995a5cf173496545f1d436b960f5"},
+    {"path":"backend-handoff-package/growth-school.html","component":"frontend","target":"growth-school.html","sha256":"7b27638cb3d65696bdbbe907a654311eca0b87c97a5b9289889c35f51f7fa843"},
     {"path":"backend-handoff-package/assets/theme-bg.jpg","component":"frontend","target":"assets/theme-bg.jpg","sha256":"7494f1069e73273b7b454e6132780ed44f131f9a92a5c467dd6e8b7a69597e7e"},
     {"path":"backend-handoff-package/api-client.js","component":"frontend","target":"api-client.js","sha256":"6cc67cb265f784e3309949159354d74b2d6605c4371f345f110da61955506de4"},
     {"path":"backend-handoff-package/identity-view.js","component":"frontend","target":"identity-view.js","sha256":"ab7be7e8ebd0a4aa9221e69ada17c21c067aa282c35677eadc9dfe4433e1c617"},
@@ -38,8 +38,8 @@
     {"path":"backend-handoff-package/blind-box/region-data.json","component":"frontend","target":"blind-box/region-data.json","sha256":"c20bfab8c4e871efe7021c2be7bfe0444c0d480bc89c8d856a96d11837531153"},
     {"path":"backend-handoff-package/blind-box/app.js","component":"frontend","target":"blind-box/app.js","sha256":"e3f2d4930dd01d2b405ef286203918127f47728963f351feec0ce691ebf66196"},
     {"path":"backend-handoff-package/blind-box/buddy-box-api.js","component":"frontend","target":"blind-box/buddy-box-api.js","sha256":"112305f0c1dc26ccedd31a7456e279ec4b4731b65d5c8f4da5f7b7e1c32d5fad"},
-    {"path":"server/src/app.ts","component":"backend","sha256":"62000ac2a86cbe3e7957651d6d6ae680552a1329afd031324a07da49f358f836"},
-    {"path":"backend-handoff-package/blacklist.js","component":"frontend","target":"blacklist.js","sha256":"105109a0660bc0c927fcab1cbbe9cbcd6fe07d6bc19b66d3e8e304ce33e88197"}
+    {"path":"server/src/app.ts","component":"backend","sha256":"774b3401190033d1a603b32089d7f4f7c4612e0276b074d4f7741b3fbb6a5e9a"},
+    {"path":"backend-handoff-package/blacklist.js","component":"frontend","target":"blacklist.js","sha256":"2076c86ef7dc7485dc844274434b5aca489944b238949040b15852dde0b77dbd"}
   ],
   "forbiddenInRelease": [".env", "node_modules", "*.rollback-*", "*.screenshot.*", "output/playwright", "server/.vitest-full-result.json"],
   "verification": [

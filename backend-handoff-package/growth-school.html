@@ -1716,7 +1716,7 @@
   .search input{font-family:inherit!important}
   .btn,.banner-publish-btn,.bl-wall-more,.bl-tousu-submit,.gossip-publish-btn{font-family:'Inter',system-ui,sans-serif!important;background:rgba(255,255,255,.1)!important;background-image:none!important;color:#fff!important;border:1px solid rgba(255,255,255,.2)!important;box-shadow:none!important;border-radius:12px!important}
   .btn:hover,.banner-publish-btn:hover,.bl-wall-more:hover,.bl-tousu-submit:hover,.gossip-publish-btn:hover{transform:none!important;box-shadow:none!important}
-  .card,.card-lg,.kpi,.group-card,.table,.plaza-card,.gossip-card,.rank-card,.points-rule .rule,.task-detail-card,[class*='-card'],.bl-rank-area,.bl-wall,.task-hub-panel{background:rgba(20,26,34,.72)!important;background-image:none!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:16px!important;box-shadow:0 8px 32px rgba(0,0,0,.3)!important;color:#fff!important}
+  .card,.card-lg,.kpi,.group-card,.table,.plaza-card,.gossip-card,.rank-card,.points-rule .rule,.task-detail-card,.user-card,.guest-card,.char-detail-card,.cancel-req-card,.char-modal-card,.char-unlocked-card,.claimer-card,.fb-ticket-card,.feedback-card,.gossip-publish-card,.login-card,.mbti-card,.reg-modal-card,.reply-modal-card,.bl-rank-area,.bl-wall,.task-hub-panel{background:rgba(20,26,34,.72)!important;background-image:none!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:16px!important;box-shadow:0 8px 32px rgba(0,0,0,.3)!important;color:#fff!important}
   .bl-tousu-modal,.bl-metric-rank-modal,.bl-school-detail-modal,.notif-panel{background:rgba(255,255,255,.06)!important;background-image:none!important;backdrop-filter:blur(12px)!important;-webkit-backdrop-filter:blur(12px)!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:16px!important;box-shadow:0 8px 32px rgba(0,0,0,.3)!important;color:#fff!important}
   .plaza-card .nm,.gossip-card .title,.task-detail-card h3,.group-card .top .nm,.kpi .val,.sec-head h3{color:#fff!important}
   .plaza-card .desc,.plaza-card .publisher,.gossip-card .desc,.empty-state,.result-count,.page [style*='color:var(--muted)']{color:rgba(255,255,255,.65)!important}
@@ -1775,7 +1775,7 @@
   .search span,.search input,.input::placeholder,.textarea::placeholder,.bl-search-box input::placeholder,.bl-tousu-input::placeholder,.bl-tousu-textarea::placeholder{color:#6C757D!important}
   .btn,.banner-publish-btn,.bl-wall-more,.bl-tousu-submit,.gossip-publish-btn{background:#165DFF!important;background-image:none!important;color:#FFFFFF!important;border:1px solid #165DFF!important;box-shadow:none!important}
   .btn:hover,.banner-publish-btn:hover,.bl-wall-more:hover,.bl-tousu-submit:hover,.gossip-publish-btn:hover{background:#DEE2E6!important;color:#212529!important;border-color:#CED4DA!important}
-  .card,.card-lg,.kpi,.group-card,.table,.plaza-card,.gossip-card,.rank-card,.points-rule .rule,.task-detail-card,[class*='-card'],.bl-rank-area,.bl-wall,.task-hub-panel,.bl-stat,.bl-extreme-card,.bl-tabs,.bl-tab,.bl-rank-item,.bl-wall-card,.bl-detail-comment,.bl-metric-rank-item,.bl-search-dropdown,.bl-school-sel-item{background:#FFFFFF!important;background-image:none!important;border:1px solid #CED4DA!important;box-shadow:var(--shadow-md)!important;color:#212529!important}
+  .card,.card-lg,.kpi,.group-card,.table,.plaza-card,.gossip-card,.rank-card,.points-rule .rule,.task-detail-card,.user-card,.guest-card,.char-detail-card,.cancel-req-card,.char-modal-card,.char-unlocked-card,.claimer-card,.fb-ticket-card,.feedback-card,.gossip-publish-card,.login-card,.mbti-card,.reg-modal-card,.reply-modal-card,.bl-rank-area,.bl-wall,.task-hub-panel,.bl-stat,.bl-extreme-card,.bl-tabs,.bl-tab,.bl-rank-item,.bl-wall-card,.bl-detail-comment,.bl-metric-rank-item,.bl-search-dropdown,.bl-school-sel-item{background:#FFFFFF!important;background-image:none!important;border:1px solid #CED4DA!important;box-shadow:var(--shadow-md)!important;color:#212529!important}
   .bl-tousu-modal,.bl-metric-rank-modal,.bl-school-detail-modal,.notif-panel{background:#FFFFFF!important;background-image:none!important;border:1px solid #CED4DA!important;box-shadow:var(--shadow-lg)!important;color:#212529!important}
   .plaza-card .nm,.gossip-card .title,.task-detail-card h3,.group-card .top .nm,.kpi .val,.sec-head h3,.bl-header-title,.bl-rank-head-title,.bl-wall-title,.bl-wall-card-school,.bl-wall-card-text,.bl-wall-card-user,.bl-rank-school-name,.bl-metric-rank-title,.bl-school-detail-body,.bl-tousu-label,.bl-tousu-title{color:#212529!important;-webkit-text-fill-color:#212529!important}
   .plaza-card .desc,.plaza-card .publisher,.gossip-card .desc,.empty-state,.result-count,.bl-header-sub,.bl-rank-head-count,.bl-rank-meta,.bl-metric-rank-subtitle,.bl-detail-comment-time{color:#6C757D!important}
@@ -1878,173 +1878,45 @@
   .gossip-card:hover{border:0!important;box-shadow:0 12px 28px rgba(124,77,255,.14)!important}
   @media(max-width:620px){.plaza-card.task-card-rewarded{padding:30px 16px 18px!important}.plaza-card.task-card-standard{padding:18px 16px!important}.bl-extreme-card{min-height:132px;padding:16px!important}}
 
-  /* === 卡片风格统一：Light neutral theme overrides === */
-  #page-mytasks .task-published-block > .card,#page-mytasks .task-claimed-block > .card{
-    background:linear-gradient(135deg,#FAFBFC 0%,#F5F7FA 100%)!important;
-    border:1px solid #D0D5DD!important;
-    border-left:3px solid #8B5CF6!important;
-    padding:16px 20px!important;
-    gap:4px!important;
-    box-shadow:0 2px 8px rgba(0,0,0,.05)!important;
-  }
-  #page-mytasks .task-published-block > .card:hover,#page-mytasks .task-claimed-block > .card:hover{
-    box-shadow:0 6px 20px rgba(0,0,0,.10)!important;
-    border-color:#B8C0CC!important;
-  }
+  /* === 我的任务卡片 · 保留现有 Linear 风格 === */
+  #page-mytasks .task-published-block > .card,#page-mytasks .task-claimed-block > .card{background:linear-gradient(135deg,#FAFBFC 0%,#F5F7FA 100%)!important;border:1px solid #D0D5DD!important;border-left:3px solid #8B5CF6!important;padding:16px 20px!important;gap:4px!important;box-shadow:0 2px 8px rgba(0,0,0,.05)!important}
+  #page-mytasks .task-published-block > .card:hover,#page-mytasks .task-claimed-block > .card:hover{box-shadow:0 6px 20px rgba(0,0,0,.10)!important;border-color:#B8C0CC!important}
   #page-mytasks .mt-actions{padding-top:10px!important;margin-top:2px!important}
   #page-mytasks .mt-desc{margin-bottom:2px!important}
 
-  /* === 黑榜评论卡：列表行风格 === */
-  .bl-wall-card{
-    border:0!important;
-    border-bottom:1px solid #E5E7EB!important;
-    border-radius:0!important;
-    box-shadow:none!important;
-    padding:16px 4px!important;
-    background:transparent!important;
-    background-image:none!important;
-  }
+  /* === 黑榜评论 · App Store 评论风格 === */
+  .bl-wall-card{display:flex!important;gap:12px!important;border:0!important;border-bottom:1px solid #F0F1F3!important;border-radius:0!important;box-shadow:none!important;padding:18px 6px!important;background:transparent!important;background-image:none!important;transition:background .15s!important}
+  .bl-wall-card:hover{background:#FAFBFC!important;border-color:#F0F1F3!important;transform:none!important}
   .bl-wall-card:last-child{border-bottom:0!important}
-  .bl-wall-card > div:first-child,.bl-wall-card-head{
-    display:flex!important;
-    align-items:center!important;
-    gap:10px!important;
-    flex-wrap:wrap!important;
-    background:none!important;
-    border:0!important;
-    border-radius:0!important;
-    padding:0!important;
-    box-shadow:none!important;
-  }
-  .bl-wall-card > div:first-child .tag,.bl-wall-card > div:first-child [class*="badge"],.bl-wall-card-head .tag,.bl-wall-card-head [class*="badge"]{
-    background:none!important;
-    border:0!important;
-    padding:0!important;
-    box-shadow:none!important;
-  }
-  .bl-wall-card-school{
-    font-size:15px!important;
-    font-weight:700!important;
-    color:#111827!important;
-    background:none!important;
-    border:0!important;
-    padding:0!important;
-  }
-  .bl-wall-card-score,.bl-wall-card > div:first-child > span:nth-child(2){
-    font-size:13px!important;
-    font-weight:600!important;
-    color:#D97706!important;
-    background:none!important;
-    border:0!important;
-    padding:0!important;
-  }
-  .bl-wall-card-time{
-    font-size:12px!important;
-    color:#9CA3AF!important;
-    margin-left:auto!important;
-  }
-  .bl-wall-card-text{
-    font-size:14px!important;
-    color:#374151!important;
-    margin:8px 0 4px!important;
-    line-height:1.65!important;
-    background:none!important;
-    border:0!important;
-    border-radius:0!important;
-    padding:0!important;
-  }
-  .bl-wall-card-user{
-    font-size:12px!important;
-    color:#9CA3AF!important;
-    margin-top:0!important;
-    background:none!important;
-    border:0!important;
-    padding:0!important;
-  }
+  .bl-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700;user-select:none}
+  .bl-wall-card-main{flex:1;min-width:0}
+  .bl-wall-card-head{display:flex!important;flex-direction:column!important;gap:3px!important;margin-bottom:0!important;background:none!important;border:0!important;padding:0!important;box-shadow:none!important}
+  .bl-wall-card-school{font-size:15px!important;font-weight:700!important;color:#1A1A1A!important;background:none!important;border:0!important;padding:0!important;overflow-wrap:anywhere}
+  .bl-wall-card-meta{display:flex;align-items:center;gap:8px}
+  .bl-stars{font-size:13px;letter-spacing:1px;line-height:1}
+  .bl-stars .s-on{color:#F59E0B}
+  .bl-stars .s-off{color:#E5E7EB}
+  .bl-wall-card-score{font-size:13px!important;font-weight:600!important;color:#6B7280!important;background:none!important;border:0!important;padding:0!important;box-shadow:none!important}
+  .bl-wall-card-time{font-size:12px!important;color:#B0B5BC!important;margin-left:auto!important;background:none!important;border:0!important;padding:0!important}
+  .bl-wall-card-text{font-size:14px!important;color:#3F4550!important;line-height:1.7!important;margin:10px 0 0!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important}
+  .bl-wall-card-user{font-size:12px!important;color:#B0B5BC!important;margin-top:8px!important;font-weight:500!important;background:none!important;border:0!important;padding:0!important}
 
-  /* === 打听/八卦卡：问答列表风格 === */
-  .gossip-card{
-    border:1px solid #E5E7EB!important;
-    border-radius:14px!important;
-    padding:18px 20px!important;
-    background:#FFFFFF!important;
-    background-image:none!important;
-  }
-  .gossip-card > div:first-child,.gossip-card-head{
-    display:flex!important;
-    align-items:center!important;
-    gap:8px!important;
-    margin-bottom:4px!important;
-  }
-  .gossip-card > div:first-child .tag,.gossip-card .tag[class*="cat"],.gossip-card-tag,.gossip-card-tags .gossip-card-tag{
-    background:none!important;
-    border:0!important;
-    padding:0!important;
-    box-shadow:none!important;
-    color:#6B7280!important;
-    font-size:12px!important;
-    font-weight:600!important;
-  }
-  .gossip-card .tag[style*="剩"],.gossip-card > div:first-child .tag:last-child,.gossip-card-countdown{
-    color:#9CA3AF!important;
-    font-weight:500!important;
-    margin-left:auto!important;
-    background:none!important;
-    border:0!important;
-    padding:0!important;
-    box-shadow:none!important;
-  }
-  .gossip-card .title,.gossip-card-title{
-    font-size:16px!important;
-    font-weight:700!important;
-    color:#111827!important;
-    margin:6px 0 4px!important;
-    line-height:1.4!important;
-  }
-  .gossip-card .desc,.gossip-card-desc{
-    font-size:14px!important;
-    color:#6B7280!important;
-    line-height:1.65!important;
-    background:none!important;
-    border:0!important;
-    border-radius:0!important;
-    padding:0!important;
-    margin:0 0 6px!important;
-  }
-  .gossip-card .publisher,.gossip-card-publisher,.gossip-card [class*="author"]{
-    background:none!important;
-    border:0!important;
-    border-radius:0!important;
-    padding:6px 0 0!important;
-    box-shadow:none!important;
-  }
-  .gossip-card .foot,.gossip-card-stats,.gossip-card [class*="footer"]{
-    display:flex!important;
-    align-items:center!important;
-    gap:16px!important;
-    padding-top:12px!important;
-    margin-top:8px!important;
-    border-top:1px solid #F3F4F6!important;
-  }
-  .gossip-card .foot .tag,.gossip-card .foot span,.gossip-card-stats .gossip-stat{
-    background:none!important;
-    border:0!important;
-    padding:0!important;
-    font-size:13px!important;
-    color:#9CA3AF!important;
-  }
-  .gossip-card .foot .tag:last-child,.gossip-card .gossip-stat.bounty,.gossip-card [style*="蛋蛋币"],.gossip-card .tag[style*="background:var(--primary)"],.gossip-card .tag[style*="background:#165DFF"]{
-    background:none!important;
-    color:#D97706!important;
-    font-weight:700!important;
-    border:0!important;
-    padding:0!important;
-    box-shadow:none!important;
-  }
-  @media(max-width:620px){
-    .gossip-card{padding:14px 16px!important}
-    .bl-wall-card{padding:14px 2px!important}
-  }
+  /* === 打听/八卦卡 · 知乎问题卡风格 === */
+  .gossip-card{border:1px solid #E9EBEF!important;border-radius:14px!important;padding:18px 20px!important;background:#FFFFFF!important;background-image:none!important;box-shadow:0 1px 3px rgba(0,0,0,.03)!important;transition:box-shadow .2s!important}
+  .gossip-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.07)!important;border-color:#DDE1E6!important}
+  .gossip-card-head,.gossip-card > div:first-child{display:flex!important;align-items:center!important;justify-content:space-between!important;background:none!important;border:0!important;padding:0!important;box-shadow:none!important}
+  .gossip-card-tag,.gossip-card-tags .gossip-card-tag,.gossip-card-head .tag{background:none!important;border:0!important;padding:0!important;box-shadow:none!important;color:#7C6FF0!important;font-size:12px!important;font-weight:600!important}
+  .gossip-card-countdown{background:none!important;border:0!important;padding:0!important;box-shadow:none!important;color:#B0B5BC!important;font-size:12px!important;font-weight:500!important}
+  .gossip-card-title,.gossip-card .title{font-size:16px!important;font-weight:700!important;color:#1A1A1A!important;margin:10px 0 4px!important;line-height:1.45!important;background:none!important;border:0!important;padding:0!important}
+  .gossip-card-desc,.gossip-card .desc{font-size:14px!important;color:#6B7280!important;line-height:1.65!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;margin:0!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .gossip-card-publisher,.gossip-card .publisher{display:flex!important;align-items:center!important;gap:8px!important;background:none!important;border:0!important;border-radius:0!important;padding:12px 0 0!important;box-shadow:none!important}
+  .gossip-card-avatar{width:28px!important;height:28px!important;border-radius:50%!important;font-size:13px!important}
+  .gossip-card-pub-name{font-size:13px!important;color:#3F4550!important;font-weight:600!important;background:none!important;border:0!important;padding:0!important}
+  .gossip-card-pub-time{font-size:12px!important;color:#B0B5BC!important;background:none!important;border:0!important;padding:0!important}
+  .gossip-card-stats,.gossip-card .foot{display:flex!important;align-items:center!important;gap:16px!important;padding:12px 0 0!important;margin-top:10px!important;border-top:1px solid #F0F1F3!important;background:none!important;box-shadow:none!important}
+  .gossip-card-stats span,.gossip-card .foot span,.gossip-card .foot .tag{background:none!important;border:0!important;padding:0!important;box-shadow:none!important;font-size:13px!important;color:#9CA3AF!important;font-weight:500!important}
+  .gossip-card-stats span:last-child,.gossip-card .foot .tag:last-child,.gossip-card [class*="bounty"],.gossip-card [class*="coin"]{margin-left:auto!important;color:#D97706!important;font-weight:800!important;font-size:14px!important}
+  @media(max-width:620px){.gossip-card{padding:14px 16px!important}.bl-wall-card{padding:14px 2px!important}}
 </style>
 </head>
 <body>
