@@ -41,6 +41,11 @@ describe('task plaza card contract', () => {
     expect(renderer).toContain('查看详情');
   });
 
+  it('keeps the claimed badge in the card corner without covering title tags', () => {
+    expect(html).toContain('.plaza-card.is-claimed{padding-top:42px!important}');
+    expect(html).toContain('.claimed-badge{position:absolute;top:4px;left:4px;');
+  });
+
   it('binds the details action for each dynamically loaded public task card', () => {
     expect(publicTaskSync).toContain('var card = renderServerPlazaTask(task);');
     expect(publicTaskSync).toContain("bindDetailBtn(card.querySelector('.claim-btn'));");
