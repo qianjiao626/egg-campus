@@ -66,6 +66,18 @@ describe('task plaza card contract', () => {
     expect(claimedTaskRenderer).toContain("pairedClaimStatuses.indexOf(claim.status) >= 0 ? (task.contact || '') : ''");
     expect(claimedTaskRenderer).toContain("card.setAttribute('data-contact', claimedContact);");
     expect(html).toContain("var paired = role === 'claimer' ? pairedClaimStatuses.indexOf(status) >= 0 : true;");
+    const managerRenderer = html.match(/function renderClaimerList\(taskName\)\{([\s\S]*?)\n  \}\n\n  function toggleClaimerSelect/);
+    expect(html).toContain('claimStatus: claim.status');
+    expect(managerRenderer?.[1]).toContain('pairedClaimStatuses.indexOf(c.claimStatus) >= 0');
+  });
+
+  it('shows paired publisher tasks as already paired and prevents reopening the manager', () => {
+    const publishedTaskBody = html.match(/function renderSyncedPublishedTask\(task\)\{([\s\S]*?)\n  \}\n  function renderSyncedClaimedTask/);
+    expect(publishedTaskBody).not.toBeNull();
+    expect(publishedTaskBody![1]).toContain('var hasPairedClaim = Boolean(task.hasPairedClaim);');
+    expect(publishedTaskBody![1]).toContain('已配对');
+    expect(publishedTaskBody![1]).toContain('disabled');
+    expect(html).toContain("claim.status === 'assigned' ? '已配对'");
   });
 
   it('uses a responsive colorful card without an internal scrollbar', () => {

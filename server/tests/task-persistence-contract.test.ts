@@ -66,6 +66,7 @@ describe('task persistence API contract', () => {
       skillSubcategory: '编程开发',
       activeClaimCount: 2,
       claimStatus: 'assigned',
+      hasPairedClaim: true,
     });
     expect(response.json().tasks[0]).not.toHaveProperty('claims');
   });

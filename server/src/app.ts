@@ -748,6 +748,7 @@ export function buildApp(): FastifyInstance {
       } : null,
       activeClaimCount: _count?.claims ?? 0,
       claimStatus: viewerClaim?.status ?? null,
+      hasPairedClaim,
       teamRating: task.taskType === 'team' ? (teamRating ?? null) : null,
     };
   }

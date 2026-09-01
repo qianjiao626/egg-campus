@@ -39,4 +39,11 @@ describe('blacklist frontend contract', () => {
     expect(page).toContain("document.documentElement.dataset.buddyboxEnabled !== 'true' && id === 'buddybox'");
     expect(page).toContain('id="page-buddybox"');
   });
+
+  it('uses a rainbow framed university ranking row instead of pill layout', () => {
+    expect(page).toContain('.bl-rank-item{border:2px solid transparent!important;border-radius:10px!important;');
+    expect(page).toContain('linear-gradient(90deg,#F2387A 0%,#F59E0B 20%,#16A34A 40%,#0891B2 60%,#165DFF 80%,#8B5CF6 100%) border-box');
+    expect(page).toContain('.bl-rank-item::before{display:none!important}');
+    expect(page).toContain('.bl-rank-detail-btn{border-radius:8px!important;');
+  });
 });

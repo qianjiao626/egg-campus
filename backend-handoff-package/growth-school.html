@@ -949,6 +949,7 @@
   .claimer-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:transparent;transition:all .2s var(--bounce);transform:scale(.8);flex-shrink:0}
   .claimer-status{position:absolute;top:8px;right:36px;font-size:9px;padding:2px 6px;border-radius:6px;font-weight:600}
   .claimer-status.submitted{background:#E8F5E9;color:#4CAF50}
+  .claimer-status.assigned{background:#E8F5E9;color:#2E7D32}
   .claimer-status.progress{background:#FFF3E0;color:#FF9800}
 
   /* ===== Gossip Wall (蛋蛋要八卦) ===== */
@@ -1979,6 +1980,18 @@
   .ud-section{display:flex;flex-direction:column;gap:10px;min-width:0}.ud-radar{height:300px;width:100%;min-width:0;background:#FFFFFF;border:1px solid #CED4DA;border-radius:12px}
   #udPublishedTable,#udClaimedTable{overflow-x:auto}.ud-task-row{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 14px;border-top:1px solid #E9ECEF;min-width:680px}.ud-task-row:first-child{border-top:0}.ud-task-title{flex:1;min-width:160px;font-size:13px;font-weight:600;color:#212529;overflow-wrap:anywhere}.ud-task-cell{width:92px;font-size:12px;color:#6C757D;white-space:nowrap}.ud-task-reward{width:90px;color:#D97706;font-weight:600;font-size:12px}.ud-task-action{width:64px;text-align:right}.ud-task-action button{border:0;background:none;color:#165DFF;font-size:12px;cursor:pointer;font-family:inherit;padding:4px}.ud-task-head{font-weight:600;color:#6C757D;background:#F8F9FA}
   @media(max-width:900px){.ud-stats-row{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:620px){.ud-info-card{align-items:flex-start;padding:16px;gap:12px}.ud-avatar{width:52px;height:52px;font-size:20px}.ud-name{font-size:17px}.ud-stats-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.ud-stat-card{padding:12px}.ud-radar{height:260px}}
+
+  /* === 大学吐槽榜 · 彩虹边框列表 === */
+  .bl-rank-item{border:2px solid transparent!important;border-radius:10px!important;background:linear-gradient(#FFFFFF,#FFFFFF) padding-box,linear-gradient(90deg,#F2387A 0%,#F59E0B 20%,#16A34A 40%,#0891B2 60%,#165DFF 80%,#8B5CF6 100%) border-box!important;box-shadow:0 3px 10px rgba(33,37,41,.08)!important;transform:none!important;min-width:0!important}
+  .bl-rank-item::before{display:none!important}
+  .bl-rank-item:hover{border-color:transparent!important;box-shadow:0 6px 18px rgba(33,37,41,.14)!important;transform:translateY(-1px)!important}
+  .bl-rank-num{border-radius:8px!important}
+  .bl-rank-badge{border-radius:6px!important;background:#F8F9FA!important;color:#495057!important;border:1px solid #E9ECEF!important}
+  .bl-rank-badge.warn{background:#FFF4E8!important;color:#C2410C!important;border-color:#FED7AA!important}
+  .bl-rank-badge.ok{background:#ECFDF3!important;color:#15803D!important;border-color:#BBF7D0!important}
+  .bl-rank-detail-btn{border-radius:8px!important;background:#F8FAFF!important;color:#165DFF!important;border:1px solid #BFD2FF!important;padding:6px 12px!important;box-shadow:none!important}
+  .bl-rank-detail-btn:hover{background:#EAF1FF!important;color:#0D47D9!important;border-color:#8FB2FF!important}
+  @media(max-width:620px){.bl-rank-item{gap:8px!important;padding:12px!important}.bl-rank-meta{display:none!important}.bl-rank-detail-btn{padding:5px 8px!important}.bl-rank-school-name{font-size:14px!important;overflow-wrap:anywhere!important}}
 </style>
 </head>
 <body>
@@ -5572,6 +5585,12 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.setAttribute('data-publisher-id', task.user && task.user.id ? String(task.user.id) : String(task.userId || ''));
     var reward = Number(task.reward || 0);
     var claimCount = Number(task.activeClaimCount || task.claimCount || 0);
+    var hasPairedClaim = Boolean(task.hasPairedClaim);
+    var pairingLocked = hasPairedClaim && (type !== 'team' || !task.maxClaimers || claimCount >= Number(task.maxClaimers));
+    card.setAttribute('data-paired', pairingLocked ? 'true' : 'false');
+    var claimManagerButton = pairingLocked
+      ? '<button class="btn btn-ghost btn-sm paired-manager-btn" disabled aria-disabled="true" title="该任务已完成配对">✓ 已配对</button>'
+      : '<button class="btn btn-ghost btn-sm" onclick="openClaimerManager(this)">认领管理</button>';
     card.innerHTML = '<div class="mt-row"><div class="mt-status mt-status--' + group + '"><span class="mt-dot"></span><span>' + label + '</span></div><span class="mt-date">发布于 ' + formatDateYmd(task.createdAt) + '</span></div>' +
       '<div class="mt-title-row"><div class="mt-title">' + escapeHtml(task.title || '未命名任务') + '</div>' + (reward > 0 ? '<div class="mt-coin">悬赏 ' + reward + ' 蛋蛋币</div>' : '') + '</div>' +
       '<div class="mt-desc">' + escapeHtml(task.description || '暂无简介') + '</div>' +
@@ -5580,7 +5599,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       renderTeamRatingHint(task) +
       '<div class="mt-actions"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'publisher\')">查看详情</button>' +
       ((group === 'pending' || group === 'approved') ?
-        (group === 'approved' ? '<button class="btn btn-ghost btn-sm" onclick="openClaimerManager(this)">认领管理</button><button class="btn btn-primary btn-sm" onclick="reviewMyTask(this)">确认完成</button>' : '') +
+        (group === 'approved' ? claimManagerButton + '<button class="btn btn-primary btn-sm" onclick="reviewMyTask(this)">确认完成</button>' : '') +
         '<button class="btn btn-ghost btn-sm" onclick="cancelPublishedTask(this)">取消任务</button>' : '') + '</div>';
     list.appendChild(card);
   }
@@ -6632,6 +6651,10 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   async function openClaimerManager(btn){
     var card = btn.closest('.card');
     if(!card) return;
+    if(card.getAttribute('data-paired') === 'true'){
+      toast('该任务已完成配对，无需重复操作');
+      return;
+    }
     var nameEl = card.querySelector('.mt-title') || card.querySelector('div[style*="font-weight:600"]');
     var taskName = nameEl ? nameEl.textContent.trim() : (card.getAttribute('data-task-title') || '');
     if(!taskName) return;
@@ -6644,7 +6667,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         var claimResult = await window.apiClient.taskClaims(serverTaskId);
         taskClaimers[taskName] = (claimResult.claims || []).map(function(claim){
           var profile = claim.claimer || {};
-          return { id: claim.id, userId: claim.claimerId, name: profile.nickname || '匿名用户', isCertified: Boolean(profile.isCertified || profile.certified), mbti: profile.mbtiType || '—', nick: (MBTI_NICKNAMES && MBTI_NICKNAMES[profile.mbtiType]) || '—', egg: profile.eggCategory || '未设置', rarity: profile.eggRarity || 'N', rep: profile.reputation || 0, stats: {}, bio: profile.bio || '', selected: claim.status === 'submitted', status: claim.status === 'submitted' ? '已提交' : (claim.status === 'completed' ? '已完成' : '进行中'), coinFrozen: claim.frozenAmount || 0, claimerContact: claim.contact || '' };
+          return { id: claim.id, userId: claim.claimerId, name: profile.nickname || '匿名用户', isCertified: Boolean(profile.isCertified || profile.certified), mbti: profile.mbtiType || '—', nick: (MBTI_NICKNAMES && MBTI_NICKNAMES[profile.mbtiType]) || '—', egg: profile.eggCategory || '未设置', rarity: profile.eggRarity || 'N', rep: profile.reputation || 0, stats: {}, bio: profile.bio || '', selected: pairedClaimStatuses.indexOf(claim.status) >= 0, claimStatus: claim.status, status: claim.status === 'submitted' ? '已提交' : (claim.status === 'completed' ? '已完成' : (claim.status === 'assigned' ? '已配对' : '待配对')), coinFrozen: claim.frozenAmount || 0, claimerContact: claim.contact || '' };
         });
       } catch(error) {
         toast(error.message || '认领列表加载失败，请稍后重试');
@@ -6701,8 +6724,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       var rarityColor = RARITY_COLORS[c.rarity] || '#C0C0C0';
       var eggIcon = EGG_ICONS[c.egg] || '🥚';
       var eggColor = EGG_COLORS_CL[c.egg] || '#999';
-      var statusClass = c.status === '已提交' ? 'submitted' : 'progress';
-      var contactHtml = (c.status === '进行中' || c.status === '已提交') && c.claimerContact ? '<div style="font-size:12px;color:var(--ink2);margin-top:6px;padding:6px 10px;background:#FFF7E6;border-radius:8px">📞 ' + escapeHtml(c.claimerContact) + '</div>' : '';
+      var statusClass = c.status === '已提交' ? 'submitted' : c.status === '已配对' ? 'assigned' : 'progress';
+      var contactHtml = pairedClaimStatuses.indexOf(c.claimStatus) >= 0 && c.claimerContact ? '<div style="font-size:12px;color:var(--ink2);margin-top:6px;padding:6px 10px;background:#FFF7E6;border-radius:8px">📞 ' + escapeHtml(c.claimerContact) + '</div>' : '';
       return '<div class="claimer-card' + (c.selected ? ' selected' : '') + '" data-idx="' + idx + '" onclick="toggleClaimerSelect(this)">' +
         '<div class="claimer-avatar" style="background:' + eggColor + '22">' + eggIcon +
           '<div class="ca-ring" style="border-color:' + rarityColor + '"></div>' +
