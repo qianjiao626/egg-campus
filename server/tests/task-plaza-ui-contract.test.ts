@@ -61,6 +61,13 @@ describe('task plaza card contract', () => {
     expect(claimerRating).toContain('true, taskId, publisherId');
   });
 
+  it('keeps publisher contact hidden for an unpaired claimer', () => {
+    expect(html).toContain("var pairedClaimStatuses = ['assigned','submitted','completed'];");
+    expect(claimedTaskRenderer).toContain("pairedClaimStatuses.indexOf(claim.status) >= 0 ? (task.contact || '') : ''");
+    expect(claimedTaskRenderer).toContain("card.setAttribute('data-contact', claimedContact);");
+    expect(html).toContain("var paired = role === 'claimer' ? pairedClaimStatuses.indexOf(status) >= 0 : true;");
+  });
+
   it('uses a responsive colorful card without an internal scrollbar', () => {
     expect(html).toContain('--plaza-berry:#F2387A');
     expect(html).toMatch(/\.plaza-card\{[^}]*border-radius:8px/);

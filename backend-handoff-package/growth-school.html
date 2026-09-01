@@ -1938,6 +1938,14 @@
   .gossip-card-stats,.gossip-card .foot{display:flex!important;align-items:center!important;gap:16px!important;padding:12px 0 0!important;margin-top:10px!important;border-top:1px solid #F0F1F3!important;background:none!important;box-shadow:none!important}
   .gossip-card-stats span,.gossip-card .foot span,.gossip-card .foot .tag{background:none!important;border:0!important;padding:0!important;box-shadow:none!important;font-size:13px!important;color:#9CA3AF!important;font-weight:500!important}
   .gossip-card-stats span:last-child,.gossip-card .foot .tag:last-child,.gossip-card [class*="bounty"],.gossip-card [class*="coin"]{margin-left:auto!important;color:#D97706!important;font-weight:800!important;font-size:14px!important}
+  /* === 八卦横幅与学校吐槽详情 · 浅色主题可读性 === */
+  .gossip-hero .banner-text h2{color:#FFE1EE!important;-webkit-text-fill-color:#FFE1EE!important}
+  .gossip-hero .banner-text p{color:rgba(255,255,255,.9)!important;-webkit-text-fill-color:rgba(255,255,255,.9)!important}
+  .gossip-hero .banner-text .badges .tag{background:rgba(255,255,255,.18)!important;color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;border:1px solid rgba(255,255,255,.32)!important}
+  .gossip-hero .banner-text .badges .tag b,#gossipPoints{color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important}
+  .bl-detail-comment-text{color:#343A40!important;-webkit-text-fill-color:#343A40!important}
+  .bl-detail-comment-user{color:#495057!important;-webkit-text-fill-color:#495057!important}
+  .bl-detail-comment-time{color:#6C757D!important;-webkit-text-fill-color:#6C757D!important}
   @media(max-width:620px){.gossip-card{padding:14px 16px!important}.bl-wall-card{padding:12px 14px!important}}
 
   /* === 管理看板分析区 === */
@@ -5533,6 +5541,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       btn.classList.toggle('btn-ghost', btn.getAttribute('data-task-status') !== currentMyPublishedStatus);
     });
   }
+  var pairedClaimStatuses = ['assigned','submitted','completed'];
   function renderSyncedPublishedTask(task){
     var type = task.taskType === 'team' || task.taskType === 'help' || task.taskType === 'reward' ? task.taskType : 'teach';
     var list = document.getElementById('myPublishedList' + type.charAt(0).toUpperCase() + type.slice(1));
@@ -5548,12 +5557,19 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.setAttribute('data-status-group', group);
     card.setAttribute('data-task-type', type);
     card.setAttribute('data-task-cost', String(task.reward || 0));
+    card.setAttribute('data-skill-cat', task.skillCategory || '');
+    card.setAttribute('data-skill-sub', task.skillSubcategory || '');
+    card.setAttribute('data-claim-mode', task.claimMode || 'single');
     card.setAttribute('data-max-claimers', task.maxClaimers == null ? '' : String(task.maxClaimers));
     card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : '');
     card.setAttribute('data-claimed', '0');
     card.setAttribute('data-task-description', task.description || '');
     card.setAttribute('data-contact', task.contact || '');
     card.setAttribute('data-requirements', task.requirements || '');
+    card.setAttribute('data-deadline', task.deadline || '');
+    card.setAttribute('data-signup-deadline', task.signupDeadline || '');
+    card.setAttribute('data-publisher', task.user && task.user.nickname ? task.user.nickname : '');
+    card.setAttribute('data-publisher-id', task.user && task.user.id ? String(task.user.id) : String(task.userId || ''));
     var reward = Number(task.reward || 0);
     var claimCount = Number(task.activeClaimCount || task.claimCount || 0);
     card.innerHTML = '<div class="mt-row"><div class="mt-status mt-status--' + group + '"><span class="mt-dot"></span><span>' + label + '</span></div><span class="mt-date">发布于 ' + formatDateYmd(task.createdAt) + '</span></div>' +
@@ -5577,7 +5593,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var claimLabel = claim.status === 'completed' ? '已完成' : claim.status === 'submitted' ? '待确认' : claim.status === 'assigned' ? '进行中' : claim.status === 'abandoned' || claim.status === 'cancelled' ? '已取消' : '待配对';
     var claimStatusGroup = claim.status === 'completed' ? 'completed' : claim.status === 'abandoned' || claim.status === 'cancelled' ? 'cancelled' : claim.status === 'assigned' || claim.status === 'submitted' ? 'approved' : 'pending';
     card.className = 'card mytask-card pub-' + type + (claimStatusGroup === 'cancelled' ? ' is-cancelled' : '') + (claimStatusGroup === 'completed' ? ' is-completed' : ''); card.setAttribute('data-claim-id', String(claim.id)); card.setAttribute('data-task-id', String(task.id || ''));
-    card.setAttribute('data-task-type', task.taskType || 'teach'); card.setAttribute('data-task-title', task.title || '任务'); card.setAttribute('data-publisher-id', String(task.userId || '')); card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : ''); card.setAttribute('data-task-description', task.description || ''); card.setAttribute('data-contact', task.contact || ''); card.setAttribute('data-claim-status', claim.status || ''); card.setAttribute('data-task-cost', String(task.reward || 0));
+    var claimedContact = pairedClaimStatuses.indexOf(claim.status) >= 0 ? (task.contact || '') : '';
+    card.setAttribute('data-task-type', task.taskType || 'teach'); card.setAttribute('data-task-title', task.title || '任务'); card.setAttribute('data-publisher-id', String(task.userId || '')); card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : ''); card.setAttribute('data-task-description', task.description || ''); card.setAttribute('data-contact', claimedContact); card.setAttribute('data-claim-status', claim.status || ''); card.setAttribute('data-task-cost', String(task.reward || 0)); card.setAttribute('data-skill-cat', task.skillCategory || ''); card.setAttribute('data-skill-sub', task.skillSubcategory || ''); card.setAttribute('data-claim-mode', task.claimMode || 'single'); card.setAttribute('data-max-claimers', task.maxClaimers == null ? '' : String(task.maxClaimers)); card.setAttribute('data-requirements', task.requirements || ''); card.setAttribute('data-deadline', task.deadline || ''); card.setAttribute('data-signup-deadline', task.signupDeadline || ''); card.setAttribute('data-publisher', task.user && task.user.nickname ? task.user.nickname : '');
     var canSubmit = claim.status === 'pending' || claim.status === 'assigned';
     var cancellationRequest = getTaskCancellationRequest(card);
     var cancellationActions = '';
@@ -5599,22 +5616,118 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       '<div class="mt-actions"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'claimer\')">查看详情</button>' + controls + completedRatingAction + '</div>';
     list.appendChild(card);
   }
-  function openSyncedTaskDetail(button, role){
+  async function openSyncedTaskDetail(button, role){
     var card = button && button.closest('.card');
     if(!card) return;
     var titleEl = card.querySelector('.mt-title') || card.querySelector('div[style*="font-weight:600"]');
-    var title = titleEl ? titleEl.textContent : '任务详情';
+    var title = titleEl ? titleEl.textContent.trim() : (card.getAttribute('data-task-title') || '任务详情');
+    var taskId = card.getAttribute('data-task-id') || '';
     var type = card.getAttribute('data-task-type') || 'teach';
-    var status = card.getAttribute('data-status') || card.getAttribute('data-claim-status') || '进行中';
+    var claimStatus = card.getAttribute('data-claim-status') || '';
+    var status = role === 'claimer' ? claimStatus : (card.getAttribute('data-status') || 'approved');
     var description = card.getAttribute('data-task-description') || '';
+    var requirements = card.getAttribute('data-requirements') || '';
     var contact = card.getAttribute('data-contact') || '';
-    var paired = ['assigned','submitted','completed'].indexOf(status) >= 0;
-    var typeLabels = {teach:'教学型',help:'求助型',team:'组队型',reward:'奖励型'};
+    var skillCat = card.getAttribute('data-skill-cat') || '—';
+    var skillSub = card.getAttribute('data-skill-sub') || '';
+    var claimMode = card.getAttribute('data-claim-mode') || 'single';
+    var maxClaimers = card.getAttribute('data-max-claimers') || '';
+    var signupDeadline = card.getAttribute('data-signup-deadline') || '';
+    var deadline = card.getAttribute('data-deadline') || '';
+    var publisher = card.getAttribute('data-publisher') || '';
+    var publisherId = card.getAttribute('data-publisher-id') || '';
     var reward = Number(card.getAttribute('data-task-cost') || card.getAttribute('data-reward') || 0);
-    var contactHtml = paired && contact ? '<div class="td-req">' + escapeHtml(contact) + '</div>' : '<div class="td-contact-locked">配对后可查看联系方式</div>';
-    var action = role === 'claimer' && (status === 'pending' || status === 'assigned') ? '<button class="btn btn-primary btn-sm" onclick="submitClaimedTask(\'' + escapeInlineString(card.getAttribute('data-task-id') || '') + '\');closeMyTaskDetail()">提交完成</button>' : '';
-    document.getElementById('myTaskDetailCard').innerHTML = '<button class="td-close" onclick="closeMyTaskDetail()">×</button><div class="td-title">' + escapeHtml(title) + '</div><div class="td-info"><div class="td-info-row"><span class="td-info-lbl">任务类型</span><span class="td-info-val">' + escapeHtml(typeLabels[type] || type) + '</span></div><div class="td-info-row"><span class="td-info-lbl">状态</span><span class="td-info-val">' + escapeHtml(status) + '</span></div><div class="td-info-row"><span class="td-info-lbl">蛋蛋币</span><span class="td-info-val">' + reward + '</span></div></div><div class="td-section-title">任务描述</div><div class="td-req">' + escapeHtml(description) + '</div><div class="td-section-title">联系方式</div>' + contactHtml + '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">' + action + '</div>';
-    var modal = document.getElementById('myTaskDetailModal'); modal.style.display = 'flex'; requestAnimationFrame(function(){ modal.classList.add('show'); });
+    var typeLabels = {teach:'教学型',help:'求助型',team:'组队型',reward:'奖励型'};
+    var statusLabels = {pending_review:'待审核',approved:'已审核',completed:'已完成',cancelled:'已取消',needs_revision:'待修改',rejected:'待修改',pending:'待配对',assigned:'进行中',submitted:'待确认'};
+
+    if(taskId && window.apiClient && typeof window.apiClient.taskDetail === 'function'){
+      try {
+        var detailResult = await window.apiClient.taskDetail(taskId);
+        var detailTask = detailResult && detailResult.task;
+        if(detailTask){
+          title = detailTask.title || title;
+          description = detailTask.description || description;
+          requirements = detailTask.requirements || requirements;
+          contact = detailTask.contact || contact;
+          skillCat = detailTask.skillCategory || skillCat;
+          skillSub = detailTask.skillSubcategory || skillSub;
+          claimMode = detailTask.claimMode || claimMode;
+          maxClaimers = detailTask.maxClaimers == null ? maxClaimers : String(detailTask.maxClaimers);
+          signupDeadline = detailTask.signupDeadline || signupDeadline;
+          deadline = detailTask.deadline || deadline;
+          reward = Number(detailTask.reward == null ? reward : detailTask.reward);
+          publisher = detailTask.user && detailTask.user.nickname ? detailTask.user.nickname : publisher;
+          publisherId = detailTask.user && detailTask.user.id ? String(detailTask.user.id) : publisherId;
+          if(role === 'claimer') claimStatus = detailTask.claimStatus || claimStatus;
+          status = role === 'claimer' ? claimStatus : (detailTask.status || status);
+        }
+      } catch(error) {
+        if(role === 'claimer' && !description) toast(error.message || '任务详情加载失败');
+      }
+    }
+
+    var claimers = taskClaimers[title] || [];
+    if(role === 'publisher' && taskId && window.apiClient && typeof window.apiClient.taskClaims === 'function'){
+      try {
+        var claimResult = await window.apiClient.taskClaims(taskId);
+        claimers = (claimResult.claims || []).map(function(claim){
+          var profile = claim.claimer || {};
+          var claimState = claim.status || 'pending';
+          return { id: claim.id, userId: claim.claimerId, name: profile.nickname || '匿名用户', isCertified: Boolean(profile.isCertified || profile.certified), mbti: profile.mbtiType || '—', nick: (MBTI_NICKNAMES && MBTI_NICKNAMES[profile.mbtiType]) || '—', egg: profile.eggCategory || '未设置', rarity: profile.eggRarity || 'N', rep: profile.reputation || 0, bio: profile.bio || '', status: claimState, selected: claimState === 'submitted', claimerContact: claim.contact || '' };
+        });
+        taskClaimers[title] = claimers;
+      } catch(error){ toast(error.message || '认领列表加载失败，请稍后重试'); }
+    }
+
+    var statusText = statusLabels[status] || status || '进行中';
+    var paired = role === 'claimer' ? pairedClaimStatuses.indexOf(status) >= 0 : true;
+    var modeText = claimMode === 'multiple' ? '多人认领' : '单人认领';
+    var countText = role === 'publisher'
+      ? (claimers.length + ' 人报名' + (maxClaimers ? '（上限 ' + Number(maxClaimers) + '）' : ''))
+      : (status === 'completed' ? '已完成' : status === 'submitted' ? '已提交，等待确认' : status === 'assigned' ? '已配对，进行中' : '等待发布者确认');
+    var dateText = function(value){ return value ? formatDateYmd(value) : '不限'; };
+    var infoRows = [
+      ['任务类型', typeLabels[type] || type, ''],
+      ['技能分类', skillCat + (skillSub ? ' · ' + skillSub : ''), ''],
+      ['蛋蛋币', reward + ' 蛋蛋币', type === 'teach' ? 'var(--orange)' : 'var(--green)'],
+      ['任务状态', statusText, status === 'completed' ? 'var(--green)' : status === 'cancelled' ? 'var(--muted)' : 'var(--primary)'],
+      ['认领模式', modeText, ''],
+      [role === 'publisher' ? '报名人数' : '我的进度', countText, ''],
+      ['报名截止', dateText(signupDeadline), signupDeadline ? 'var(--orange)' : ''],
+      ['完成截止', dateText(deadline), deadline ? 'var(--orange)' : '']
+    ];
+    var infoHtml = '<div class="td-info">';
+    infoRows.forEach(function(row){ infoHtml += '<div class="td-info-row"><span class="td-info-lbl">' + escapeHtml(row[0]) + '</span><span class="td-info-val"' + (row[2] ? ' style="color:' + row[2] + '"' : '') + '>' + escapeHtml(String(row[1])) + '</span></div>'; });
+    infoHtml += '</div>';
+    var reqHtml = '<div class="td-section-title">任务要求及参与方式</div><div class="td-req">' + (requirements ? escapeHtml(requirements).replace(/\n/g,'<br>') : '暂无详细要求') + '</div>';
+    var publisherHtml = '';
+    if(role === 'claimer'){
+      publisherHtml = '<div class="td-section-title">任务发布者</div><div class="td-pub"><div class="td-pub-header"><div class="td-pub-info"><div class="td-pub-name">' + escapeHtml(publisher || '发布者') + '</div><div class="td-pub-tags"><span class="tag tag-lilac">任务发布者</span></div></div></div></div>';
+    }
+    var contactHtml = '';
+    if(role === 'claimer'){
+      contactHtml = '<div class="td-section-title">发布者联系方式</div>' + (paired && contact ? '<div class="td-req">' + escapeHtml(contact) + '</div>' : '<div class="td-contact-locked">配对成功后解锁联系方式</div>');
+    }
+    var claimersHtml = '';
+    if(role === 'publisher'){
+      var listHtml = claimers.length ? claimers.map(function(c){
+        var safeName = escapeInlineString(c.name);
+        var claimText = c.status === 'submitted' ? '已提交' : c.status === 'assigned' ? '已配对' : c.status === 'completed' ? '已完成' : '待确认配对';
+        var claimColor = c.status === 'submitted' || c.status === 'completed' ? 'var(--green)' : 'var(--primary)';
+        var avatar = EGG_ICONS[c.egg] || '🥚';
+        return '<div class="td-claimer-item" onclick="event.stopPropagation();showUserEggModal(\'' + safeName + '\')"><div class="pub-egg-wrap" style="width:40px;height:40px;flex-shrink:0"><div class="pub-egg" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:' + (EGG_COLORS_CL[c.egg] || '#999') + '22;border-radius:50%;font-size:20px">' + avatar + '</div></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px">' + escapeHtml(c.name) + (c.isCertified ? certifiedBadgeMarkup('task-detail-claimer-certified') : '') + '</div><div style="font-size:11px;color:var(--muted)">' + escapeHtml(c.nick || c.mbti || '—') + ' · 口碑 ' + escapeHtml(String(c.rep || '-')) + '</div></div><span style="font-size:11px;font-weight:600;color:' + claimColor + '">' + claimText + '</span></div>';
+      }).join('') : '<div style="font-size:13px;color:var(--muted);padding:20px;text-align:center;background:#F8FAFC;border-radius:12px">暂无人认领此任务</div>';
+      claimersHtml = '<div class="td-section-title">认领者列表（' + claimers.length + '人）</div><div style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px">' + listHtml + '</div>';
+    }
+    var action = role === 'claimer' && (status === 'pending' || status === 'assigned')
+      ? '<button class="btn btn-primary btn-sm" onclick="submitClaimedTask(\'' + escapeInlineString(taskId) + '\');closeMyTaskDetail()">提交完成</button>' : '';
+    var targetCard = role === 'publisher' ? document.getElementById('publishedTaskDetailCard') : document.getElementById('myTaskDetailCard');
+    var closeCall = role === 'publisher' ? 'closePublishedTaskDetail()' : 'closeMyTaskDetail()';
+    targetCard.innerHTML = '<div class="td-top-bar"></div><button class="td-close" onclick="' + closeCall + '">×</button><div class="td-title">' + escapeHtml(title) + '</div>' + infoHtml + reqHtml + publisherHtml + contactHtml + claimersHtml + '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">' + action + '</div>';
+    targetCard.className = 'task-detail-card type-' + type;
+    var modal = role === 'publisher' ? document.getElementById('publishedTaskDetailModal') : document.getElementById('myTaskDetailModal');
+    modal.style.display = 'flex';
+    requestAnimationFrame(function(){ modal.classList.add('show'); });
   }
   function ensureMyTaskEmptyState(list, kind){
     if(!list || list.querySelector('[data-task-id]')) return;
@@ -6297,8 +6410,9 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       ? '<div class="td-section-title" style="margin-top:14px">任务要求及参与方式</div><div class="td-req">' + requirements.replace(/\n/g,'<br>') + '</div>'
       : '';
 
-    /* 联系方式：待确认配对状态下显示锁定，配对后才显示 */
-    var isPaired = status.indexOf('待确认配对') < 0;
+    /* 联系方式：认领者只有明确进入配对状态后才可查看 */
+    var claimStatus = card.getAttribute('data-claim-status');
+    var isPaired = claimStatus === null ? true : pairedClaimStatuses.indexOf(claimStatus) >= 0;
     var contactHtml = '';
     if(isPaired && contact){
       contactHtml = '<div class="td-section-title" style="margin-top:14px">发布者联系方式</div><div class="td-req" style="background:linear-gradient(135deg,#FFF7ED,#FEF3C7);border-color:rgba(245,158,11,.15)"><b style="color:var(--ink2)">' + contact + '</b></div>';
@@ -6518,8 +6632,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   async function openClaimerManager(btn){
     var card = btn.closest('.card');
     if(!card) return;
-    var nameEl = card.querySelector('div[style*="font-weight:600"]');
-    var taskName = nameEl ? nameEl.textContent : '';
+    var nameEl = card.querySelector('.mt-title') || card.querySelector('div[style*="font-weight:600"]');
+    var taskName = nameEl ? nameEl.textContent.trim() : (card.getAttribute('data-task-title') || '');
     if(!taskName) return;
     currentClaimerTask = taskName;
     var taskType = card.getAttribute('data-task-type') || 'help';
@@ -7693,9 +7807,20 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   };
   var RANK_EGG_EMOJI = {'学业技术':'📖','就业技能':'💼','副业技能':'💰','兴趣爱好':'🎯','游戏搭子':'🎮','生活互助':'🤝'};
   var RANK_USERS;
+  var rankRetryTimer = null;
   RANK_USERS = [];
   function syncRanking(cat){
-    if(!window.apiClient || !window.apiClient.leaderboard){ renderRanking(cat); return; }
+    var container = document.getElementById('rankContent');
+    if(container) container.innerHTML = '<div class="rank-empty rank-loading" role="status">正在加载榜单…</div>';
+    if(!window.apiClient || !window.apiClient.leaderboard){
+      if(rankRetryTimer) window.clearTimeout(rankRetryTimer);
+      rankRetryTimer = window.setTimeout(function(){
+        rankRetryTimer = null;
+        if(window.apiClient && window.apiClient.leaderboard) syncRanking(cat);
+        else renderRanking(cat);
+      }, 0);
+      return;
+    }
     /* apiClient.leaderboard 使用真实 active 用户数据。 */
     window.apiClient.leaderboard(cat).then(function(result){
       RANK_USERS = (result.users || []).map(function(user){

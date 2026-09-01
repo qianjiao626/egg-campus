@@ -70,6 +70,21 @@ describe('task persistence API contract', () => {
     expect(response.json().tasks[0]).not.toHaveProperty('claims');
   });
 
+  it('redacts publisher contact from a claimer before pairing', async () => {
+    const token = await authenticatedApp(2n);
+    vi.spyOn(prisma.task, 'findMany').mockResolvedValue([task({
+      taskType: 'teach',
+      claimMode: 'single',
+      contact: 'publisher@example.com',
+      claims: [{ status: 'pending', claimerId: 2n }],
+    })] as never);
+
+    const response = await app.inject({ method: 'GET', url: '/api/tasks', headers: { authorization: `Bearer ${token}` } });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().tasks[0].contact).toBeNull();
+  });
+
   it('returns the real publisher identity with public tasks without exposing the raw user relation', async () => {
     const token = await authenticatedApp();
     const findMany = vi.spyOn(prisma.task, 'findMany').mockResolvedValue([task({

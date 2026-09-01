@@ -100,4 +100,24 @@ describe('frontend UX regressions', () => {
       expect(page).not.toMatch(/\b(?:taskName|name|publisher|s\.name|c\.name)\.replace\(\/'\/g/);
     }
   });
+
+  it('keeps the leaderboard visible while an empty category request is pending', () => {
+    const sync = html.match(/function syncRanking\(cat\)\{[\s\S]*?\n  \}\n  function getMBTIColor/);
+    expect(sync?.[0]).toContain("class=\"rank-empty rank-loading\"");
+    expect(html).toContain('😣 这个方向还没有蛋蛋上榜，快来成为第一个！');
+  });
+
+  it('opens claim management from the redesigned task card title', () => {
+    const manager = html.match(/async function openClaimerManager\(btn\)\{[\s\S]*?\n  \}\n\n  function renderClaimerList/);
+    expect(manager?.[0]).toContain("card.querySelector('.mt-title')");
+    expect(manager?.[0]).toContain("card.getAttribute('data-task-title')");
+  });
+
+  it('uses separate publisher and claimer task detail views', () => {
+    const detail = html.match(/async function openSyncedTaskDetail\(button, role\)\{[\s\S]*?\n  \}\n  function ensureMyTaskEmptyState/);
+    expect(detail?.[0]).toContain("if(role === 'publisher')");
+    expect(detail?.[0]).toContain("if(role === 'claimer')");
+    expect(detail?.[0]).toContain('认领者列表');
+    expect(detail?.[0]).toContain("role === 'publisher' ? document.getElementById('publishedTaskDetailCard')");
+  });
 });
