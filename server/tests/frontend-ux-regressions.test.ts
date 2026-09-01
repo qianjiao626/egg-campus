@@ -78,6 +78,16 @@ describe('frontend UX regressions', () => {
     expect(html).toContain('await hydrateUserState();\n      refreshProfile();');
   });
 
+  it('distinguishes my-task cards by lifecycle status with border colors', () => {
+    const lightTheme = html.slice(html.indexOf('Light neutral theme'));
+    expect(lightTheme).toContain('.card[data-paired="true"]');
+    expect(lightTheme).toContain('border-left-color:#2563EB!important');
+    expect(lightTheme).toContain('.card.is-completed');
+    expect(lightTheme).toContain('border-left-color:#16A34A!important');
+    expect(lightTheme).toContain('.card.is-cancelled');
+    expect(lightTheme).toContain('border-left-color:#9CA3AF!important');
+  });
+
   it('renders profile stats even when no current character is selected', () => {
     const renderChar = html.match(/function renderChar\(\)\{[\s\S]*?\n  \}\n\n  function renderCharUnlocked/);
     expect(renderChar?.[0]).toContain('renderStatChips(USER.stats || {});');

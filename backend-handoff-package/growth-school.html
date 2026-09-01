@@ -1913,6 +1913,10 @@
   #page-mytasks .task-published-block > .card:hover,#page-mytasks .task-claimed-block > .card:hover{box-shadow:0 6px 20px rgba(0,0,0,.10)!important;border-color:#B8C0CC!important}
   #page-mytasks .mt-actions{padding-top:10px!important;margin-top:2px!important}
   #page-mytasks .mt-desc{margin-bottom:2px!important}
+  /* === 我的任务 · 状态边框优先于任务类型色 === */
+  #page-mytasks .card[data-paired="true"],#page-mytasks .card[data-claim-status="assigned"],#page-mytasks .card[data-claim-status="submitted"]{border-left-color:#2563EB!important;opacity:1!important}
+  #page-mytasks .card.is-completed,#page-mytasks .card[data-claim-status="completed"]{border-left-color:#16A34A!important;opacity:1!important}
+  #page-mytasks .card.is-cancelled,#page-mytasks .card[data-claim-status="cancelled"],#page-mytasks .card[data-claim-status="abandoned"]{border-left-color:#9CA3AF!important;opacity:.62!important}
 
   /* === 黑榜评论墙 · 暖色卡片风格 === */
   .bl-wall-card{padding:14px 16px!important;border-radius:14px!important;background:#FFF9F0!important;border:1px solid #FFE0B2!important;box-shadow:none!important;transition:all .2s!important}
