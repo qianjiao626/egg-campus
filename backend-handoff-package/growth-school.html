@@ -3962,6 +3962,8 @@
         await window.apiClient.rateTask(currentRatingCtx.taskId, { toUserId: currentRatingCtx.targetUserId, score: score, comment: comment || null });
         closeRating();
         await syncMyTasks();
+        if(typeof hydrateUserState === 'function') await hydrateUserState();
+        refreshProfile();
         toast('评价提交成功！');
       } catch(error) {
         toast(error.message || '评价提交失败，请稍后重试');

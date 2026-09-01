@@ -34,8 +34,8 @@ describe('team task multi-completion', () => {
           count: vi.fn().mockResolvedValueOnce(counts[0]).mockResolvedValueOnce(counts[1]),
         },
         task: { findUnique: vi.fn().mockResolvedValue(teamTask), update: taskUpdate },
-        userStats: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-        userCharacter: { findFirst: vi.fn().mockResolvedValue(null), update: vi.fn() },
+        userStats: { upsert: vi.fn().mockResolvedValue({}) },
+        userCharacter: { findFirst: vi.fn().mockResolvedValue(null), update: vi.fn(), create: vi.fn().mockResolvedValue({}) },
         notification: { create: vi.fn().mockResolvedValue({}) },
       }) as never);
       return { token, taskUpdate };

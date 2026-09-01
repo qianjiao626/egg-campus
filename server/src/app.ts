@@ -229,6 +229,85 @@ async function applyBuddyPointDelta(
   return { duplicate: false, availableBalance: next.availableBalance, frozenBalance: next.frozenBalance };
 }
 
+const taskGrowthCategory: Record<string, (typeof categories)[number]> = {
+  teach: 'study',
+  help: 'job',
+  team: 'side',
+  reward: 'hobby',
+};
+
+const taskClaimerStat: Record<string, 'knowledge' | 'skills' | 'charm' | 'money'> = {
+  teach: 'knowledge',
+  help: 'skills',
+  team: 'charm',
+  reward: 'money',
+};
+
+const taskPublisherStat: Record<string, 'knowledge' | 'skills' | 'charm' | 'money'> = {
+  teach: 'knowledge',
+  help: 'money',
+  team: 'charm',
+  reward: 'money',
+};
+
+type GrowthStatField = 'knowledge' | 'skills' | 'charm' | 'money';
+
+async function incrementTaskGrowthStats(
+  tx: Prisma.TransactionClient,
+  userId: bigint,
+  input: { statField?: GrowthStatField; completedTasks?: number; publishedTasks?: number; experience?: number },
+) {
+  const update: Prisma.UserStatsUpdateInput = {};
+  const create: Prisma.UserStatsCreateInput = { user: { connect: { id: userId } } };
+  if (input.statField) {
+    update[input.statField] = { increment: 1 };
+    create[input.statField] = 1;
+  }
+  if (input.completedTasks) {
+    update.completedTasks = { increment: input.completedTasks };
+    create.completedTasks = input.completedTasks;
+  }
+  if (input.publishedTasks) {
+    update.publishedTasks = { increment: input.publishedTasks };
+    create.publishedTasks = input.publishedTasks;
+  }
+  if (input.experience) {
+    update.experience = { increment: input.experience };
+    create.experience = input.experience;
+  }
+  return tx.userStats.upsert({ where: { userId }, create, update });
+}
+
+async function incrementTaskGrowthCharacter(
+  tx: Prisma.TransactionClient,
+  userId: bigint,
+  category: (typeof categories)[number],
+) {
+  const existing = await tx.userCharacter.findFirst({ where: { userId, category } });
+  if (existing) {
+    const unlockedCharacter = existing.unlocked ? null : category;
+    const character = await tx.userCharacter.update({
+      where: { id: existing.id },
+      data: { count: { increment: 1 }, ...(existing.unlocked ? {} : { unlocked: true, unlockedAt: new Date() }) },
+    });
+    return { character, unlockedCharacter };
+  }
+  const character = await tx.userCharacter.create({ data: { userId, category, count: 1, unlocked: true, unlockedAt: new Date() } });
+  return { character, unlockedCharacter: category };
+}
+
+async function syncUserReputation(tx: Prisma.TransactionClient, userId: bigint) {
+  const aggregate = await tx.rating.aggregate({ where: { toUserId: userId }, _avg: { score: true } });
+  const reputation = aggregate._avg.score ?? 0;
+  await tx.user.update({ where: { id: userId }, data: { reputation } });
+  await tx.userStats.upsert({
+    where: { userId },
+    create: { userId, reputation },
+    update: { reputation },
+  });
+  return reputation;
+}
+
 async function recordAudit(input: {
   actorId?: bigint;
   action: string;
@@ -587,6 +666,7 @@ export function buildApp(): FastifyInstance {
   const taskCancellationRequestParamsSchema = z.object({ id: z.coerce.bigint(), requestId: z.coerce.bigint() });
   const taskCancellationResponseSchema = z.object({ status: z.enum(['accepted', 'rejected']) });
   const taskRatingSchema = z.object({ toUserId: z.coerce.bigint(), score: z.coerce.number().int().min(1).max(5), comment: z.string().trim().max(2000).nullable().optional() });
+  const teamRatingBatchSchema = z.object({ ratings: z.array(z.object({ toUserId: z.coerce.bigint(), score: z.coerce.number().int().min(1).max(5), comment: z.string().trim().max(2000).nullable().optional() })).min(1) });
   const feedbackSchema = z.object({ type: z.string().trim().min(1).max(50), content: z.string().trim().min(1).max(10000), contact: z.string().trim().max(160).nullable().optional(), source: z.string().trim().max(100).nullable().optional() });
   const feedbackAdminSchema = z.object({ status: feedbackStatusSchema.optional(), adminRemark: z.string().trim().max(10000).nullable().optional() });
   const feedbackMessageSchema = z.object({ content: z.string().trim().min(1).max(10000) });
@@ -1795,31 +1875,22 @@ export function buildApp(): FastifyInstance {
           if (currentTask.taskType === 'teach') await applyBuddyPointDelta(tx, currentTask.userId, currentTask.reward, `task-complete-pay:${currentTask.id.toString()}:${currentClaim.claimerId.toString()}`, 'task_tuition_paid', `教学任务完成结算:${currentTask.id.toString()}`);
           else await applyBuddyPointDelta(tx, currentClaim.claimerId, currentTask.reward, `task-complete-reward:${currentTask.id.toString()}:${currentClaim.claimerId.toString()}`, 'task_reward_paid', `任务完成奖励:${currentTask.id.toString()}`);
         }
-        const categoryMap: Record<string, string> = { teach: 'study', help: 'job', team: 'side', reward: 'hobby' };
-        const statMap: Record<string, 'knowledge' | 'skills' | 'charm' | 'money'> = { teach: 'knowledge', help: 'skills', team: 'charm', reward: 'money' };
-        const publisherStatMap: Record<string, 'knowledge' | 'skills' | 'charm' | 'money'> = { teach: 'knowledge', help: 'money', team: 'charm', reward: 'money' };
-        const unlockCategory = categoryMap[currentTask.taskType];
+        const unlockCategory = taskGrowthCategory[currentTask.taskType];
         let unlockedCharacter: string | null = null;
         if (unlockCategory) {
-          const character = await tx.userCharacter.findFirst({ where: { userId: currentClaim.claimerId, category: unlockCategory } });
-          if (character && !character.unlocked) {
-            await tx.userCharacter.update({ where: { id: character.id }, data: { unlocked: true, unlockedAt: new Date() } });
-            unlockedCharacter = unlockCategory;
-          }
+          const result = await incrementTaskGrowthCharacter(tx, currentClaim.claimerId, unlockCategory);
+          unlockedCharacter = result.unlockedCharacter;
         }
         let publisherUnlockedCharacter: string | null = null;
         if (unlockCategory) {
-          const character = await tx.userCharacter.findFirst({ where: { userId: currentTask.userId, category: unlockCategory } });
-          if (character && !character.unlocked) {
-            await tx.userCharacter.update({ where: { id: character.id }, data: { unlocked: true, unlockedAt: new Date() } });
-            publisherUnlockedCharacter = unlockCategory;
-          }
+          const result = await incrementTaskGrowthCharacter(tx, currentTask.userId, unlockCategory);
+          publisherUnlockedCharacter = result.unlockedCharacter;
         }
-        const statField = statMap[currentTask.taskType];
+        const statField = taskClaimerStat[currentTask.taskType];
         const completeExpReward = Math.max(5, Math.min(20, currentTask.reward));
-        await tx.userStats.updateMany({ where: { userId: currentClaim.claimerId }, data: { ...(statField ? { [statField]: { increment: 1 } } : {}), completedTasks: { increment: 1 }, experience: { increment: completeExpReward } } });
-        const publisherStatField = publisherStatMap[currentTask.taskType];
-        if (publisherStatField) await tx.userStats.updateMany({ where: { userId: currentTask.userId }, data: { [publisherStatField]: { increment: 1 } } });
+        await incrementTaskGrowthStats(tx, currentClaim.claimerId, { statField, completedTasks: 1, experience: completeExpReward });
+        const publisherStatField = taskPublisherStat[currentTask.taskType];
+        await incrementTaskGrowthStats(tx, currentTask.userId, { statField: publisherStatField });
         let taskShouldClose = true;
         let completedCount = 1;
         if (currentTask.taskType === 'team') {
@@ -1932,11 +2003,37 @@ export function buildApp(): FastifyInstance {
 
   app.post('/api/tasks/:id/rating', { preHandler: app.authenticate }, async (request, reply) => {
     const params = notificationParamsSchema.parse(request.params);
-    const input = taskRatingSchema.parse(request.body);
-    assertSafeText(input.comment);
     const userId = currentUserId(request);
     const task = await prisma.task.findUnique({ where: { id: params.id }, select: { id: true, userId: true, taskType: true } });
     if (!task) return reply.code(404).send({ error: 'TASK_NOT_FOUND', message: '任务不存在' });
+    if (task.taskType === 'team' && Array.isArray((request.body as { ratings?: unknown } | null)?.ratings)) {
+      const input = teamRatingBatchSchema.parse(request.body);
+      input.ratings.forEach((rating) => assertSafeText(rating.comment));
+      const completedClaims = await prisma.taskClaim.findMany({ where: { taskId: task.id, status: 'completed' }, select: { claimerId: true } });
+      const members = [task.userId, ...completedClaims.map((claim) => claim.claimerId)];
+      if (!members.includes(userId)) return reply.code(403).send({ error: 'RATING_FORBIDDEN', message: '只有已完成任务的参与者可以评价' });
+      for (const rating of input.ratings) {
+        if (rating.toUserId === userId || !members.includes(rating.toUserId)) return reply.code(403).send({ error: 'RATING_TARGET_INVALID', message: '评价对象不属于该任务' });
+      }
+      const result = await prisma.$transaction(async (tx) => {
+        const saved = [];
+        for (const rating of input.ratings) {
+          const existing = await tx.rating.findUnique({ where: { taskId_fromUserId_toUserId: { taskId: task.id, fromUserId: userId, toUserId: rating.toUserId } } });
+          if (existing) {
+            saved.push(existing);
+            continue;
+          }
+          saved.push(await tx.rating.create({ data: { taskId: task.id, fromUserId: userId, toUserId: rating.toUserId, score: rating.score, comment: rating.comment ?? null } }));
+          await syncUserReputation(tx, rating.toUserId);
+        }
+        return saved;
+      });
+      publishRealtime(() => realtime.publishPrivate([userId, ...input.ratings.map((rating) => rating.toUserId)], realtimeEvent('task.rated', task.id, 'private')));
+      publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', task.id, 'public')));
+      return { ratings: result.map((rating) => ({ ...rating, id: rating.id.toString(), taskId: rating.taskId.toString(), fromUserId: rating.fromUserId.toString(), toUserId: rating.toUserId.toString() })) };
+    }
+    const input = taskRatingSchema.parse(request.body);
+    assertSafeText(input.comment);
     const claim = await prisma.taskClaim.findFirst({ where: { taskId: task.id, status: 'completed', OR: [{ claimerId: userId }, { task: { userId } }] }, select: { claimerId: true } });
     if (!claim) return reply.code(403).send({ error: 'RATING_FORBIDDEN', message: '只有已完成任务的参与者可以评价' });
     if (task.taskType && task.taskType !== 'team') {
@@ -1950,7 +2047,11 @@ export function buildApp(): FastifyInstance {
     const existing = await prisma.rating.findUnique({ where: { taskId_fromUserId_toUserId: { taskId: task.id, fromUserId: userId, toUserId: input.toUserId } } });
     if (existing) return reply.code(409).send({ error: 'RATING_ALREADY_EXISTS', message: '你已经评价过该任务' });
     try {
-      const rating = await prisma.rating.create({ data: { taskId: task.id, fromUserId: userId, toUserId: input.toUserId, score: input.score, comment: input.comment ?? null } });
+      const rating = await prisma.$transaction(async (tx) => {
+        const created = await tx.rating.create({ data: { taskId: task.id, fromUserId: userId, toUserId: input.toUserId, score: input.score, comment: input.comment ?? null } });
+        await syncUserReputation(tx, input.toUserId);
+        return created;
+      });
       publishRealtime(() => realtime.publishPrivate([userId, input.toUserId], realtimeEvent('task.rated', task.id, 'private')));
       publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', input.toUserId, 'public')));
       return reply.code(201).send({ rating: { ...rating, id: rating.id.toString(), taskId: rating.taskId.toString(), fromUserId: rating.fromUserId.toString(), toUserId: rating.toUserId.toString() } });

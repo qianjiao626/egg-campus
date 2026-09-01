@@ -212,7 +212,13 @@ describe('business API contracts', () => {
     vi.spyOn(prisma.taskClaim, 'findFirst').mockResolvedValue({ id: 11n, taskId: 9n, claimerId: 2n, status: 'completed', task: { id: 9n, userId: 1n } } as never);
     const ratings = vi.spyOn(prisma.rating, 'findUnique');
     ratings.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 22n, taskId: 9n, fromUserId: 2n, toUserId: 1n, score: 5 } as never);
-    vi.spyOn(prisma.rating, 'create').mockResolvedValue({ id: 22n, taskId: 9n, fromUserId: 2n, toUserId: 1n, score: 5, comment: null, createdAt: new Date() } as never);
+    const createdRating = { id: 22n, taskId: 9n, fromUserId: 2n, toUserId: 1n, score: 5, comment: null, createdAt: new Date() };
+    vi.spyOn(prisma.rating, 'create').mockResolvedValue(createdRating as never);
+    vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => callback({
+      rating: { create: vi.fn().mockResolvedValue(createdRating), aggregate: vi.fn().mockResolvedValue({ _avg: { score: 5 } }) },
+      user: { update: vi.fn().mockResolvedValue({}) },
+      userStats: { upsert: vi.fn().mockResolvedValue({}) },
+    }) as never);
     const token = await app.jwt.sign({ sub: '2', sessionId: 'session', role: 'student' });
     const first = await app.inject({ method: 'POST', url: '/api/tasks/9/rating', headers: { authorization: `Bearer ${token}` }, payload: { toUserId: '1', score: 5, comment: '配合很好' } });
     const second = await app.inject({ method: 'POST', url: '/api/tasks/9/rating', headers: { authorization: `Bearer ${token}` }, payload: { toUserId: '1', score: 5, comment: '配合很好' } });
