@@ -2,6 +2,7 @@ export const PERMISSION_KEYS = {
   userList: 'user.list',
   userView: 'user.view',
   userProfileEdit: 'user.profile.edit',
+  userCertify: 'user.certify',
   userSuspend: 'user.suspend',
   userRestore: 'user.restore',
   taskView: 'task.view',
@@ -73,6 +74,7 @@ const protectedPermissionKeys = new Set<PermissionKey>([
   PERMISSION_KEYS.permissionRoleGrant,
   PERMISSION_KEYS.permissionRoleDuration,
   PERMISSION_KEYS.permissionRoleRevoke,
+  PERMISSION_KEYS.userCertify,
 ]);
 
 const highRiskPermissionKeys = new Set<PermissionKey>([
@@ -89,6 +91,7 @@ const descriptions: Record<PermissionKey, string> = {
   [PERMISSION_KEYS.userList]: '查看用户列表',
   [PERMISSION_KEYS.userView]: '查看用户详情',
   [PERMISSION_KEYS.userProfileEdit]: '编辑其他用户资料',
+  [PERMISSION_KEYS.userCertify]: '蛋总认定（授予/撤销用户认定标）',
   [PERMISSION_KEYS.userSuspend]: '冻结用户账号',
   [PERMISSION_KEYS.userRestore]: '恢复用户账号',
   [PERMISSION_KEYS.taskView]: '查看全部任务',

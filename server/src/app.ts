@@ -364,6 +364,15 @@ export function buildApp(): FastifyInstance {
       app.log.warn({ err: error }, 'realtime publish failed');
     }
   };
+  const recordActiveOperation = (userId: bigint, op: string, ip: string) => {
+    try {
+      const analyticsEvent = (prisma as typeof prisma & { analyticsEvent?: { create: (args: unknown) => Promise<unknown> } }).analyticsEvent;
+      if (!analyticsEvent) return;
+      void analyticsEvent.create({ data: { userId, eventType: 'active_op', eventData: { op }, ip } }).catch(() => undefined);
+    } catch {
+      // Analytics must never affect the business operation that produced it.
+    }
+  };
 
   app.register(websocket, { options: { maxPayload: 1024 } });
   app.decorate('realtime', realtime);
@@ -485,9 +494,9 @@ export function buildApp(): FastifyInstance {
     const where = { status: 'approved' as const, school: { status: 'approved' as const }, ...(query.schoolId ? { schoolId: query.schoolId } : {}) };
     const [total, comments] = await Promise.all([
       prisma.blacklistComment.count({ where }),
-      prisma.blacklistComment.findMany({ where, include: { user: { select: { nickname: true } }, school: true, scores: true }, orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
+      prisma.blacklistComment.findMany({ where, include: { user: { select: { nickname: true, certifiedAt: true } }, school: true, scores: true }, orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
     ]);
-    const list = comments.map((comment: any) => ({ ...serializeBlacklistComment(comment), schoolName: comment.school?.name, displayName: comment.school ? displayBlacklistSchoolName(comment.school.name) : undefined, userName: maskBlacklistNickname(comment.user?.nickname), text: comment.content, score: Number(comment.averageScore), time: comment.createdAt }));
+    const list = comments.map((comment: any) => ({ ...serializeBlacklistComment(comment), isCertified: Boolean(comment.user?.certifiedAt), schoolName: comment.school?.name, displayName: comment.school ? displayBlacklistSchoolName(comment.school.name) : undefined, userName: maskBlacklistNickname(comment.user?.nickname), text: comment.content, score: Number(comment.averageScore), time: comment.createdAt }));
     return { comments: list, list, total, page: query.page, pageSize: query.pageSize };
   });
   app.get('/api/blacklist/school/:id', async (request, reply) => {
@@ -498,14 +507,14 @@ export function buildApp(): FastifyInstance {
     const where = { schoolId: school.id, status: 'approved' as const };
     const [total, comments, average, metricRows] = await Promise.all([
       prisma.blacklistComment.count({ where }),
-      prisma.blacklistComment.findMany({ where, include: { user: { select: { nickname: true } }, scores: true }, orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
+      prisma.blacklistComment.findMany({ where, include: { user: { select: { nickname: true, certifiedAt: true } }, scores: true }, orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
       prisma.blacklistComment.aggregate({ where, _avg: { averageScore: true } }),
       prisma.blacklistScore.groupBy({ where: { comment: where }, by: ['metricKey'], _avg: { score: true } }),
     ]);
     const metricAverages = Object.fromEntries(metricRows.map((row) => [row.metricKey, Number(Number(row._avg.score ?? 0).toFixed(1))]));
     for (const key of BLACKLIST_METRIC_KEYS) if (!(key in metricAverages)) metricAverages[key] = 0;
     const avgScore = Number(Number(average._avg.averageScore ?? 0).toFixed(1));
-    return { school: serializeBlacklistSchool(school), schoolId: school.id.toString(), schoolName: school.name, displayName: displayBlacklistSchoolName(school.name), count: total, avgScore, metrics: metricAverages, stats: { commentCount: total, averageScore: avgScore, metricAverages }, comments: comments.map(serializeBlacklistComment), page: query.page, pageSize: query.pageSize, total };
+    return { school: serializeBlacklistSchool(school), schoolId: school.id.toString(), schoolName: school.name, displayName: displayBlacklistSchoolName(school.name), count: total, avgScore, metrics: metricAverages, stats: { commentCount: total, averageScore: avgScore, metricAverages }, comments: comments.map((comment: any) => ({ ...serializeBlacklistComment(comment), isCertified: Boolean(comment.user?.certifiedAt) })), page: query.page, pageSize: query.pageSize, total };
   });
   app.post('/api/blacklist/school/add', { preHandler: app.authenticate }, async (request, reply) => {
     const input = z.object({ schoolName: z.string().trim().min(2).max(200).optional(), name: z.string().trim().min(2).max(200).optional() }).parse(request.body);
@@ -548,7 +557,7 @@ export function buildApp(): FastifyInstance {
         if (existing) throw new Error('BLACKLIST_ALREADY_SUBMITTED');
         const total = await tx.blacklistComment.count({ where: { userId } });
         const averageScore = averageScores(raw.scores);
-        const comment = await tx.blacklistComment.create({ data: { userId, schoolId: school.id, content: raw.comment || null, averageScore, scores: { create: BLACKLIST_METRIC_KEYS.map((metricKey) => ({ metricKey, score: raw.scores[metricKey] })) } }, include: { user: { select: { nickname: true } }, scores: true } });
+        const comment = await tx.blacklistComment.create({ data: { userId, schoolId: school.id, content: raw.comment || null, averageScore, scores: { create: BLACKLIST_METRIC_KEYS.map((metricKey) => ({ metricKey, score: raw.scores[metricKey] })) } }, include: { user: { select: { nickname: true, certifiedAt: true } }, scores: true } });
         let reward = 0;
         if (total < 2) {
           reward = 10;
@@ -559,7 +568,7 @@ export function buildApp(): FastifyInstance {
       });
       publishRealtime(() => realtime.publishPublic(realtimeEvent('blacklist.updated', result.school.id, 'public')));
       const remainingTimes = Math.max(0, 2 - Math.min(2, await prisma.blacklistComment.count({ where: { userId } })));
-      return reply.code(201).send({ success: true, comment: serializeBlacklistComment(result.comment), school: serializeBlacklistSchool(result.school), reward: { coins: result.reward, experience: result.reward }, expGain: result.reward, coinGain: result.reward, remainingTimes });
+      return reply.code(201).send({ success: true, comment: { ...serializeBlacklistComment(result.comment), isCertified: Boolean(result.comment.user?.certifiedAt) }, school: serializeBlacklistSchool(result.school), reward: { coins: result.reward, experience: result.reward }, expGain: result.reward, coinGain: result.reward, remainingTimes });
     } catch (error) {
       const code = prismaErrorCode(error);
       if (code === 'P2002' || error instanceof Error && error.message === 'BLACKLIST_ALREADY_SUBMITTED') return reply.code(409).send({ error: 'BLACKLIST_ALREADY_SUBMITTED', message: '你已经评价过这所学校' });
@@ -625,6 +634,16 @@ export function buildApp(): FastifyInstance {
   const taskCancellationRequestParamsSchema = z.object({ id: z.coerce.bigint(), requestId: z.coerce.bigint() });
   const taskCancellationResponseSchema = z.object({ status: z.enum(['accepted', 'rejected']) });
   const taskRatingSchema = z.object({ toUserId: z.coerce.bigint(), score: z.coerce.number().int().min(1).max(5), comment: z.string().trim().max(2000).nullable().optional() });
+  const certifyBodySchema = z.object({ certified: z.boolean() });
+  const analyticsEventSchema = z.object({
+    eventType: z.enum(['page_view', 'nav_click', 'active_op']),
+    eventData: z.record(z.string()).optional(),
+    page: z.string().trim().max(100).optional(),
+  });
+  const dashboardStatsQuerySchema = z.object({
+    startDate: z.coerce.date(),
+    endDate: z.coerce.date(),
+  }).refine((query) => query.endDate >= query.startDate, { path: ['endDate'], message: '结束日期不能早于开始日期' });
   const teamRatingBatchSchema = z.object({
     ratings: z.array(z.object({
       toUserId: z.coerce.bigint(),
@@ -657,12 +676,26 @@ export function buildApp(): FastifyInstance {
   const inquiryReplySchema = z.object({ content: z.string().trim().min(1).max(10000), kind: z.enum(['answer', 'comment']).default('answer'), parentId: z.coerce.bigint().nullable().optional() });
   const notificationParamsSchema = z.object({ id: z.coerce.bigint() });
 
+  app.post('/api/analytics/event', { preHandler: app.authenticate }, async (request) => {
+    const input = analyticsEventSchema.parse(request.body);
+    await prisma.analyticsEvent.create({
+      data: {
+        userId: currentUserId(request),
+        eventType: input.eventType,
+        eventData: input.eventData,
+        page: input.page,
+        ip: request.ip,
+      },
+    });
+    return { ok: true };
+  });
+
   const activeTaskClaimStatuses = ['pending', 'assigned', 'submitted'] as const;
   function taskListInclude(userId: bigint) {
     return {
       _count: { select: { claims: { where: { status: { in: [...activeTaskClaimStatuses] } } } } },
       claims: { select: { status: true, claimerId: true } },
-      user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true, role: true } },
+      user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true, role: true, certifiedAt: true } },
     };
   }
   async function buildTeamRatingSummary(task: any, viewerId?: bigint, settledOverride?: boolean) {
@@ -687,6 +720,11 @@ export function buildApp(): FastifyInstance {
     }
     return serializeTask(task, viewerId, task.taskType === 'team' ? await buildTeamRatingSummary(task, viewerId, settled) : null);
   }
+  function serializeUserIdentity(user: any) {
+    if (!user) return null;
+    const { certifiedAt, ...identity } = user;
+    return { ...identity, isCertified: Boolean(certifiedAt) };
+  }
   function serializeTask(task: any, viewerId?: bigint, teamRating?: any) {
     const { _count, claims, user, ...record } = task;
     const owner = viewerId != null && viewerId === task.userId;
@@ -706,6 +744,7 @@ export function buildApp(): FastifyInstance {
         eggCategory: user.eggCategory,
         eggRarity: user.eggRarity,
         isAdministrator: user.role === 'admin',
+        isCertified: Boolean(user.certifiedAt),
       } : null,
       activeClaimCount: _count?.claims ?? 0,
       claimStatus: viewerClaim?.status ?? null,
@@ -860,6 +899,123 @@ export function buildApp(): FastifyInstance {
     return { role: { ...role, id: role.id.toString() } };
   });
 
+  app.get('/api/admin/dashboard/stats', { preHandler: app.authenticate }, async (request, reply) => {
+    if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.userList)) return;
+    const query = dashboardStatsQuerySchema.parse(request.query);
+    const startDate = new Date(query.startDate);
+    startDate.setUTCHours(0, 0, 0, 0);
+    const endDatePlusOne = new Date(query.endDate);
+    endDatePlusOne.setUTCHours(0, 0, 0, 0);
+    endDatePlusOne.setUTCDate(endDatePlusOne.getUTCDate() + 1);
+
+    type DateCountRow = { date: string | Date; count: bigint | number | string | Prisma.Decimal };
+    type NavClickRow = { nav: string | null; item: string | null; count: bigint | number | string | Prisma.Decimal };
+    type TypeDateCountRow = DateCountRow & { taskType: string };
+    const dateCounts = (rows: DateCountRow[]) => rows.map((row) => ({
+      date: row.date instanceof Date ? row.date.toISOString().slice(0, 10) : String(row.date).slice(0, 10),
+      count: Number(row.count),
+    }));
+    const countsByType = (rows: TypeDateCountRow[]) => {
+      const grouped = new Map<string, Array<{ date: string; count: number }>>();
+      for (const row of rows) {
+        const data = grouped.get(row.taskType) ?? [];
+        data.push(dateCounts([row])[0]);
+        grouped.set(row.taskType, data);
+      }
+      return [...grouped].map(([type, data]) => ({ type, data }));
+    };
+
+    const [registrations, pageViews, uniqueVisitors, homepageViews, dailyActiveUsers, navClicks, taskPublished, taskPublishedByType, taskClaimed, taskClaimedByType] = await Promise.all([
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM users
+        WHERE created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM analytics_events
+        WHERE event_type = 'page_view' AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(DISTINCT user_id) AS count
+        FROM analytics_events
+        WHERE event_type = 'page_view' AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM analytics_events
+        WHERE event_type = 'page_view' AND page IN ('plaza', 'login')
+          AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(DISTINCT user_id) AS count
+        FROM analytics_events
+        WHERE event_type = 'active_op' AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<NavClickRow[]>(Prisma.sql`
+        SELECT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.nav')) AS nav,
+          JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.item')) AS item,
+          COUNT(*) AS count
+        FROM analytics_events
+        WHERE event_type = 'nav_click' AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY nav, item
+        ORDER BY count DESC
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM tasks
+        WHERE created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<TypeDateCountRow[]>(Prisma.sql`
+        SELECT task_type AS taskType, DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM tasks
+        WHERE created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY task_type, DATE(created_at)
+        ORDER BY task_type, DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM task_claims
+        WHERE created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<TypeDateCountRow[]>(Prisma.sql`
+        SELECT tasks.task_type AS taskType, DATE_FORMAT(DATE(task_claims.created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM task_claims
+        INNER JOIN tasks ON tasks.id = task_claims.task_id
+        WHERE task_claims.created_at >= ${startDate} AND task_claims.created_at < ${endDatePlusOne}
+        GROUP BY tasks.task_type, DATE(task_claims.created_at)
+        ORDER BY tasks.task_type, DATE(task_claims.created_at)
+      `),
+    ]);
+
+    return {
+      registrations: dateCounts(registrations),
+      pageViews: dateCounts(pageViews),
+      uniqueVisitors: dateCounts(uniqueVisitors),
+      homepageViews: dateCounts(homepageViews),
+      dailyActiveUsers: dateCounts(dailyActiveUsers),
+      navClicks: navClicks.map((row) => ({ nav: row.nav ?? '', item: row.item ?? '', count: Number(row.count) })),
+      taskPublished: dateCounts(taskPublished),
+      taskPublishedByType: countsByType(taskPublishedByType),
+      taskClaimed: dateCounts(taskClaimed),
+      taskClaimedByType: countsByType(taskClaimedByType),
+    };
+  });
+
   app.get('/api/admin/users', { preHandler: app.authenticate }, async (request, reply) => {
     if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.userList)) return;
     const query = z.object({ q: z.string().trim().max(100).default('') }).parse(request.query);
@@ -875,6 +1031,7 @@ export function buildApp(): FastifyInstance {
         major: true,
         grade: true,
         protectedAdminKey: true,
+        certifiedAt: true,
         createdAt: true,
         account: { select: { availableBalance: true } },
         stats: { select: { completedTasks: true, experience: true } },
@@ -882,14 +1039,98 @@ export function buildApp(): FastifyInstance {
       },
     });
     return {
-      users: users.map(({ account, stats, _count, protectedAdminKey, ...user }) => ({
-        ...user,
-        id: user.id.toString(),
-        completedTasks: stats?.completedTasks ?? 0,
-        inProgressTasks: _count.taskClaims,
-        points: account?.availableBalance ?? 0,
-        experience: stats?.experience ?? 0,
-        protected: Boolean(protectedAdminKey),
+      users: users.map((userRow) => {
+        const { account, stats, _count, protectedAdminKey, certifiedAt, ...user } = userRow;
+        return {
+          ...user,
+          id: user.id.toString(),
+          completedTasks: stats?.completedTasks ?? 0,
+          inProgressTasks: _count.taskClaims,
+          points: account?.availableBalance ?? 0,
+          experience: stats?.experience ?? 0,
+          protected: Boolean(protectedAdminKey),
+          ...(Object.prototype.hasOwnProperty.call(userRow, 'certifiedAt') ? { certified: Boolean(certifiedAt) } : {}),
+        };
+      }),
+    };
+  });
+
+  app.post('/api/admin/users/:id/certify', { preHandler: app.authenticate }, async (request, reply) => {
+    if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.userCertify)) return;
+    const context = await authorizationFor(request);
+    if (!context.isProtectedAdmin) {
+      return reply.code(403).send({ error: 'FORBIDDEN', message: '仅超级管理员可执行蛋总认定' });
+    }
+    const params = z.object({ id: z.coerce.bigint() }).parse(request.params);
+    const body = certifyBodySchema.parse(request.body);
+    const operatorId = currentUserId(request);
+    const target = await prisma.user.findUnique({ where: { id: params.id }, select: { id: true } });
+    if (!target) return reply.code(404).send({ error: 'USER_NOT_FOUND', message: '用户不存在' });
+    await prisma.user.update({
+      where: { id: params.id },
+      data: body.certified ? { certifiedAt: new Date(), certifiedBy: operatorId } : { certifiedAt: null, certifiedBy: null },
+    });
+    await recordAudit({
+      actorId: operatorId,
+      action: body.certified ? 'user.certify' : 'user.decertify',
+      targetType: 'user',
+      targetId: params.id.toString(),
+      afterData: { certified: body.certified },
+      ip: request.ip,
+    });
+    return { ok: true, certified: body.certified };
+  });
+
+  app.get('/api/admin/users/:id', { preHandler: app.authenticate }, async (request, reply) => {
+    if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.userList)) return;
+    const params = z.object({ id: z.coerce.bigint() }).parse(request.params);
+    const user = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true, nickname: true, email: true, phone: true,
+        status: true, school: true, major: true, grade: true, city: true,
+        age: true, bio: true, mbtiType: true, eggCategory: true, eggRarity: true,
+        role: true, protectedAdminKey: true, certifiedAt: true, certifiedBy: true,
+        createdAt: true, lastLoginAt: true,
+        account: { select: { availableBalance: true, frozenBalance: true } },
+        stats: true,
+      },
+    });
+    if (!user) return reply.code(404).send({ error: 'USER_NOT_FOUND', message: '用户不存在' });
+    const [publishedTasks, claimedTasks] = await Promise.all([
+      prisma.task.findMany({
+        where: { userId: params.id },
+        select: { id: true, title: true, taskType: true, status: true, reward: true, createdAt: true, completedAt: true, _count: { select: { claims: true } } },
+        orderBy: { createdAt: 'desc' }, take: 100,
+      }),
+      prisma.taskClaim.findMany({
+        where: { claimerId: params.id },
+        select: { id: true, status: true, frozenAmount: true, createdAt: true, completedAt: true, task: { select: { id: true, title: true, taskType: true, status: true, reward: true } } },
+        orderBy: { createdAt: 'desc' }, take: 100,
+      }),
+    ]);
+    return {
+      user: {
+        id: user.id.toString(), nickname: user.nickname, email: user.email, phone: user.phone,
+        status: user.status, school: user.school, major: user.major, grade: user.grade, city: user.city,
+        age: user.age, bio: user.bio, mbtiType: user.mbtiType, eggCategory: user.eggCategory, eggRarity: user.eggRarity,
+        role: user.role, protected: Boolean(user.protectedAdminKey), certified: Boolean(user.certifiedAt), certifiedAt: user.certifiedAt,
+        createdAt: user.createdAt, lastLoginAt: user.lastLoginAt,
+        points: user.account?.availableBalance ?? 0, frozenPoints: user.account?.frozenBalance ?? 0,
+        stats: user.stats ? {
+          knowledge: Number(user.stats.knowledge), skills: Number(user.stats.skills), charm: Number(user.stats.charm),
+          money: Number(user.stats.money), reputation: Number(user.stats.reputation), completedTasks: user.stats.completedTasks,
+          publishedTasks: user.stats.publishedTasks, experience: user.stats.experience,
+        } : null,
+      },
+      publishedTasks: publishedTasks.map((task) => ({
+        id: task.id.toString(), title: task.title, taskType: task.taskType, status: task.status, reward: task.reward,
+        createdAt: task.createdAt, completedAt: task.completedAt, claimCount: task._count.claims,
+      })),
+      claimedTasks: claimedTasks.map((claim) => ({
+        id: claim.id.toString(), status: claim.status, frozenAmount: claim.frozenAmount,
+        createdAt: claim.createdAt, completedAt: claim.completedAt,
+        task: { id: claim.task.id.toString(), title: claim.task.title, taskType: claim.task.taskType, status: claim.task.status, reward: claim.task.reward },
       })),
     };
   });
@@ -955,8 +1196,8 @@ export function buildApp(): FastifyInstance {
       orderBy: { createdAt: 'desc' },
       take: query.limit,
       include: {
-        actor: { select: { id: true, nickname: true } },
-        grant: { include: { user: { select: { id: true, nickname: true } }, role: { select: { id: true, name: true } } } },
+        actor: { select: { id: true, nickname: true, certifiedAt: true } },
+        grant: { include: { user: { select: { id: true, nickname: true, certifiedAt: true } }, role: { select: { id: true, name: true } } } },
       },
     });
     return { audits: audits.map((audit) => ({
@@ -964,10 +1205,10 @@ export function buildApp(): FastifyInstance {
       id: audit.id.toString(),
       grantId: audit.grantId?.toString() ?? null,
       actorId: audit.actorId?.toString() ?? null,
-      actor: audit.actor ? { ...audit.actor, id: audit.actor.id.toString() } : null,
+      actor: audit.actor ? { ...serializeUserIdentity(audit.actor), id: audit.actor.id.toString() } : null,
       grant: audit.grant ? {
         id: audit.grant.id.toString(),
-        user: { ...audit.grant.user, id: audit.grant.user.id.toString() },
+        user: { ...serializeUserIdentity(audit.grant.user), id: audit.grant.user.id.toString() },
         role: { ...audit.grant.role, id: audit.grant.role.id.toString() },
       } : null,
     })) };
@@ -1282,6 +1523,7 @@ export function buildApp(): FastifyInstance {
         await tx.shopCartItem.deleteMany({ where: { userId, productId: { in: productIds } } });
         return created;
       });
+      recordActiveOperation(userId, 'shop_purchase', request.ip);
       return reply.code(201).send({ order: serializeShopOrder(order), duplicate: false });
     } catch (error) {
       if (error instanceof ShopRuleError) {
@@ -1433,8 +1675,8 @@ export function buildApp(): FastifyInstance {
   app.get('/api/admin/shop/orders', { preHandler: app.authenticate }, async (request, reply) => {
     if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.shopOrderView)) return;
     const query = shopOrderListQuerySchema.parse(request.query);
-    const orders = await prisma.shopOrder.findMany({ where: query.status ? { status: query.status } : {}, orderBy: { createdAt: 'desc' }, take: query.limit, include: { items: true, user: { select: { id: true, nickname: true } } } });
-    return { orders: orders.map(serializeShopOrder) };
+    const orders = await prisma.shopOrder.findMany({ where: query.status ? { status: query.status } : {}, orderBy: { createdAt: 'desc' }, take: query.limit, include: { items: true, user: { select: { id: true, nickname: true, certifiedAt: true } } } });
+    return { orders: orders.map((order) => ({ ...serializeShopOrder(order), user: order.user ? { ...serializeUserIdentity(order.user), id: order.user.id.toString() } : null })) };
   });
 
   app.post('/api/admin/shop/orders/:id/ship', { preHandler: app.authenticate }, async (request, reply) => {
@@ -1478,8 +1720,8 @@ export function buildApp(): FastifyInstance {
 
   app.get('/api/admin/shop/reviews', { preHandler: app.authenticate }, async (request, reply) => {
     if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.shopReviewModerate)) return;
-    const reviews = await prisma.productReview.findMany({ orderBy: { createdAt: 'desc' }, take: 100, include: { product: { select: { id: true, name: true } }, user: { select: { id: true, nickname: true } } } });
-    return { reviews: reviews.map(serializeShopProduct) };
+    const reviews = await prisma.productReview.findMany({ orderBy: { createdAt: 'desc' }, take: 100, include: { product: { select: { id: true, name: true } }, user: { select: { id: true, nickname: true, certifiedAt: true } } } });
+    return { reviews: reviews.map((review) => ({ ...serializeShopProduct(review), user: review.user ? { ...serializeUserIdentity(review.user), id: review.user.id.toString() } : null })) };
   });
 
   app.post('/api/admin/shop/reviews/:id/hide', { preHandler: app.authenticate }, async (request, reply) => {
@@ -1520,7 +1762,7 @@ export function buildApp(): FastifyInstance {
     assertSafeText(input.name, input.category, input.summary, input.description, input.virtualType);
     assertSafeJsonText(input.fulfillmentData);
     const userId = currentUserId(request);
-    const owner = await prisma.user.findUnique({ where: { id: userId }, select: { nickname: true } });
+    const owner = await prisma.user.findUnique({ where: { id: userId }, select: { nickname: true, certifiedAt: true } });
     if (!owner) return reply.code(404).send({ error: 'USER_NOT_FOUND', message: '用户不存在' });
     const product = await prisma.shopProduct.create({
       data: {
@@ -1614,6 +1856,7 @@ export function buildApp(): FastifyInstance {
         return tx.task.create({ data: { userId, title: input.title, description: input.description, remark: input.remark ?? null, taskType: input.taskType, claimMode: input.claimMode, reward: input.reward, publishExpReward, maxClaimers: input.maxClaimers, contact: input.contact ?? null, requirements: input.requirements ?? null, skillCategory: input.skillCategory ?? null, skillSubcategory: input.skillSubcategory ?? null } });
       });
       publishRealtime(() => realtime.publishAdmin(realtimeEvent('task.pending', task.id, 'admin'), PERMISSION_KEYS.taskReview));
+      recordActiveOperation(userId, 'task_publish', request.ip);
       return reply.code(201).send({ task: serializeTask(task, userId) });
     } catch (error) {
       if (error instanceof DailyTaskPublishLimitError) return reply.code(429).send({ error: error.message, message: `每日最多发布 ${DAILY_TASK_PUBLISH_LIMIT} 次任务` });
@@ -1763,12 +2006,14 @@ export function buildApp(): FastifyInstance {
         });
         publishRealtime(() => realtime.publishPublic(realtimeEvent('task.claimed', task.id, 'public')));
         publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', userId, 'public')));
+        recordActiveOperation(userId, 'task_claim', request.ip);
         return reply.code(201).send({ claim: { ...claim, id: claim.id.toString(), taskId: claim.taskId.toString(), claimerId: claim.claimerId.toString() } });
       }
       const claim = await prisma.taskClaim.create({ data: { taskId: task.id, claimerId: userId, contact: input.contact ?? null, frozenAmount, status: 'pending' } });
       await prisma.notification.create({ data: { userId: task.userId, type: 'task_claimed', refId: task.id.toString(), payload: { taskId: task.id.toString(), claimerId: userId.toString() } } });
       publishRealtime(() => realtime.publishPublic(realtimeEvent('task.claimed', task.id, 'public')));
       if (frozenAmount > 0) publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', userId, 'public')));
+      recordActiveOperation(userId, 'task_claim', request.ip);
       return reply.code(201).send({ claim: { ...claim, id: claim.id.toString(), taskId: claim.taskId.toString(), claimerId: claim.claimerId.toString() } });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') return reply.code(409).send({ error: 'TASK_ALREADY_CLAIMED', message: '你已经认领过该任务' });
@@ -1825,10 +2070,10 @@ export function buildApp(): FastifyInstance {
     if (!task) return reply.code(404).send({ error: 'TASK_NOT_FOUND', message: '任务不存在' });
     const serialized = await serializeTaskForViewer(task, userId);
     if (task.taskType === 'team') {
-      const completedClaims = await prisma.taskClaim.findMany({ where: { taskId: task.id, status: 'completed' }, include: { claimer: { select: { id: true, nickname: true } } } });
+      const completedClaims = await prisma.taskClaim.findMany({ where: { taskId: task.id, status: 'completed' }, include: { claimer: { select: { id: true, nickname: true, certifiedAt: true } } } });
       (serialized as any).teamMembers = [
-        { userId: task.userId.toString(), name: task.user?.nickname || '任务发布者', role: 'publisher' },
-        ...completedClaims.map((claim) => ({ userId: claim.claimerId.toString(), name: claim.claimer?.nickname || '匿名队友', role: 'claimer' })),
+        { userId: task.userId.toString(), name: task.user?.nickname || '任务发布者', role: 'publisher', isCertified: Boolean(task.user?.certifiedAt) },
+        ...completedClaims.map((claim) => ({ userId: claim.claimerId.toString(), name: claim.claimer?.nickname || '匿名队友', role: 'claimer', isCertified: Boolean(claim.claimer?.certifiedAt) })),
       ].filter((member) => member.userId !== userId.toString());
     }
     return { task: serialized };
@@ -1840,8 +2085,8 @@ export function buildApp(): FastifyInstance {
     const task = await prisma.task.findUnique({ where: { id: params.id }, select: { userId: true } });
     if (!task) return reply.code(404).send({ error: 'TASK_NOT_FOUND', message: '任务不存在' });
     const canManageClaims = task.userId === userId || await hasRequestPermission(request, PERMISSION_KEYS.taskClaimManage);
-    const claims = await prisma.taskClaim.findMany({ where: { taskId: params.id, ...(canManageClaims ? {} : { claimerId: userId }) }, orderBy: { createdAt: 'asc' }, include: { claimer: { select: { id: true, nickname: true, mbtiType: true, reputation: true, bio: true, eggCategory: true, eggRarity: true } } } });
-    return { claims: claims.map((claim) => ({ ...claim, contact: ['assigned', 'submitted', 'completed'].includes(claim.status) ? claim.contact : null, id: claim.id.toString(), taskId: claim.taskId.toString(), claimerId: claim.claimerId.toString(), claimer: claim.claimer ? { ...claim.claimer, id: claim.claimer.id.toString(), reputation: Number(claim.claimer.reputation) } : null })) };
+    const claims = await prisma.taskClaim.findMany({ where: { taskId: params.id, ...(canManageClaims ? {} : { claimerId: userId }) }, orderBy: { createdAt: 'asc' }, include: { claimer: { select: { id: true, nickname: true, mbtiType: true, reputation: true, bio: true, eggCategory: true, eggRarity: true, certifiedAt: true } } } });
+    return { claims: claims.map((claim) => ({ ...claim, contact: ['assigned', 'submitted', 'completed'].includes(claim.status) ? claim.contact : null, id: claim.id.toString(), taskId: claim.taskId.toString(), claimerId: claim.claimerId.toString(), claimer: claim.claimer ? { ...serializeUserIdentity(claim.claimer), id: claim.claimer.id.toString(), reputation: Number(claim.claimer.reputation) } : null })) };
   });
 
   app.patch('/api/tasks/:id/claims/assign', { preHandler: app.authenticate }, async (request, reply) => {
@@ -1926,6 +2171,7 @@ export function buildApp(): FastifyInstance {
       publishRealtime(() => realtime.publishPublic(realtimeEvent('task.completed', task.id, 'public')));
       publishRealtime(() => realtime.publishPrivate([task.userId, claim.claimerId], realtimeEvent('task.completed', task.id, 'private')));
       if (task.reward > 0) publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', task.taskType === 'teach' ? task.userId : claim.claimerId, 'public')));
+      recordActiveOperation(userId, 'task_complete', request.ip);
       return { claim: { ...result.claim, id: result.claim.id.toString(), taskId: result.claim.taskId.toString(), claimerId: result.claim.claimerId.toString() }, task: serializeTask(result.task, userId), unlockedCharacter: result.unlockedCharacter, publisherUnlockedCharacter: result.publisherUnlockedCharacter };
     } catch (error) {
       if (error instanceof Error && error.message === 'TASK_SUBMISSION_NOT_FOUND') return reply.code(409).send({ error: 'TASK_SUBMISSION_NOT_FOUND', message: '没有待确认的提交' });
@@ -2044,6 +2290,7 @@ export function buildApp(): FastifyInstance {
       });
       publishRealtime(() => realtime.publishPrivate([userId, ...input.ratings.map((rating) => rating.toUserId)], realtimeEvent('task.rated', task.id, 'private')));
       publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', task.id, 'public')));
+      recordActiveOperation(userId, 'rating', request.ip);
       return { ok: true, settled: result.settled };
     }
     const input = taskRatingSchema.parse(request.body);
@@ -2064,6 +2311,7 @@ export function buildApp(): FastifyInstance {
       const rating = await prisma.rating.create({ data: { taskId: task.id, fromUserId: userId, toUserId: input.toUserId, score: input.score, comment: input.comment ?? null } });
       publishRealtime(() => realtime.publishPrivate([userId, input.toUserId], realtimeEvent('task.rated', task.id, 'private')));
       publishRealtime(() => realtime.publishPublic(realtimeEvent('ranking.updated', input.toUserId, 'public')));
+      recordActiveOperation(userId, 'rating', request.ip);
       return reply.code(201).send({ rating: { ...rating, id: rating.id.toString(), taskId: rating.taskId.toString(), fromUserId: rating.fromUserId.toString(), toUserId: rating.toUserId.toString() } });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') return reply.code(409).send({ error: 'RATING_ALREADY_EXISTS', message: '你已经评价过该任务' });
@@ -2082,7 +2330,7 @@ export function buildApp(): FastifyInstance {
     const userId = currentUserId(request);
     if (input.targetUserId === userId) return reply.code(400).send({ error: 'INVITE_SELF', message: '不能邀请自己发布任务' });
     const [sender, target] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId }, select: { nickname: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { nickname: true, certifiedAt: true } }),
       prisma.user.findUnique({ where: { id: input.targetUserId }, select: { id: true } }),
     ]);
     if (!sender) return reply.code(401).send({ error: 'UNAUTHORIZED', message: '登录状态无效' });
@@ -2243,8 +2491,8 @@ export function buildApp(): FastifyInstance {
 
   app.get('/api/admin/feedback', { preHandler: app.authenticate }, async (request, reply) => {
     if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.feedbackView)) return;
-    const feedback = await prisma.feedback.findMany({ orderBy: { createdAt: 'desc' }, take: 200, include: { user: { select: { id: true, nickname: true } }, messages: { orderBy: { createdAt: 'asc' } }, attachments: { orderBy: { createdAt: 'asc' } } } });
-    return { feedback: feedback.map((item) => ({ ...serializeFeedback(item), user: item.user ? { ...item.user, id: item.user.id.toString() } : null })) };
+    const feedback = await prisma.feedback.findMany({ orderBy: { createdAt: 'desc' }, take: 200, include: { user: { select: { id: true, nickname: true, certifiedAt: true } }, messages: { orderBy: { createdAt: 'asc' } }, attachments: { orderBy: { createdAt: 'asc' } } } });
+    return { feedback: feedback.map((item) => ({ ...serializeFeedback(item), user: item.user ? { ...serializeUserIdentity(item.user), id: item.user.id.toString() } : null })) };
   });
 
   app.patch('/api/admin/feedback/:id', { preHandler: app.authenticate }, async (request, reply) => {
@@ -2272,12 +2520,12 @@ export function buildApp(): FastifyInstance {
   app.get('/api/inquiries', { preHandler: app.authenticate }, async (request) => {
     const query = z.object({ limit: z.coerce.number().int().min(1).max(100).default(50) }).parse(request.query);
     const userId = currentUserId(request);
-    const inquiries = await prisma.inquiry.findMany({ orderBy: { createdAt: 'desc' }, take: query.limit, include: { user: { select: { id: true, nickname: true } } } });
+    const inquiries = await prisma.inquiry.findMany({ orderBy: { createdAt: 'desc' }, take: query.limit, include: { user: { select: { id: true, nickname: true, certifiedAt: true } } } });
     const likes = inquiries.length
       ? await prisma.inquiryLike.findMany({ where: { userId, inquiryId: { in: inquiries.map((inquiry) => inquiry.id) } }, select: { inquiryId: true } })
       : [];
     const likedIds = new Set(likes.map((item) => item.inquiryId.toString()));
-    return { inquiries: inquiries.map((item) => ({ ...serializeInquiry(item), likedByMe: likedIds.has(item.id.toString()), user: { ...item.user, id: item.user.id.toString() } })) };
+    return { inquiries: inquiries.map((item) => ({ ...serializeInquiry(item), likedByMe: likedIds.has(item.id.toString()), user: { ...serializeUserIdentity(item.user), id: item.user.id.toString() } })) };
   });
 
   app.get('/api/inquiries/mine', { preHandler: app.authenticate }, async (request) => {
@@ -2288,13 +2536,13 @@ export function buildApp(): FastifyInstance {
       orderBy: { createdAt: 'desc' },
       take: query.limit,
       include: {
-        user: { select: { id: true, nickname: true } },
+        user: { select: { id: true, nickname: true, certifiedAt: true } },
         _count: { select: { replies: true } },
         replies: {
           where: { userId: { not: userId } },
           orderBy: { createdAt: 'desc' },
           take: 20,
-          include: { user: { select: { id: true, nickname: true } } },
+          include: { user: { select: { id: true, nickname: true, certifiedAt: true } } },
         },
       },
     });
@@ -2303,7 +2551,7 @@ export function buildApp(): FastifyInstance {
         const { replies, _count, ...inquiry } = item;
         return {
           ...serializeInquiry(inquiry),
-          user: { ...item.user, id: item.user.id.toString() },
+          user: { ...serializeUserIdentity(item.user), id: item.user.id.toString() },
           replyCount: _count.replies,
           recentReplies: replies.map((reply) => ({
             ...reply,
@@ -2311,7 +2559,7 @@ export function buildApp(): FastifyInstance {
             inquiryId: reply.inquiryId.toString(),
             userId: reply.userId.toString(),
             parentId: reply.parentId?.toString() ?? null,
-            user: { ...reply.user, id: reply.user.id.toString() },
+            user: { ...serializeUserIdentity(reply.user), id: reply.user.id.toString() },
           })),
         };
       }),
@@ -2354,11 +2602,11 @@ export function buildApp(): FastifyInstance {
     if (!inquiry) return reply.code(404).send({ error: 'INQUIRY_NOT_FOUND', message: '打听不存在' });
     const userId = currentUserId(request);
     const [replies, likes] = await Promise.all([
-      prisma.inquiryReply.findMany({ where: { inquiryId: params.id }, orderBy: { createdAt: 'asc' }, include: { user: { select: { id: true, nickname: true } }, _count: { select: { likes: true } } } }),
+      prisma.inquiryReply.findMany({ where: { inquiryId: params.id }, orderBy: { createdAt: 'asc' }, include: { user: { select: { id: true, nickname: true, certifiedAt: true } }, _count: { select: { likes: true } } } }),
       prisma.inquiryReplyLike.findMany({ where: { userId, reply: { inquiryId: params.id } }, select: { replyId: true } }),
     ]);
     const likedIds = new Set(likes.map((item) => item.replyId.toString()));
-    return { replies: replies.map((item) => ({ ...item, likes: item._count.likes, _count: undefined, id: item.id.toString(), inquiryId: item.inquiryId.toString(), userId: item.userId.toString(), parentId: item.parentId?.toString() ?? null, likedByMe: likedIds.has(item.id.toString()), user: { ...item.user, id: item.user.id.toString() } })) };
+    return { replies: replies.map((item) => ({ ...item, likes: item._count.likes, _count: undefined, id: item.id.toString(), inquiryId: item.inquiryId.toString(), userId: item.userId.toString(), parentId: item.parentId?.toString() ?? null, likedByMe: likedIds.has(item.id.toString()), user: { ...serializeUserIdentity(item.user), id: item.user.id.toString() } })) };
   });
 
   app.post('/api/inquiries/:id/replies', { preHandler: app.authenticate }, async (request, reply) => {
@@ -2376,7 +2624,7 @@ export function buildApp(): FastifyInstance {
       }
     }
     const author = inquiry.userId !== userId
-      ? await prisma.user.findUnique({ where: { id: userId }, select: { nickname: true } })
+      ? await prisma.user.findUnique({ where: { id: userId }, select: { nickname: true, certifiedAt: true } })
       : null;
     const result = await prisma.$transaction(async (tx) => {
       const replyRow = await tx.inquiryReply.create({ data: { inquiryId: params.id, userId, content: input.content, kind: input.kind, parentId: input.parentId ?? null } });
@@ -2397,7 +2645,7 @@ export function buildApp(): FastifyInstance {
         if (!inquiry) throw new Error('INQUIRY_NOT_FOUND');
         if (inquiry.userId !== userId) throw new Error('INQUIRY_FORBIDDEN');
         if (inquiry.adopted || inquiry.coinStatus === 'transferred') throw new Error('INQUIRY_ALREADY_ADOPTED');
-        const answer = await tx.inquiryReply.findFirst({ where: { id: params.replyId, inquiryId: params.id, kind: 'answer' }, include: { user: { select: { nickname: true } } } });
+        const answer = await tx.inquiryReply.findFirst({ where: { id: params.replyId, inquiryId: params.id, kind: 'answer' }, include: { user: { select: { nickname: true, certifiedAt: true } } } });
         if (!answer) throw new Error('INQUIRY_REPLY_NOT_FOUND');
         const point = inquiry.bounty > 0
           ? await applyBuddyPointDelta(tx, answer.userId, inquiry.bounty, `inquiry-adopted:${inquiry.id.toString()}`, 'inquiry_adopted', `采纳打听回答:${inquiry.id.toString()}`)
@@ -2501,7 +2749,7 @@ export function buildApp(): FastifyInstance {
     idempotencyKey: string | null;
     createdAt: Date;
     updatedAt: Date;
-    user?: { nickname: string } | null;
+    user?: { nickname: string; certifiedAt?: Date | null } | null;
   }) {
     return {
       id: record.id.toString(),
@@ -2515,6 +2763,7 @@ export function buildApp(): FastifyInstance {
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       ownerName: record.user?.nickname ?? null,
+      isCertified: Boolean(record.user?.certifiedAt),
     };
   }
 
@@ -2601,7 +2850,7 @@ export function buildApp(): FastifyInstance {
       where: query.scope === 'public' ? { status: 'active', userId: { not: userId } } : { userId },
       orderBy: { createdAt: 'desc' },
       take: query.limit,
-      include: { user: { select: { nickname: true } } },
+      include: { user: { select: { nickname: true, certifiedAt: true } } },
     });
     const serialized = query.scope === 'public'
       ? records.map((record) => serializePublicBuddyFeature(record))
@@ -2617,7 +2866,7 @@ export function buildApp(): FastifyInstance {
       where: query.scope === 'public' ? { feature: params.feature, status: 'active', userId: { not: userId } } : { feature: params.feature, userId },
       orderBy: { createdAt: 'desc' },
       take: query.limit,
-      include: { user: { select: { nickname: true } } },
+      include: { user: { select: { nickname: true, certifiedAt: true } } },
     });
     const serialized = query.scope === 'public'
       ? records.map((record) => serializePublicBuddyFeature(record))
@@ -2670,7 +2919,7 @@ export function buildApp(): FastifyInstance {
     const mine = await prisma.buddyPreference.findUnique({ where: { userId } });
     const users = await prisma.user.findMany({
       where: { id: { not: userId }, status: 'active', OR: [{ buddyPreference: null }, { buddyPreference: { stealth: false } }] },
-      select: { id: true, nickname: true, school: true, major: true, city: true, bio: true, mbtiType: true, eggRarity: true, buddyPreference: true },
+      select: { id: true, nickname: true, school: true, major: true, city: true, bio: true, mbtiType: true, eggRarity: true, buddyPreference: true, certifiedAt: true },
       orderBy: { createdAt: 'desc' }, take: 50,
     });
     const profileIds = users.map((user) => user.id);
@@ -2719,7 +2968,7 @@ export function buildApp(): FastifyInstance {
           : relationship?.status === 'rejected' && relationship.updatedAt.getTime() > Date.now() - 30 * 60 * 1000
             ? 'rejected_cooldown'
             : 'none';
-      return { id: user.id.toString(), name: user.nickname, meta: [user.school, user.major].filter(Boolean).join(' · ') || '蛋蛋校园用户', city: user.city, bio: user.bio || '', mbtiType: user.buddyPreference?.mbtiType ?? user.mbtiType, hobbies, todayActions, rarity: user.eggRarity, friendStatus, friendRequestId: relationship?.id.toString() ?? null, score: (sameMbti ? 3 : 0) + overlap + (actionMatch ? 4 : 0) };
+      return { id: user.id.toString(), name: user.nickname, meta: [user.school, user.major].filter(Boolean).join(' · ') || '蛋蛋校园用户', city: user.city, bio: user.bio || '', mbtiType: user.buddyPreference?.mbtiType ?? user.mbtiType, hobbies, todayActions, rarity: user.eggRarity, friendStatus, friendRequestId: relationship?.id.toString() ?? null, isCertified: Boolean(user.certifiedAt), score: (sameMbti ? 3 : 0) + overlap + (actionMatch ? 4 : 0) };
     }).sort((a, b) => b.score - a.score).map(({ score: _score, ...profile }) => profile);
     return { profiles };
   });
@@ -2731,13 +2980,13 @@ export function buildApp(): FastifyInstance {
         where: { recipientId: userId },
         orderBy: { createdAt: 'desc' },
         take: 50,
-        include: { sender: { select: { id: true, nickname: true } } },
+        include: { sender: { select: { id: true, nickname: true, certifiedAt: true } } },
       }),
       prisma.buddyFriendRequest.findMany({
         where: { recipientId: userId, status: 'pending' },
         orderBy: { createdAt: 'desc' },
         take: 50,
-        include: { requester: { select: { id: true, nickname: true } } },
+        include: { requester: { select: { id: true, nickname: true, certifiedAt: true } } },
       }),
     ]);
     return {
@@ -2745,6 +2994,7 @@ export function buildApp(): FastifyInstance {
         id: message.id.toString(),
         senderId: message.senderId.toString(),
         name: message.sender.nickname,
+        isCertified: Boolean(message.sender.certifiedAt),
         text: message.text,
         type: 'message',
         source: message.source,
@@ -2755,6 +3005,7 @@ export function buildApp(): FastifyInstance {
         id: requestRow.id.toString(),
         requesterId: requestRow.requesterId.toString(),
         name: requestRow.requester.nickname,
+        isCertified: Boolean(requestRow.requester.certifiedAt),
         text: '想和你成为好友',
         type: 'friend',
         status: requestRow.status,
@@ -3056,7 +3307,7 @@ export function buildApp(): FastifyInstance {
       const tokens = await issueSession(app, user, request);
       await recordAudit({ actorId: user.id, action: 'auth.register', targetType: 'user', targetId: user.id.toString(), ip: request.ip });
       setRefreshCookie(reply, tokens.refreshToken, config);
-      return reply.code(201).send({ user: privateUserShape(user), ...sessionResponse(tokens, config) });
+      return reply.code(201).send({ user: { ...privateUserShape(user), isCertified: Boolean(user.certifiedAt) }, ...sessionResponse(tokens, config) });
     } catch (error) {
       const code = prismaErrorCode(error);
       if (code === 'P2002') {
@@ -3095,7 +3346,7 @@ export function buildApp(): FastifyInstance {
     const tokens = await issueSession(app, user, request);
     await recordAudit({ actorId: user.id, action: 'auth.login', targetType: 'user', targetId: user.id.toString(), ip: request.ip });
     setRefreshCookie(reply, tokens.refreshToken, config);
-    return { user: privateUserShape(user), ...sessionResponse(tokens, config) };
+    return { user: { ...privateUserShape(user), isCertified: Boolean(user.certifiedAt) }, ...sessionResponse(tokens, config) };
   });
 
   app.post('/api/auth/change-required-password', { preHandler: app.authenticate }, async (request, reply) => {
@@ -3200,6 +3451,7 @@ export function buildApp(): FastifyInstance {
         permissionKeys: authorization.permissionKeys,
         isAdministrator: authorization.isProtectedAdmin || hasAdministrativePermission(authorization.permissionKeys),
         isProtectedAdmin: authorization.isProtectedAdmin,
+        isCertified: Boolean(user.certifiedAt),
       },
     };
   });
@@ -3239,7 +3491,7 @@ export function buildApp(): FastifyInstance {
       const { user, changedFields } = await prisma.$transaction(async (tx) => {
         const current = await tx.user.findUnique({
           where: { id: userId },
-          select: { nickname: true, email: true, nicknameChangedAt: true, protectedAdminKey: true },
+          select: { nickname: true, email: true, nicknameChangedAt: true, protectedAdminKey: true, certifiedAt: true },
         });
         if (!current) throw new Error('USER_NOT_FOUND');
         const prepared = prepareProfileUpdate(current, input);
@@ -3304,7 +3556,7 @@ export function buildApp(): FastifyInstance {
         orderBy: { createdAt: 'desc' },
         take: 100,
         include: {
-          fromUser: { select: { id: true, nickname: true } },
+          fromUser: { select: { id: true, nickname: true, certifiedAt: true } },
           task: { select: { id: true, title: true } },
         },
       }),
@@ -3319,7 +3571,7 @@ export function buildApp(): FastifyInstance {
         score: rating.score,
         comment: rating.comment,
         createdAt: rating.createdAt,
-        from: rating.fromUser ? { id: rating.fromUser.id.toString(), nickname: rating.fromUser.nickname } : null,
+        from: rating.fromUser ? { id: rating.fromUser.id.toString(), nickname: rating.fromUser.nickname, isCertified: Boolean(rating.fromUser.certifiedAt) } : null,
         task: rating.task ? { id: rating.task.id.toString(), title: rating.task.title } : null,
       })),
     };
@@ -3370,7 +3622,7 @@ export function buildApp(): FastifyInstance {
         where: { inviterId: userId },
         orderBy: { createdAt: 'desc' },
         take: 100,
-        include: { invitedUser: { select: { id: true, nickname: true, status: true, createdAt: true } } },
+        include: { invitedUser: { select: { id: true, nickname: true, status: true, createdAt: true, certifiedAt: true } } },
       }),
     ]);
     if (!user) return reply.code(404).send({ error: 'USER_NOT_FOUND', message: '用户不存在' });
@@ -3385,6 +3637,7 @@ export function buildApp(): FastifyInstance {
         invitedUser: {
           id: invitation.invitedUser.id.toString(),
           nickname: invitation.invitedUser.nickname,
+          isCertified: Boolean(invitation.invitedUser.certifiedAt),
           status: invitation.invitedUser.status,
           createdAt: invitation.invitedUser.createdAt,
         },
@@ -3401,9 +3654,9 @@ export function buildApp(): FastifyInstance {
     const query = z.object({ category: z.string().default('all'), page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(100).default(50) }).parse(request.query);
     const skip = (query.page - 1) * query.pageSize;
     if (query.category === 'gossip') {
-      type GossipRow = { id: bigint; nickname: string; mbtiType: string | null; eggCategory: string | null; eggRarity: string; likes: number; reputation: number | string; createdAt: Date; gossipLikes: bigint | number; answerCount: bigint | number; adoptedCount: bigint | number };
+      type GossipRow = { id: bigint; nickname: string; certifiedAt: Date | null; mbtiType: string | null; eggCategory: string | null; eggRarity: string; likes: number; reputation: number | string; createdAt: Date; gossipLikes: bigint | number; answerCount: bigint | number; adoptedCount: bigint | number };
       const rows = await prisma.$queryRaw<GossipRow[]>(Prisma.sql`
-        SELECT u.id, u.nickname, u.mbti_type AS mbtiType, u.egg_category AS eggCategory,
+         SELECT u.id, u.nickname, u.certified_at AS certifiedAt, u.mbti_type AS mbtiType, u.egg_category AS eggCategory,
                u.egg_rarity AS eggRarity, u.likes, u.reputation, u.created_at AS createdAt,
                COUNT(DISTINCT l.id) AS gossipLikes,
                COUNT(DISTINCT r.id) AS answerCount,
@@ -3413,13 +3666,13 @@ export function buildApp(): FastifyInstance {
         INNER JOIN inquiries i ON i.id = r.inquiry_id
         LEFT JOIN inquiry_reply_likes l ON l.reply_id = r.id
         WHERE u.status = 'active' AND u.role = 'student'
-        GROUP BY u.id, u.nickname, u.mbti_type, u.egg_category, u.egg_rarity, u.likes, u.reputation, u.created_at
+         GROUP BY u.id, u.nickname, u.certified_at, u.mbti_type, u.egg_category, u.egg_rarity, u.likes, u.reputation, u.created_at
         ORDER BY gossipLikes DESC, adoptedCount DESC, u.nickname ASC
         LIMIT ${query.pageSize} OFFSET ${skip}
       `);
       return {
         users: rows.map((item, index) => ({
-          id: item.id.toString(), nickname: item.nickname, mbtiType: item.mbtiType, eggCategory: item.eggCategory, eggRarity: item.eggRarity,
+           id: item.id.toString(), nickname: item.nickname, isCertified: Boolean(item.certifiedAt), mbtiType: item.mbtiType, eggCategory: item.eggCategory, eggRarity: item.eggRarity,
           likes: item.likes, reputation: Number(item.reputation), experience: 0, gossipLikes: Number(item.gossipLikes), answerCount: Number(item.answerCount), adoptedCount: Number(item.adoptedCount),
           rank: skip + index + 1, stats: { knowledge: 0, skills: 0, charm: 0, money: 0, reputation: Number(item.reputation) }, coins: 0, createdAt: item.createdAt,
         })),
@@ -3457,7 +3710,7 @@ export function buildApp(): FastifyInstance {
       skip,
       take: query.pageSize,
       select: {
-        id: true, nickname: true, mbtiType: true, eggCategory: true, eggRarity: true, likes: true, reputation: true, createdAt: true,
+        id: true, nickname: true, certifiedAt: true, mbtiType: true, eggCategory: true, eggRarity: true, likes: true, reputation: true, createdAt: true,
         stats: { select: { experience: true, knowledge: true, skills: true, charm: true, money: true, reputation: true } },
         account: { select: { availableBalance: true } },
       },
@@ -3465,6 +3718,7 @@ export function buildApp(): FastifyInstance {
     const result = users.map((user, index) => ({
       id: user.id.toString(),
       nickname: user.nickname,
+      isCertified: Boolean(user.certifiedAt),
       mbtiType: user.mbtiType,
       eggCategory: user.eggCategory,
       eggRarity: user.eggRarity,
@@ -3493,7 +3747,7 @@ export function buildApp(): FastifyInstance {
     const params = z.object({ id: z.coerce.bigint() }).parse(request.params);
     const user = await prisma.user.findUnique({ where: { id: params.id } });
     if (!user || user.status !== 'active') return reply.code(404).send({ error: 'USER_NOT_FOUND' });
-    return { user: publicUserShape(user) };
+    return { user: { ...publicUserShape(user), isCertified: Boolean(user.certifiedAt) } };
   });
 
   app.setErrorHandler((error, _request, reply) => {

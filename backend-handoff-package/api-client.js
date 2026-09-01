@@ -114,6 +114,7 @@
       return terms.some(function (term) { return text.indexOf(term) >= 0; }) ? '内容包含敏感词，请修改后再提交' : null;
     },
     createTask: function (payload) { return request('/api/tasks', { method: 'POST', body: JSON.stringify(payload) }); },
+    trackEvent: function (eventType, eventData, page) { return request('/api/analytics/event', { method: 'POST', body: JSON.stringify({ eventType: eventType, eventData: eventData, page: page }) }); },
     publicTasks: function () { return request('/api/tasks'); },
     reviewQueue: function () { return request('/api/admin/tasks/review-queue'); },
     updateTask: function (id, payload) { return request('/api/tasks/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(payload) }); },
@@ -194,6 +195,9 @@
     createAdminRole: function (payload) { return request('/api/admin/roles', { method: 'POST', body: JSON.stringify(payload) }); },
     updateAdminRole: function (id, payload) { return request('/api/admin/roles/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(payload) }); },
     adminUsers: function (query) { return request('/api/admin/users' + (query ? '?q=' + encodeURIComponent(query) : '')); },
+    adminDashboardStats: function (startDate, endDate) { return request('/api/admin/dashboard/stats?startDate=' + encodeURIComponent(startDate) + '&endDate=' + encodeURIComponent(endDate)); },
+    adminUserDetail: function (userId) { return request('/api/admin/users/' + encodeURIComponent(userId)); },
+    adminCertifyUser: function (userId, certified) { return request('/api/admin/users/' + encodeURIComponent(userId) + '/certify', { method: 'POST', body: JSON.stringify({ certified: certified }) }); },
     userRoleGrants: function (id) { return request('/api/admin/users/' + encodeURIComponent(id) + '/roles'); },
     createRoleGrant: function (payload) { return request('/api/admin/role-grants', { method: 'POST', body: JSON.stringify(payload) }); },
     revokeRoleGrant: function (id, reason) { return request('/api/admin/role-grants/' + encodeURIComponent(id) + '/revoke', { method: 'POST', body: JSON.stringify({ reason: reason }) }); },

@@ -70,9 +70,9 @@ describe('business API contracts', () => {
         adoptedReplyId: null,
         deadline: null,
         createdAt: new Date(),
-        user: { id: 1n, nickname: '当前用户' },
+        user: { id: 1n, nickname: '当前用户', certifiedAt: null },
         _count: { replies: 2 },
-        replies: [{ id: 18n, inquiryId: 8n, userId: 2n, content: '晚上十点闭馆', kind: 'answer', parentId: null, createdAt: new Date(), user: { id: 2n, nickname: '回复者' } }],
+        replies: [{ id: 18n, inquiryId: 8n, userId: 2n, content: '晚上十点闭馆', kind: 'answer', parentId: null, createdAt: new Date(), user: { id: 2n, nickname: '回复者', certifiedAt: null } }],
       }] as never;
     }) as never);
     const token = await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
@@ -81,7 +81,7 @@ describe('business API contracts', () => {
     expect(response.json().inquiries[0]).toEqual(expect.objectContaining({
       userId: '1',
       replyCount: 2,
-      recentReplies: [expect.objectContaining({ id: '18', userId: '2', content: '晚上十点闭馆', user: { id: '2', nickname: '回复者' } })],
+      recentReplies: [expect.objectContaining({ id: '18', userId: '2', content: '晚上十点闭馆', user: { id: '2', nickname: '回复者', isCertified: false } })],
     }));
   });
 

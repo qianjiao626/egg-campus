@@ -26,6 +26,7 @@ describe('RBAC API contract', () => {
       role: 'student',
       status: 'active',
       protectedAdminKey: null,
+      certifiedAt: null,
       mustChangePassword: false,
       interests: [],
       skills: [],
@@ -90,6 +91,7 @@ describe('RBAC API contract', () => {
       major: '计算机',
       grade: '大二',
       protectedAdminKey: null,
+      certifiedAt: null,
       createdAt: new Date('2026-08-27T00:00:00.000Z'),
       account: { availableBalance: 135 },
       stats: { completedTasks: 4, experience: 28 },
@@ -117,6 +119,7 @@ describe('RBAC API contract', () => {
       points: 135,
       experience: 28,
       protected: false,
+      certified: false,
       createdAt: '2026-08-27T00:00:00.000Z',
     });
   });

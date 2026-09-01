@@ -73,14 +73,14 @@ describe('task persistence API contract', () => {
   it('returns the real publisher identity with public tasks without exposing the raw user relation', async () => {
     const token = await authenticatedApp();
     const findMany = vi.spyOn(prisma.task, 'findMany').mockResolvedValue([task({
-      user: { id: 1n, nickname: '真实发布者', eggCategory: 'study', eggRarity: 'SR' },
+      user: { id: 1n, nickname: '真实发布者', eggCategory: 'study', eggRarity: 'SR', certifiedAt: null },
     })] as never);
 
     const response = await app.inject({ method: 'GET', url: '/api/tasks', headers: { authorization: `Bearer ${token}` } });
 
     expect(response.statusCode).toBe(200);
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
-      include: expect.objectContaining({ user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true, role: true } } }),
+      include: expect.objectContaining({ user: { select: { id: true, nickname: true, eggCategory: true, eggRarity: true, role: true, certifiedAt: true } } }),
     }));
     expect(response.json().tasks[0]).toMatchObject({
       publisher: { id: '1', nickname: '真实发布者', eggCategory: 'study', eggRarity: 'SR' },
