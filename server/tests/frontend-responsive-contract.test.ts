@@ -24,7 +24,7 @@ describe('frontend responsive shell contract', () => {
     expect(css).toContain('.send-message{min-height:44px}');
     expect(css).toContain('.match-grid{grid-template-columns:1fr}');
     expect(css).toContain('.feature-grid{grid-template-columns:1fr}');
-    expect(css).toContain('.message-drawer{top:auto;bottom:0;width:100%;height:min(86vh,720px);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))');
+    expect(css).toContain('.message-drawer{top:auto;bottom:0;width:100%;height:min(86vh,720px);overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))');
   });
 
   it('covers content grids, tables, modals, notifications, and charts on smaller screens', () => {
@@ -33,7 +33,7 @@ describe('frontend responsive shell contract', () => {
     expect(css).toContain('.feature-modal{width:100%;max-height:calc(100dvh - 24px);overflow:auto;padding:20px 16px;border-radius:18px}');
     expect(css).toContain('.feature-modal-actions{position:sticky;bottom:0;padding-top:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));background:var(--panel)}');
     expect(css).toContain('.message-drawer{position:fixed;z-index:50;right:0;top:0;width:min(410px,100%);height:100vh');
-    expect(css).toContain('.message-drawer{top:auto;bottom:0;width:100%;height:min(86vh,720px);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))');
+    expect(css).toContain('.message-drawer{top:auto;bottom:0;width:100%;height:min(86vh,720px);overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))');
     expect(css).toContain('.stage-object{max-width:100%;overflow:hidden;right:-8px;top:93px;transform:scale(.72);transform-origin:top right}');
   });
 });

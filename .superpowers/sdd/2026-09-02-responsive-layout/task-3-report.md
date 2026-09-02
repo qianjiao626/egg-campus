@@ -35,3 +35,20 @@ git diff --check
 
 - 这是基于样式契约的验证，不是浏览器像素级检查。
 - `feature-modal` 和 `message-drawer` 的实际视觉顺序仍依赖页面 DOM 结构，当前通过 CSS 断点和 `order` 做了兜底。
+
+## 修复追记
+
+追加修复后再次验证：
+
+```bash
+cd server
+npx vitest run tests/frontend-responsive-contract.test.ts
+git diff --check
+```
+
+输出：
+
+- `✓ tests/frontend-responsive-contract.test.ts (3 tests) 3ms`
+- `Test Files  1 passed (1)`
+- `Tests  3 passed (3)`
+- `git diff --check` 无输出
