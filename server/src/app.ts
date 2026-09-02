@@ -1985,7 +1985,7 @@ export function buildApp(): FastifyInstance {
         frozenAmount = task.reward;
         const claim = await prisma.$transaction(async (tx) => {
           await applyBuddyPointDelta(tx, userId, -frozenAmount, `task-claim-freeze:${task.id.toString()}:${userId.toString()}`, 'task_tuition_frozen', `认领教学任务冻结蛋蛋币:${task.id.toString()}`);
-          const created = await tx.taskClaim.create({ data: { taskId: task.id, claimerId: userId, contact: input.contact ?? null, frozenAmount, status: 'assigned' } });
+          const created = await tx.taskClaim.create({ data: { taskId: task.id, claimerId: userId, contact: input.contact ?? null, frozenAmount, status: 'pending' } });
           await tx.notification.create({ data: { userId: task.userId, type: 'task_claimed', refId: task.id.toString(), payload: { taskId: task.id.toString(), claimerId: userId.toString() } } });
           return created;
         });
