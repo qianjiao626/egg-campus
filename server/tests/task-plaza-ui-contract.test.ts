@@ -47,6 +47,8 @@ describe('task plaza card contract', () => {
     const detailRenderer = html.slice(detailStart, detailEnd);
     expect(detailRenderer).toContain("if(role === 'publisher')");
     expect(detailRenderer).toContain('legacyPublishedTaskDetail(button)');
+    expect(detailRenderer).toContain("if(role === 'claimer')");
+    expect(detailRenderer).toContain('legacyMyTaskDetail(button)');
     expect(detailRenderer).toContain("claim.status === 'pending' ? '待确认配对'");
     expect(html).toContain("card.setAttribute('data-signup-deadline', task.signupDeadline || '')");
   });

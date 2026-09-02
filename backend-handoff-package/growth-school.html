@@ -5432,7 +5432,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var claimLabel = claim.status === 'completed' ? '已完成' : claim.status === 'submitted' ? '待确认' : claim.status === 'assigned' ? '进行中' : claim.status === 'abandoned' || claim.status === 'cancelled' ? '已取消' : '待配对';
     var claimStatusGroup = claim.status === 'completed' ? 'completed' : claim.status === 'abandoned' || claim.status === 'cancelled' ? 'cancelled' : claim.status === 'assigned' || claim.status === 'submitted' ? 'approved' : 'pending';
     card.className = 'card mytask-card pub-' + type + (claimStatusGroup === 'cancelled' ? ' is-cancelled' : '') + (claimStatusGroup === 'completed' ? ' is-completed' : ''); card.setAttribute('data-claim-id', String(claim.id)); card.setAttribute('data-task-id', String(task.id || ''));
-    card.setAttribute('data-task-type', task.taskType || 'teach'); card.setAttribute('data-task-title', task.title || '任务'); card.setAttribute('data-publisher-id', String(task.userId || '')); card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : ''); card.setAttribute('data-task-description', task.description || ''); card.setAttribute('data-contact', task.contact || ''); card.setAttribute('data-claim-status', claim.status || ''); card.setAttribute('data-task-cost', String(task.reward || 0));
+    card.setAttribute('data-task-type', task.taskType || 'teach'); card.setAttribute('data-task-title', task.title || '任务'); card.setAttribute('data-publisher-id', String(task.userId || '')); card.setAttribute('data-created-at', task.createdAt ? String(new Date(task.createdAt).getTime()) : ''); card.setAttribute('data-task-description', task.description || ''); card.setAttribute('data-contact', task.contact || ''); card.setAttribute('data-claim-status', claim.status || ''); card.setAttribute('data-skill-cat', task.skillCategory || ''); card.setAttribute('data-skill-sub', task.skillSubcategory || ''); card.setAttribute('data-requirements', task.requirements || ''); card.setAttribute('data-publisher', task.publisher && task.publisher.nickname ? task.publisher.nickname : '发布者'); card.setAttribute('data-task-cost', String(task.reward || 0));
     var canSubmit = claim.status === 'pending' || claim.status === 'assigned';
     var cancellationRequest = getTaskCancellationRequest(card);
     var cancellationActions = '';
@@ -5460,6 +5460,13 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   function openSyncedTaskDetail(button, role){
     var card = button && button.closest('.card');
     if(!card) return;
+    if(role === 'claimer'){
+      var rawClaimStatus = card.getAttribute('data-claim-status') || '';
+      var claimStatusLabel = rawClaimStatus === 'pending' ? '待确认配对' : rawClaimStatus === 'assigned' ? '进行中' : rawClaimStatus === 'submitted' ? '待确认' : rawClaimStatus === 'completed' ? '已完成' : rawClaimStatus === 'abandoned' || rawClaimStatus === 'cancelled' ? '已取消' : '';
+      card.setAttribute('data-status', claimStatusLabel);
+      legacyMyTaskDetail(button);
+      return;
+    }
     if(role === 'publisher'){
       var publishedTitleEl = card.querySelector('.mt-title') || card.querySelector('div[style*="font-weight:600"]');
       var publishedTitle = publishedTitleEl ? publishedTitleEl.textContent : '该任务';
@@ -6179,7 +6186,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   function legacyMyTaskDetail(btn){
     var card = btn.closest('.card');
     if(!card) return;
-    var nameEl = card.querySelector('div[style*="font-weight:600"]');
+    var nameEl = card.querySelector('.mt-title') || card.querySelector('div[style*="font-weight:600"]');
     var taskName = nameEl ? nameEl.textContent : '该任务';
     var taskType = card.getAttribute('data-task-type') || 'reward';
     var skillCat = card.getAttribute('data-skill-cat') || '—';
@@ -6188,6 +6195,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var contact = card.getAttribute('data-contact') || '';
     var requirements = card.getAttribute('data-requirements') || '';
     var progress = card.getAttribute('data-progress') || 0;
+    var rawStatus = card.getAttribute('data-claim-status') || card.getAttribute('data-status') || '';
     var status = card.getAttribute('data-status') || '';
     var publisher = card.getAttribute('data-publisher') || '';
 
@@ -6204,6 +6212,13 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     } else {
       coinLabel = '获得 ' + reward + ' 蛋蛋币奖励'; coinColor = 'var(--green)';
     }
+
+    /* 任务状态：统一认领原始状态，避免待配对被误判为已配对 */
+    if(rawStatus === 'pending') status = '待确认配对';
+    else if(rawStatus === 'assigned') status = '进行中';
+    else if(rawStatus === 'submitted') status = '待确认';
+    else if(rawStatus === 'completed') status = '已完成';
+    else if(rawStatus === 'abandoned' || rawStatus === 'cancelled') status = '已取消';
 
     /* 任务状态：从 data-status 获取，没有则从标签推断 */
     if(!status){
@@ -6237,7 +6252,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       : '';
 
     /* 联系方式：待确认配对状态下显示锁定，配对后才显示 */
-    var isPaired = status.indexOf('待确认配对') < 0;
+    var isPaired = ['assigned','submitted','completed'].indexOf(rawStatus) >= 0;
     var contactHtml = '';
     if(isPaired && contact){
       contactHtml = '<div class="td-section-title" style="margin-top:14px">发布者联系方式</div><div class="td-req" style="background:linear-gradient(135deg,#FFF7ED,#FEF3C7);border-color:rgba(245,158,11,.15)"><b style="color:var(--ink2)">' + contact + '</b></div>';
