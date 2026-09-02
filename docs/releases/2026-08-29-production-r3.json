@@ -19,7 +19,7 @@
     "sha256": "ac700a2cab770309fead735c057678a3c0be0bd1ee40a9250d92e0611373c5ae"
   },
   "files": [
-    {"path":"backend-handoff-package/growth-school.html","component":"frontend","target":"growth-school.html","sha256":"feff32446bb43ac66ef8aec64b2364871449f038b8b2af9420b123ed8812d7f8"},
+    {"path":"backend-handoff-package/growth-school.html","component":"frontend","target":"growth-school.html","sha256":"ba7b06aa0bb802cf995c15fcc64b36a1bc9e174110367ec2aef2b6f0edbf93a3"},
     {"path":"backend-handoff-package/assets/theme-bg.jpg","component":"frontend","target":"assets/theme-bg.jpg","sha256":"7494f1069e73273b7b454e6132780ed44f131f9a92a5c467dd6e8b7a69597e7e"},
     {"path":"backend-handoff-package/api-client.js","component":"frontend","target":"api-client.js","sha256":"7d4668abffde638e3e9ab6f4eae109b6914690f5991049cc783436df4adb911e"},
     {"path":"backend-handoff-package/identity-view.js","component":"frontend","target":"identity-view.js","sha256":"ab7be7e8ebd0a4aa9221e69ada17c21c067aa282c35677eadc9dfe4433e1c617"},
@@ -33,7 +33,7 @@
     {"path":"backend-handoff-package/char-eggy-side.jpg","component":"frontend","target":"char-eggy-side.jpg","sha256":"59be13dd069045ac97ce0166843c21b15f46013e311e53fed196668bfcc09be8"},
     {"path":"backend-handoff-package/char-eggy-study-v2.jpg","component":"frontend","target":"char-eggy-study-v2.jpg","sha256":"e22d51e7f1e690bf6c4d72e7cb581448a49313542eb84e49992604cfbb2e39c5"},
     {"path":"backend-handoff-package/blind-box/index.html","component":"frontend","target":"blind-box/index.html","sha256":"0843213a87de0e97f3f74bef81d24a979894d870737076678451a295149d1086"},
-    {"path":"backend-handoff-package/blind-box/styles.css","component":"frontend","target":"blind-box/styles.css","sha256":"de6b958ecb448c50b61a5c0401a785e0a71f2e2630f666ac63c1302e672f81dc"},
+    {"path":"backend-handoff-package/blind-box/styles.css","component":"frontend","target":"blind-box/styles.css","sha256":"e04064de92bde2a6f1ff78893f82e3c137666dbd03d4710ada8eba252a22e5bf"},
     {"path":"backend-handoff-package/blind-box/city-data.js","component":"frontend","target":"blind-box/city-data.js","sha256":"742d4035282bf4bff7adc345bf1aeaebd9ae7a235cee8c1675633855810b0761"},
     {"path":"backend-handoff-package/blind-box/region-data.json","component":"frontend","target":"blind-box/region-data.json","sha256":"c20bfab8c4e871efe7021c2be7bfe0444c0d480bc89c8d856a96d11837531153"},
     {"path":"backend-handoff-package/blind-box/app.js","component":"frontend","target":"blind-box/app.js","sha256":"e3f2d4930dd01d2b405ef286203918127f47728963f351feec0ce691ebf66196"},
