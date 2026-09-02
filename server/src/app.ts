@@ -433,6 +433,13 @@ export function buildApp(): FastifyInstance {
       app.log.warn({ err: error }, 'realtime publish failed');
     }
   };
+  const recordActiveOperation = (userId: bigint, op: string, ip: string) => {
+    try {
+      void prisma.analyticsEvent.create({ data: { userId, eventType: 'active_op', eventData: { op }, ip } }).catch(() => undefined);
+    } catch {
+      // Analytics must never affect the business operation that produced it.
+    }
+  };
 
   app.register(websocket, { options: { maxPayload: 1024 } });
   app.decorate('realtime', realtime);
@@ -718,6 +725,29 @@ export function buildApp(): FastifyInstance {
   const inquiryCreateSchema = z.object({ title: z.string().trim().min(1).max(160), content: z.string().trim().min(1).max(10000), tags: z.array(z.string().trim().max(40)).max(8).default([]), bounty: z.coerce.number().int().min(0).max(10000).default(0), deadline: z.coerce.date().nullable().optional(), idempotencyKey: z.string().trim().min(16).max(160).optional() });
   const inquiryReplySchema = z.object({ content: z.string().trim().min(1).max(10000), kind: z.enum(['answer', 'comment']).default('answer'), parentId: z.coerce.bigint().nullable().optional() });
   const notificationParamsSchema = z.object({ id: z.coerce.bigint() });
+  const analyticsEventSchema = z.object({
+    eventType: z.enum(['page_view', 'nav_click', 'active_op']),
+    eventData: z.record(z.string()).optional(),
+    page: z.string().trim().max(100).optional(),
+  });
+  const dashboardStatsQuerySchema = z.object({
+    startDate: z.coerce.date(),
+    endDate: z.coerce.date(),
+  }).refine((query) => query.endDate >= query.startDate, { path: ['endDate'], message: '结束日期不能早于开始日期' });
+
+  app.post('/api/analytics/event', { preHandler: app.authenticate }, async (request) => {
+    const input = analyticsEventSchema.parse(request.body);
+    await prisma.analyticsEvent.create({
+      data: {
+        userId: currentUserId(request),
+        eventType: input.eventType,
+        eventData: input.eventData,
+        page: input.page,
+        ip: request.ip,
+      },
+    });
+    return { ok: true };
+  });
 
   const activeTaskClaimStatuses = ['pending', 'assigned', 'submitted'] as const;
   function taskListInclude(userId: bigint) {
@@ -933,6 +963,98 @@ export function buildApp(): FastifyInstance {
     await recordAudit({ actorId: currentUserId(request), action: 'rbac.role.update', targetType: 'role', targetId: role.id.toString(), ip: request.ip, afterData: { enabled: role.enabled, permissionKeys: keys ?? undefined } });
     if (keys !== null || input.enabled !== undefined) realtime.invalidatePermissions();
     return { role: { ...role, id: role.id.toString() } };
+  });
+
+  app.get('/api/admin/dashboard/stats', { preHandler: app.authenticate }, async (request, reply) => {
+    if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.userList)) return;
+    const query = dashboardStatsQuerySchema.parse(request.query);
+    const startDate = new Date(query.startDate);
+    startDate.setUTCHours(0, 0, 0, 0);
+    const endDatePlusOne = new Date(query.endDate);
+    endDatePlusOne.setUTCHours(0, 0, 0, 0);
+    endDatePlusOne.setUTCDate(endDatePlusOne.getUTCDate() + 1);
+    type DateCountRow = { date: string | Date; count: bigint | number | string };
+    type TypeDateCountRow = DateCountRow & { taskType: string };
+    type NavClickRow = { nav: string | null; item: string | null; count: bigint | number | string };
+    const dateCounts = (rows: DateCountRow[]) => rows.map((row) => ({
+      date: row.date instanceof Date ? row.date.toISOString().slice(0, 10) : String(row.date).slice(0, 10),
+      count: Number(row.count),
+    }));
+    const countsByType = (rows: TypeDateCountRow[]) => {
+      const grouped = new Map<string, Array<{ date: string; count: number }>>();
+      for (const row of rows) {
+        const data = grouped.get(row.taskType) ?? [];
+        data.push(dateCounts([row])[0]);
+        grouped.set(row.taskType, data);
+      }
+      return [...grouped].map(([type, data]) => ({ type, data }));
+    };
+    const [registrations, pageViews, uniqueVisitors, homepageViews, dailyActiveUsers, navClicks, taskPublished, taskPublishedByType, taskClaimed, taskClaimedByType] = await Promise.all([
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM users WHERE created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at) ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM analytics_events WHERE event_type = 'page_view' AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at) ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(DISTINCT user_id) AS count
+        FROM analytics_events WHERE event_type = 'page_view' AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at) ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM analytics_events WHERE event_type = 'page_view' AND page IN ('plaza', 'login') AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at) ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(DISTINCT user_id) AS count
+        FROM analytics_events WHERE event_type = 'active_op' AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at) ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<NavClickRow[]>(Prisma.sql`
+        SELECT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.nav')) AS nav,
+          JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.item')) AS item, COUNT(*) AS count
+        FROM analytics_events WHERE event_type = 'nav_click' AND created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY nav, item ORDER BY count DESC
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM tasks WHERE created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at) ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<TypeDateCountRow[]>(Prisma.sql`
+        SELECT task_type AS taskType, DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM tasks WHERE created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY task_type, DATE(created_at) ORDER BY task_type, DATE(created_at)
+      `),
+      prisma.$queryRaw<DateCountRow[]>(Prisma.sql`
+        SELECT DATE_FORMAT(DATE(created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM task_claims WHERE created_at >= ${startDate} AND created_at < ${endDatePlusOne}
+        GROUP BY DATE(created_at) ORDER BY DATE(created_at)
+      `),
+      prisma.$queryRaw<TypeDateCountRow[]>(Prisma.sql`
+        SELECT tasks.task_type AS taskType, DATE_FORMAT(DATE(task_claims.created_at), '%Y-%m-%d') AS date, COUNT(*) AS count
+        FROM task_claims INNER JOIN tasks ON tasks.id = task_claims.task_id
+        WHERE task_claims.created_at >= ${startDate} AND task_claims.created_at < ${endDatePlusOne}
+        GROUP BY tasks.task_type, DATE(task_claims.created_at) ORDER BY tasks.task_type, DATE(task_claims.created_at)
+      `),
+    ]);
+    return {
+      registrations: dateCounts(registrations),
+      pageViews: dateCounts(pageViews),
+      uniqueVisitors: dateCounts(uniqueVisitors),
+      homepageViews: dateCounts(homepageViews),
+      dailyActiveUsers: dateCounts(dailyActiveUsers),
+      navClicks: navClicks.map((row) => ({ nav: row.nav ?? '', item: row.item ?? '', count: Number(row.count) })),
+      taskPublished: dateCounts(taskPublished),
+      taskPublishedByType: countsByType(taskPublishedByType),
+      taskClaimed: dateCounts(taskClaimed),
+      taskClaimedByType: countsByType(taskClaimedByType),
+    };
   });
 
   app.get('/api/admin/users', { preHandler: app.authenticate }, async (request, reply) => {

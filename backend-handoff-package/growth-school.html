@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:,">
 <title>蛋蛋世界 · 真人组队·实操互助·职场加速</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <style>
   :root{
     --plaza-berry:#F2387A;
@@ -1910,6 +1911,30 @@
   .gossip-card-stats span,.gossip-card .foot span,.gossip-card .foot .tag{background:none!important;border:0!important;padding:0!important;box-shadow:none!important;font-size:13px!important;color:#9CA3AF!important;font-weight:500!important}
   .gossip-card-stats span:last-child,.gossip-card .foot .tag:last-child,.gossip-card [class*="bounty"],.gossip-card [class*="coin"]{margin-left:auto!important;color:#D97706!important;font-weight:800!important;font-size:14px!important}
   @media(max-width:620px){.gossip-card{padding:14px 16px!important}.bl-wall-card{padding:12px 14px!important}}
+
+  /* === 管理看板分析区 === */
+  .dash-analytics{margin-top:28px;padding-top:24px;border-top:1px solid var(--border);min-width:0}
+  .dash-analytics-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+  .dash-analytics-title{font-size:18px;font-weight:800;color:var(--ink)}
+  .dash-analytics-subtitle{font-size:12px;color:var(--muted);margin-top:4px}
+  .dash-time-filter,.dash-chart-type-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .dash-time-filter{padding:10px 12px;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:8px}
+  .dash-time-filter .dash-filter-label{font-size:12px;color:var(--muted);font-weight:600;margin-right:2px}
+  .dash-range-chip,.dash-type-chip{appearance:none;border:1px solid var(--border);background:var(--bg2);color:var(--muted);border-radius:6px;padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s ease}
+  .dash-range-chip:hover,.dash-type-chip:hover{background:#DEE2E6;color:var(--ink);border-color:#ADB5BD}
+  .dash-range-chip.active,.dash-type-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .dash-time-filter .input-date{height:31px;width:140px;padding:4px 8px;font-size:12px}
+  .dash-time-filter .dash-custom-btn{height:31px;padding:0 12px;font-size:12px}
+  .dash-chart-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;min-width:0}
+  .dash-chart-card{min-width:0;min-height:300px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;box-shadow:var(--shadow);overflow:hidden}
+  .dash-chart-card-wide{grid-column:1/-1}
+  .dash-chart-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;margin-bottom:8px}
+  .dash-chart-card-title{font-size:14px;font-weight:750;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dash-chart{width:100%;height:246px;min-height:246px}
+  .dash-chart-type-filter{justify-content:flex-end;flex-shrink:0}
+  .dash-chart-type-filter .dash-type-chip{padding:4px 8px;font-size:11px}
+  @media(max-width:900px){.dash-chart-row{grid-template-columns:minmax(0,1fr)}.dash-chart-card-wide{grid-column:auto}.dash-analytics-head{flex-direction:column}.dash-time-filter .input-date{flex:1;min-width:120px}}
+  @media(max-width:620px){.dash-chart-card{padding:12px;min-height:270px}.dash-chart{height:216px;min-height:216px}.dash-chart-card-head{align-items:flex-start;flex-direction:column}.dash-chart-type-filter{justify-content:flex-start}.dash-time-filter{padding:9px}.dash-time-filter .dash-filter-label{width:100%}.dash-time-filter .input-date{width:calc(50% - 5px);min-width:0}}
 </style>
 </head>
 <body>
@@ -2122,6 +2147,29 @@
           <div class="grid-3"><div class="empty-state">暂无任务概览</div></div>
           <div class="sec-head"><h3>待批改提交</h3><button class="link" onclick="go('submissions')">查看全部</button></div>
           <div class="table"><div class="empty-state">暂无待批改提交</div></div>
+          <div class="dash-analytics" id="dashAnalytics">
+            <div class="dash-analytics-head">
+              <div><div class="dash-analytics-title">数据看板</div><div class="dash-analytics-subtitle">查看注册、活跃、任务与导航的实时趋势</div></div>
+            </div>
+            <div class="dash-time-filter" aria-label="看板日期范围">
+              <span class="dash-filter-label">统计周期</span>
+              <button type="button" class="dash-range-chip" data-dash-range="7" onclick="switchDashRange(7,this)">近 7 天</button>
+              <button type="button" class="dash-range-chip active" data-dash-range="30" onclick="switchDashRange(30,this)">近 30 天</button>
+              <button type="button" class="dash-range-chip" data-dash-range="90" onclick="switchDashRange(90,this)">近 90 天</button>
+              <input class="input-date" id="dashStartDate" type="date" aria-label="开始日期">
+              <span class="dash-filter-label">至</span>
+              <input class="input-date" id="dashEndDate" type="date" aria-label="结束日期">
+              <button type="button" class="btn btn-primary dash-custom-btn" onclick="applyCustomDashRange()">查询</button>
+            </div>
+            <div class="dash-chart-row">
+              <div class="dash-chart-card"><div class="dash-chart-card-head"><div class="dash-chart-card-title">注册趋势</div></div><div class="dash-chart" id="chartRegistration"></div></div>
+              <div class="dash-chart-card"><div class="dash-chart-card-head"><div class="dash-chart-card-title">访问曝光</div></div><div class="dash-chart" id="chartExposure"></div></div>
+              <div class="dash-chart-card"><div class="dash-chart-card-head"><div class="dash-chart-card-title">日活跃用户</div></div><div class="dash-chart" id="chartDAU"></div></div>
+              <div class="dash-chart-card"><div class="dash-chart-card-head"><div class="dash-chart-card-title">导航点击</div></div><div class="dash-chart" id="chartNavClicks"></div></div>
+              <div class="dash-chart-card dash-chart-card-wide"><div class="dash-chart-card-head"><div class="dash-chart-card-title">任务发布</div><div class="dash-chart-type-filter" aria-label="任务发布类型"><button type="button" class="dash-type-chip active" data-publish-type="all" onclick="switchPublishType('all',this)">全部</button><button type="button" class="dash-type-chip" data-publish-type="teach" onclick="switchPublishType('teach',this)">拜师学艺</button><button type="button" class="dash-type-chip" data-publish-type="help" onclick="switchPublishType('help',this)">蛋蛋求助</button><button type="button" class="dash-type-chip" data-publish-type="team" onclick="switchPublishType('team',this)">组队搭子</button><button type="button" class="dash-type-chip" data-publish-type="reward" onclick="switchPublishType('reward',this)">奖励任务</button></div></div><div class="dash-chart" id="chartPublish"></div></div>
+              <div class="dash-chart-card dash-chart-card-wide"><div class="dash-chart-card-head"><div class="dash-chart-card-title">任务认领</div><div class="dash-chart-type-filter" aria-label="任务认领类型"><button type="button" class="dash-type-chip active" data-claim-type="all" onclick="switchClaimType('all',this)">全部</button><button type="button" class="dash-type-chip" data-claim-type="teach" onclick="switchClaimType('teach',this)">拜师学艺</button><button type="button" class="dash-type-chip" data-claim-type="help" onclick="switchClaimType('help',this)">蛋蛋求助</button><button type="button" class="dash-type-chip" data-claim-type="team" onclick="switchClaimType('team',this)">组队搭子</button><button type="button" class="dash-type-chip" data-claim-type="reward" onclick="switchClaimType('reward',this)">奖励任务</button></div></div><div class="dash-chart" id="chartClaim"></div></div>
+            </div>
+          </div>
         </section>
 
         <!-- ===== ADMIN: 任务组管理 ===== -->
@@ -4394,7 +4442,94 @@
     var revBadge = document.getElementById('pendingBadge');
     if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(revBadge, pending.length);
     else if(revBadge){ revBadge.textContent = pending.length ? String(pending.length) : ''; revBadge.hidden = pending.length === 0; }
+    if(window.echarts && document.getElementById('dashAnalytics')) loadDashboardStats();
   }
+
+  /* ===== Admin analytics dashboard ===== */
+  var dashCharts = { registration:null, exposure:null, dau:null, navClicks:null, publish:null, claim:null };
+  var dashStatsData = null;
+  var dashStatsLoading = false;
+  var dashRangeDays = 30;
+  var dashPublishType = 'all';
+  var dashClaimType = 'all';
+  var DASH_TYPE_LABELS = { teach:'拜师学艺', help:'蛋蛋求助', team:'组队搭子', reward:'奖励任务' };
+  function dashPad(value){ return String(value).length < 2 ? '0' + value : String(value); }
+  function dashDateValue(date){ return date.getFullYear() + '-' + dashPad(date.getMonth() + 1) + '-' + dashPad(date.getDate()); }
+  function getDashDateRange(){
+    var end = new Date(); end.setHours(0,0,0,0);
+    var start = new Date(end); start.setDate(start.getDate() - Math.max(0, Number(dashRangeDays || 30) - 1));
+    return { startDate:dashDateValue(start), endDate:dashDateValue(end) };
+  }
+  function setDashRangeInputs(range){
+    var start = document.getElementById('dashStartDate'); var end = document.getElementById('dashEndDate');
+    if(start) start.value = range.startDate; if(end) end.value = range.endDate;
+  }
+  function setDashRangeChip(active){ document.querySelectorAll('[data-dash-range]').forEach(function(chip){ chip.classList.toggle('active', chip.getAttribute('data-dash-range') === String(active)); }); }
+  function switchDashRange(days){ dashRangeDays = Number(days) || 30; setDashRangeChip(dashRangeDays); var range = getDashDateRange(); setDashRangeInputs(range); loadDashboardStats(true); }
+  function applyCustomDashRange(){
+    var start = document.getElementById('dashStartDate'); var end = document.getElementById('dashEndDate');
+    var startValue = start && start.value; var endValue = end && end.value;
+    if(!startValue || !endValue || startValue > endValue){ toast('开始日期不能晚于结束日期'); return; }
+    dashRangeDays = 0; document.querySelectorAll('[data-dash-range]').forEach(function(chip){ chip.classList.remove('active'); });
+    loadDashboardStats(true, { startDate:startValue, endDate:endValue });
+  }
+  function dashRowsByDate(rows){ var map = Object.create(null); (rows || []).forEach(function(row){ map[String(row.date || '').slice(0,10)] = Number(row.count || 0); }); return map; }
+  function dashDatesForRange(range, stats){
+    var dates = []; var start = new Date(String(range.startDate) + 'T00:00:00'); var end = new Date(String(range.endDate) + 'T00:00:00');
+    if(isNaN(start.valueOf()) || isNaN(end.valueOf())) return dates;
+    for(var cursor = start; cursor <= end && dates.length < 366; cursor.setDate(cursor.getDate() + 1)) dates.push(dashDateValue(cursor));
+    if(!dates.length && stats){ ['registrations','pageViews','uniqueVisitors','homepageViews','dailyActiveUsers','taskPublished','taskClaimed'].forEach(function(key){ (stats[key] || []).forEach(function(row){ var value = String(row.date || '').slice(0,10); if(value && dates.indexOf(value) < 0) dates.push(value); }); }); dates.sort(); }
+    return dates;
+  }
+  function makeLineOption(dates, series, colors){
+    return { animationDuration:320, color:colors || ['#165DFF'], tooltip:{trigger:'axis'}, grid:{left:40,right:16,top:20,bottom:28,containLabel:true}, xAxis:{type:'category',boundaryGap:false,data:dates,axisLabel:{color:'#6C757D',fontSize:10,hideOverlap:true}}, yAxis:{type:'value',minInterval:1,axisLabel:{color:'#6C757D',fontSize:10},splitLine:{lineStyle:{color:'#E9ECEF'}}}, series:(series || []).map(function(item,index){ return {name:item.name,type:'line',smooth:true,symbol:'none',data:item.data,areaStyle:index === 0 ? {color:(colors && colors[index] || '#165DFF') + '18'} : undefined,lineStyle:{width:2},emphasis:{focus:'series'}}; }) };
+  }
+  function initDashCharts(){
+    if(!window.echarts) return false;
+    var el; el = document.getElementById('chartRegistration'); if(el && !dashCharts.registration) dashCharts.registration = echarts.init(el);
+    el = document.getElementById('chartExposure'); if(el && !dashCharts.exposure) dashCharts.exposure = echarts.init(el);
+    el = document.getElementById('chartDAU'); if(el && !dashCharts.dau) dashCharts.dau = echarts.init(el);
+    el = document.getElementById('chartNavClicks'); if(el && !dashCharts.navClicks) dashCharts.navClicks = echarts.init(el);
+    el = document.getElementById('chartPublish'); if(el && !dashCharts.publish) dashCharts.publish = echarts.init(el);
+    el = document.getElementById('chartClaim'); if(el && !dashCharts.claim) dashCharts.claim = echarts.init(el);
+    return Boolean(dashCharts.registration || dashCharts.exposure || dashCharts.dau || dashCharts.navClicks || dashCharts.publish || dashCharts.claim);
+  }
+  function renderPublishChart(){
+    if(!dashCharts.publish || !dashStatsData) return;
+    var range = dashStatsData.__range || getDashDateRange(); var dates = dashDatesForRange(range, dashStatsData);
+    var group = (dashStatsData.taskPublishedByType || []).find(function(item){ return item.type === dashPublishType; });
+    var rows = dashPublishType === 'all' ? dashStatsData.taskPublished : (group ? group.data : []); var map = dashRowsByDate(rows || []);
+    dashCharts.publish.setOption(makeLineOption(dates, [{name:dashPublishType === 'all' ? '全部任务' : (DASH_TYPE_LABELS[dashPublishType] || dashPublishType),data:dates.map(function(date){ return map[date] || 0; })}], ['#F59E0B']), true);
+  }
+  function renderClaimChart(){
+    if(!dashCharts.claim || !dashStatsData) return;
+    var range = dashStatsData.__range || getDashDateRange(); var dates = dashDatesForRange(range, dashStatsData);
+    var group = (dashStatsData.taskClaimedByType || []).find(function(item){ return item.type === dashClaimType; });
+    var rows = dashClaimType === 'all' ? dashStatsData.taskClaimed : (group ? group.data : []); var map = dashRowsByDate(rows || []);
+    dashCharts.claim.setOption(makeLineOption(dates, [{name:dashClaimType === 'all' ? '全部任务' : (DASH_TYPE_LABELS[dashClaimType] || dashClaimType),data:dates.map(function(date){ return map[date] || 0; })}], ['#10B981']), true);
+  }
+  function renderAllDashCharts(){
+    if(!dashStatsData || !initDashCharts()) return;
+    var dates = dashDatesForRange(dashStatsData.__range || getDashDateRange(), dashStatsData);
+    var rows = function(key){ var map = dashRowsByDate(dashStatsData[key]); return dates.map(function(date){ return map[date] || 0; }); };
+    dashCharts.registration.setOption(makeLineOption(dates, [{name:'注册用户',data:rows('registrations')}], ['#165DFF']), true);
+    dashCharts.exposure.setOption(makeLineOption(dates, [{name:'PV',data:rows('pageViews')},{name:'UV',data:rows('uniqueVisitors')},{name:'首页访问',data:rows('homepageViews')}], ['#7C3AED','#0891B2','#F59E0B']), true);
+    dashCharts.dau.setOption(makeLineOption(dates, [{name:'DAU',data:rows('dailyActiveUsers')}], ['#10B981']), true);
+    var navMap = Object.create(null); (dashStatsData.navClicks || []).forEach(function(row){ var nav = String(row.nav || '').toLowerCase(); var role = nav.indexOf('admin') >= 0 || nav.indexOf('manage') >= 0 || nav.indexOf('管理') >= 0 ? '[管理]' : '[学生]'; var label = role + ' ' + (row.item || row.nav || '其他'); navMap[label] = (navMap[label] || 0) + Number(row.count || 0); });
+    var navEntries = Object.keys(navMap).map(function(label){ return {label:label,value:navMap[label]}; }).sort(function(a,b){ return b.value - a.value; }).slice(0,12);
+    dashCharts.navClicks.setOption({animationDuration:320,tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},grid:{left:80,right:20,top:12,bottom:18,containLabel:true},xAxis:{type:'value',minInterval:1,splitLine:{lineStyle:{color:'#E9ECEF'}},axisLabel:{color:'#6C757D',fontSize:10}},yAxis:{type:'category',inverse:true,data:navEntries.map(function(entry){ return entry.label; }),axisLabel:{color:'#6C757D',fontSize:10}},series:[{type:'bar',data:navEntries.map(function(entry){ return entry.value; }),barMaxWidth:18,itemStyle:{color:'#8B5CF6',borderRadius:[0,4,4,0]}}]}, true);
+    renderPublishChart(); renderClaimChart();
+  }
+  function loadDashboardStats(force, customRange){
+    if(!window.echarts || !window.apiClient || typeof window.apiClient.adminDashboardStats !== 'function' || !USER.isAdmin || dashStatsLoading) return;
+    var range = customRange || getDashDateRange();
+    if(!force && dashStatsData && dashStatsData.__range && dashStatsData.__range.startDate === range.startDate && dashStatsData.__range.endDate === range.endDate) return;
+    dashStatsLoading = true; setDashRangeInputs(range);
+    window.apiClient.adminDashboardStats(range.startDate, range.endDate).then(function(result){ dashStatsData = result || {}; dashStatsData.__range = range; renderAllDashCharts(); }, function(error){ if(typeof toast === 'function') toast(error && error.message ? error.message : '看板数据加载失败'); }).finally(function(){ dashStatsLoading = false; });
+  }
+  function switchPublishType(type){ dashPublishType = type || 'all'; document.querySelectorAll('[data-publish-type]').forEach(function(chip){ chip.classList.toggle('active', chip.getAttribute('data-publish-type') === dashPublishType); }); renderPublishChart(); }
+  function switchClaimType(type){ dashClaimType = type || 'all'; document.querySelectorAll('[data-claim-type]').forEach(function(chip){ chip.classList.toggle('active', chip.getAttribute('data-claim-type') === dashClaimType); }); renderClaimChart(); }
+  window.addEventListener('resize', function(){ Object.keys(dashCharts).forEach(function(key){ if(dashCharts[key] && typeof dashCharts[key].resize === 'function') dashCharts[key].resize(); }); });
 
   function renderAdminReviewQueue(tasks){
     var list = document.getElementById('reviewList');
@@ -5647,6 +5782,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     }
     hideAllPages(); showPage(id);
     bindRealtimeForPage(id);
+    if(window.apiClient && typeof window.apiClient.trackEvent === 'function') window.apiClient.trackEvent('page_view', { page:id }, id).catch(function(){});
     var navId = ADMIN_PAGES.indexOf(id) >= 0 ? 'adminNav' : 'studentNav';
     var activePage = (id === 'newgroup') ? 'taskgroups' : (id === 'review' ? 'submissions' : id);
     setActiveNav(navId, activePage);
@@ -5678,6 +5814,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       // External/page links own their navigation; the SPA router must not consume them.
       if (n.matches('a[href]')) return;
       event.preventDefault();
+      if(window.apiClient && typeof window.apiClient.trackEvent === 'function') window.apiClient.trackEvent('nav_click', { nav: n.closest('#adminNav') ? 'admin' : 'student', item:n.getAttribute('data-page') || '' }).catch(function(){});
       go(n.getAttribute('data-page'));
     });
   });
