@@ -78,6 +78,12 @@ describe('frontend UX regressions', () => {
     expect(html).toContain('await hydrateUserState();\n      refreshProfile();');
   });
 
+  it('keeps gossip points and task type guidance readable in the light theme', () => {
+    const lightTheme = html.slice(html.indexOf('Light neutral theme'));
+    expect(lightTheme).toContain('.banner-text .tag,.banner-text .tag b{color:#212529!important');
+    expect(lightTheme).toContain('.page [style*="color:var(--muted)"]{color:#6C757D!important');
+  });
+
   it('renders profile stats even when no current character is selected', () => {
     const renderChar = html.match(/function renderChar\(\)\{[\s\S]*?\n  \}\n\n  function renderCharUnlocked/);
     expect(renderChar?.[0]).toContain('renderStatChips(USER.stats || {});');
