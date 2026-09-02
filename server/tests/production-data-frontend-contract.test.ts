@@ -252,6 +252,13 @@ describe('production frontend data contract', () => {
     expect(renderListBody![1]).toContain('escapeHtml(c.claimerContact)');
   });
 
+  it('opens claim management from the current minimal task card title', () => {
+    const managerBody = html.match(/async function openClaimerManager\(btn\)\{([\s\S]*?)\n  \}\n\n  function renderClaimerList/);
+
+    expect(managerBody).not.toBeNull();
+    expect(managerBody![1]).toContain("card.querySelector('.mt-title')");
+  });
+
   it('does not display a default MBTI group or ranking identity when the server omits it', () => {
     expect(html).not.toContain("renderMbtiSubPick(subRow, USER.mbtiGroup || 'NF')");
     expect(html).toContain('renderMbtiSubPick(subRow, USER.mbtiGroup || null)');

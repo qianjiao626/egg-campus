@@ -6433,7 +6433,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   async function openClaimerManager(btn){
     var card = btn.closest('.card');
     if(!card) return;
-    var nameEl = card.querySelector('div[style*="font-weight:600"]');
+    var nameEl = card.querySelector('.mt-title') || card.querySelector('div[style*="font-weight:600"]');
     var taskName = nameEl ? nameEl.textContent : '';
     if(!taskName) return;
     currentClaimerTask = taskName;
