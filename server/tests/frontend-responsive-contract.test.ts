@@ -22,6 +22,6 @@ describe('frontend responsive shell contract', () => {
     expect(html).toContain('.sidebar{width:72px');
     expect(html).toContain('.sidebar .nav-item span');
     expect(html).toContain('.sidebar .logout');
-    expect(html).toContain('.sidebar .nav-item{justify-content:center');
+    expect(html).toContain('.sidebar .nav-item{justify-content:center!important;align-items:center!important;min-height:44px!important;height:44px!important');
   });
 });
