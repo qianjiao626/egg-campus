@@ -41,6 +41,16 @@ describe('task plaza card contract', () => {
     expect(renderer).toContain('查看详情');
   });
 
+  it('routes publisher details through the full claim-aware detail renderer', () => {
+    const detailStart = html.indexOf('function openSyncedTaskDetail');
+    const detailEnd = html.indexOf('function renderTeamTaskHint', detailStart);
+    const detailRenderer = html.slice(detailStart, detailEnd);
+    expect(detailRenderer).toContain("if(role === 'publisher')");
+    expect(detailRenderer).toContain('legacyPublishedTaskDetail(button)');
+    expect(detailRenderer).toContain("claim.status === 'pending' ? '待确认配对'");
+    expect(html).toContain("card.setAttribute('data-signup-deadline', task.signupDeadline || '')");
+  });
+
   it('keeps the claimed badge in the card corner without covering title tags', () => {
     expect(html).toContain('.plaza-card.is-claimed{padding-top:42px!important}');
     expect(html).toContain('.claimed-badge{position:absolute;top:4px;right:4px;');

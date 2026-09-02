@@ -5401,6 +5401,11 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.setAttribute('data-contact', task.contact || '');
     card.setAttribute('data-owner-name', task.publisher && task.publisher.nickname ? task.publisher.nickname : (String(task.userId) === String(USER.id) ? USER.nickname : '发布者'));
     card.setAttribute('data-requirements', task.requirements || '');
+    card.setAttribute('data-skill-cat', task.skillCategory || '');
+    card.setAttribute('data-skill-sub', task.skillSubcategory || '');
+    card.setAttribute('data-claim-mode', task.claimMode || 'single');
+    card.setAttribute('data-deadline', task.deadline || '');
+    card.setAttribute('data-signup-deadline', task.signupDeadline || '');
     var reward = Number(task.reward || 0);
     var claimCount = Number(task.activeClaimCount || task.claimCount || 0);
     var teamHint = type === 'team' ? renderTeamTaskHint(task, 'publisher') : '';
@@ -5455,6 +5460,25 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   function openSyncedTaskDetail(button, role){
     var card = button && button.closest('.card');
     if(!card) return;
+    if(role === 'publisher'){
+      var publishedTitleEl = card.querySelector('.mt-title') || card.querySelector('div[style*="font-weight:600"]');
+      var publishedTitle = publishedTitleEl ? publishedTitleEl.textContent : '该任务';
+      var publishedTaskId = card.getAttribute('data-task-id');
+      if(publishedTaskId && window.apiClient && window.apiClient.taskClaims){
+        return window.apiClient.taskClaims(publishedTaskId).then(function(result){
+          taskClaimers[publishedTitle] = (result.claims || []).map(function(claim){
+            var profile = claim.claimer || {};
+            var claimStatus = claim.status === 'submitted' ? '已提交' : claim.status === 'completed' ? '已完成' : claim.status === 'assigned' ? '进行中' : claim.status === 'pending' ? '待确认配对' : '已取消';
+            return { id: claim.id, userId: claim.claimerId, name: profile.nickname || '匿名用户', mbti: profile.mbtiType || '—', nick: (MBTI_NICKNAMES && MBTI_NICKNAMES[profile.mbtiType]) || '—', egg: profile.eggCategory || '未设置', rarity: profile.eggRarity || 'N', rep: profile.reputation || 0, stats: {}, bio: profile.bio || '', selected: claim.status === 'submitted', status: claimStatus, coinFrozen: claim.frozenAmount || 0, claimerContact: claim.contact || '' };
+          });
+          legacyPublishedTaskDetail(button);
+        }).catch(function(error){
+          toast(error.message || '认领列表加载失败，请稍后重试');
+        });
+      }
+      legacyPublishedTaskDetail(button);
+      return;
+    }
     var titleEl = card.querySelector('.mt-title') || card.querySelector('div[style*="font-weight:600"]');
     var title = titleEl ? titleEl.textContent : '任务详情';
     var type = card.getAttribute('data-task-type') || 'teach';
@@ -6252,7 +6276,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   function legacyPublishedTaskDetail(btn){
     var card = btn.closest('.card');
     if(!card) return;
-    var nameEl = card.querySelector('div[style*="font-weight:600"]');
+    var nameEl = card.querySelector('.mt-title') || card.querySelector('div[style*="font-weight:600"]');
     var taskName = nameEl ? nameEl.textContent : '该任务';
     var taskType = card.getAttribute('data-task-type') || 'teach';
     var skillCat = card.getAttribute('data-skill-cat') || '—';
@@ -6445,7 +6469,8 @@ async function createPublisherProduct(){var type=document.getElementById('publis
         var claimResult = await window.apiClient.taskClaims(serverTaskId);
         taskClaimers[taskName] = (claimResult.claims || []).map(function(claim){
           var profile = claim.claimer || {};
-          return { id: claim.id, userId: claim.claimerId, name: profile.nickname || '匿名用户', mbti: profile.mbtiType || '—', nick: (MBTI_NICKNAMES && MBTI_NICKNAMES[profile.mbtiType]) || '—', egg: profile.eggCategory || '未设置', rarity: profile.eggRarity || 'N', rep: profile.reputation || 0, stats: {}, bio: profile.bio || '', selected: claim.status === 'submitted', status: claim.status === 'submitted' ? '已提交' : (claim.status === 'completed' ? '已完成' : '进行中'), coinFrozen: claim.frozenAmount || 0, claimerContact: claim.contact || '' };
+          var claimStatus = claim.status === 'submitted' ? '已提交' : claim.status === 'completed' ? '已完成' : claim.status === 'assigned' ? '进行中' : claim.status === 'pending' ? '待确认配对' : '已取消';
+          return { id: claim.id, userId: claim.claimerId, name: profile.nickname || '匿名用户', mbti: profile.mbtiType || '—', nick: (MBTI_NICKNAMES && MBTI_NICKNAMES[profile.mbtiType]) || '—', egg: profile.eggCategory || '未设置', rarity: profile.eggRarity || 'N', rep: profile.reputation || 0, stats: {}, bio: profile.bio || '', selected: claim.status === 'submitted', status: claimStatus, coinFrozen: claim.frozenAmount || 0, claimerContact: claim.contact || '' };
         });
       } catch(error) {
         toast(error.message || '认领列表加载失败，请稍后重试');
