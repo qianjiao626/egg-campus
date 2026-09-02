@@ -2,40 +2,38 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const html = readFileSync(resolve(process.cwd(), '..', 'backend-handoff-package', 'growth-school.html'), 'utf8');
+const css = readFileSync(resolve(process.cwd(), '..', 'backend-handoff-package', 'blind-box', 'styles.css'), 'utf8');
 
 describe('frontend responsive shell contract', () => {
   it('keeps the main shell fluid below desktop while preventing horizontal overflow', () => {
-    expect(html).toContain('@media (max-width:1100px)');
-    expect(html).toContain('overflow-x:hidden');
-    expect(html).toContain('.app,.main,.page,.app > *, .main > *, .page > *{min-width:0!important}');
-    expect(html).toContain('.main{width:100%!important;height:100dvh!important;overflow-x:hidden!important;overflow-y:hidden!important');
-    expect(html).toContain('.page{width:100%!important;height:calc(100dvh - 84px)!important;min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important');
-    expect(html).toContain('.topbar{min-width:0!important;display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:10px!important');
-    expect(html).toContain('padding:calc(12px + env(safe-area-inset-top))');
-    expect(html).toContain('min-height:100vh');
+    expect(css).toContain('html,body,.buddy-content{max-width:100%');
+    expect(css).toContain('overflow-x:hidden');
+    expect(css).toContain('@media(max-width:1120px)');
+    expect(css).toContain('.workspace{grid-template-columns:minmax(0,1fr) 340px}');
+    expect(css).toContain('.match-grid{grid-template-columns:repeat(2,minmax(0,1fr))}');
+    expect(css).toContain('@media(max-width:860px)');
+    expect(css).toContain('.workspace{grid-template-columns:1fr}');
+    expect(css).toContain('.stage-rail,.preference-workbench{grid-column:1;grid-row:auto}');
   });
 
   it('keeps narrow screens on a single vertical scroll owner with a phone nav fallback', () => {
-    expect(html).toContain('@media (max-width:620px)');
-    expect(html).toContain('overflow-y:auto');
-    expect(html).toContain('.sidebar{width:72px');
-    expect(html).toContain('.sidebar .nav-item span');
-    expect(html).toContain('.sidebar .logout');
-    expect(html).toContain('.sidebar .nav-item{justify-content:center!important;align-items:center!important;min-height:44px!important;height:44px!important');
+    expect(css).toContain('@media(max-width:620px)');
+    expect(css).toContain('.buddy-stage{min-height:374px');
+    expect(css).toContain('.open-box{min-height:44px}');
+    expect(css).toContain('.choice{min-height:44px;padding:0 11px}');
+    expect(css).toContain('.send-message{min-height:44px}');
+    expect(css).toContain('.match-grid{grid-template-columns:1fr}');
+    expect(css).toContain('.feature-grid{grid-template-columns:1fr}');
+    expect(css).toContain('.message-drawer{top:auto;bottom:0;width:100%;height:min(86vh,720px);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))');
   });
 
   it('covers content grids, tables, modals, notifications, and charts on smaller screens', () => {
-    expect(html).toContain('@media (max-width:900px)');
-    expect(html).toContain('.grid-3,.grid-2,.kpi-row{grid-template-columns:minmax(0,1fr)!important}');
-    expect(html).toContain('.table{max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch}');
-    expect(html).toContain('.modal-overlay .modal-box,.modal-overlay .feedback-card,.modal-overlay .invite-modal-box,.modal-overlay .char-modal-card,.modal-overlay .reg-modal-card,.modal-overlay .login-card,.modal-overlay .task-detail-card');
-    expect(html).toContain('.notif-panel{width:min(360px,calc(100vw - 24px));max-height:calc(100dvh - 24px)');
-    expect(html).toContain('.modal-overlay,.rank-modal-overlay{align-items:flex-end;padding:12px 12px calc(12px + env(safe-area-inset-bottom))');
-    expect(html).toContain('.dash-chart-row{grid-template-columns:minmax(0,1fr)}');
-    expect(html).toContain('@media(max-width:600px)');
-    expect(html).toContain('.dash-chart-card{padding:12px;min-height:240px}.dash-chart{height:196px;min-height:196px}');
-    expect(html).toContain('.btn,.login-btn,.reg-btn,.egg-draw-btn,.egg-redraw-btn,.banner-publish-btn,.task-detail-card .td-status .btn{min-height:44px');
-    expect(html).toContain('.notif-panel{position:fixed;left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom))');
+    expect(css).toContain('.feature-modal{position:relative;width:min(520px,100%);max-height:min(680px,calc(100vh - 32px));overflow:auto');
+    expect(css).toContain('@media(max-width:620px){.feature-section{padding-top:32px}.feature-group{padding:12px}.feature-grid{grid-template-columns:1fr}');
+    expect(css).toContain('.feature-modal{width:100%;max-height:calc(100dvh - 24px);overflow:auto;padding:20px 16px;border-radius:18px}');
+    expect(css).toContain('.feature-modal-actions{position:sticky;bottom:0;padding-top:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));background:var(--panel)}');
+    expect(css).toContain('.message-drawer{position:fixed;z-index:50;right:0;top:0;width:min(410px,100%);height:100vh');
+    expect(css).toContain('.message-drawer{top:auto;bottom:0;width:100%;height:min(86vh,720px);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))');
+    expect(css).toContain('.stage-object{max-width:100%;overflow:hidden;right:-8px;top:93px;transform:scale(.72);transform-origin:top right}');
   });
 });
