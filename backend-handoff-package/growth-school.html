@@ -3175,6 +3175,22 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="teamRatingModal" style="display:none" onclick="if(event.target===this)closeTeamRating()">
+    <div class="modal-box" style="width:560px;max-width:calc(100vw - 24px);max-height:86vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border)">
+        <div style="font-size:16px;font-weight:600">任务互评</div><button class="btn btn-ghost" onclick="closeTeamRating()" style="padding:4px 10px">关闭</button>
+      </div>
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+        <div id="teamRatingTaskInfo" style="font-size:13px;color:var(--muted);background:var(--bg);padding:10px 14px;border-radius:10px">任务：—</div>
+        <div style="font-size:13px;color:var(--ink2)">评价每位队友</div>
+        <div style="font-size:12px;line-height:1.6;color:#8a5a00;background:#FFF7E6;padding:10px 12px;border-radius:8px">所有成员平均分 ≥ 4 星可退回 80% 报名费；若被多数人标记“中途退出”则不获得返还。</div>
+        <div id="teamRatingMembers" style="display:flex;flex-direction:column;gap:12px"></div>
+        <div><div class="lbl">评价内容（选填）</div><textarea class="textarea" id="teamRatingComment" style="height:80px" maxlength="2000" placeholder="写几句评价，帮助队友改进…"></textarea></div>
+        <div style="display:flex;gap:8px"><button class="btn btn-primary flex-1" onclick="submitTeamRating()">提交评价</button><button class="btn btn-ghost" onclick="closeTeamRating()">稍后评价</button></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Skill Tag Modal ===== -->
   <div class="modal-overlay" id="skillModal" style="display:none" onclick="if(event.target===this)closeSkillModal()">
     <div class="modal-box" style="width:680px;max-height:85vh;overflow-y:auto">
@@ -3789,6 +3805,7 @@
     if(item.type === 'task_completed') return '任务已完成，蛋蛋币已结算';
     if(item.type === 'task_review_approved') return '你发布的任务已审核通过';
     if(item.type === 'task_review_needs_revision') return '你的任务需要修改后重新提交';
+    if(item.type === 'team_rating_settled') return '组队任务互评已结算，请查看退款结果';
     return payload.message || item.type || '你有一条新通知';
   }
   async function syncNotifications(){
@@ -5204,18 +5221,23 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     card.setAttribute('data-claimed', '0');
     card.setAttribute('data-task-description', task.description || '');
     card.setAttribute('data-contact', task.contact || '');
+    card.setAttribute('data-owner-name', task.publisher && task.publisher.nickname ? task.publisher.nickname : (String(task.userId) === String(USER.id) ? USER.nickname : '发布者'));
     card.setAttribute('data-requirements', task.requirements || '');
     var reward = Number(task.reward || 0);
     var claimCount = Number(task.activeClaimCount || task.claimCount || 0);
+    var teamHint = type === 'team' ? renderTeamTaskHint(task, 'publisher') : '';
+    var teamRate = type === 'team' && task.teamRating && task.teamRating.canRate ? '<button class="btn btn-primary btn-sm" onclick="openTeamRatingFromCard(this,\'publisher\')">评价队友</button>' : '';
+    var teamClose = type === 'team' && group === 'approved' ? '<button class="btn btn-ghost btn-sm" onclick="endTeamTask(this)">结束任务</button>' : '';
     card.innerHTML = '<div class="mt-row"><div class="mt-status mt-status--' + group + '"><span class="mt-dot"></span><span>' + label + '</span></div><span class="mt-date">发布于 ' + formatDateYmd(task.createdAt) + '</span></div>' +
       '<div class="mt-title-row"><div class="mt-title">' + escapeHtml(task.title || '未命名任务') + '</div>' + (reward > 0 ? '<div class="mt-coin">悬赏 ' + reward + ' 蛋蛋币</div>' : '') + '</div>' +
-      '<div class="mt-desc">' + escapeHtml(task.description || '暂无简介') + '</div>' +
+      '<div class="mt-desc">' + escapeHtml(task.description || '暂无简介') + '</div>' + teamHint +
       (task.reviewReason ? '<div class="mt-note">修改意见：' + escapeHtml(task.reviewReason) + '</div>' : '') +
       '<div class="mt-meta"><span>' + typeLabel + '</span><span>' + (task.claimMode === 'multiple' ? '多人认领' : '单人认领') + '</span><span>已认领 ' + claimCount + (task.maxClaimers ? '/' + Number(task.maxClaimers) : '') + '</span></div>' +
       '<div class="mt-actions"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'publisher\')">查看详情</button>' +
       ((group === 'pending' || group === 'approved') ?
-        (group === 'approved' ? '<button class="btn btn-ghost btn-sm" onclick="openClaimerManager(this)">认领管理</button><button class="btn btn-primary btn-sm" onclick="reviewMyTask(this)">确认完成</button>' : '') +
+        (group === 'approved' ? '<button class="btn btn-ghost btn-sm" onclick="openClaimerManager(this)">认领管理</button><button class="btn btn-primary btn-sm" onclick="reviewMyTask(this)">确认完成</button>' + teamClose : '') +
         '<button class="btn btn-ghost btn-sm" onclick="cancelPublishedTask(this)">取消任务</button>' : '') + '</div>';
+    if(teamRate) card.querySelector('.mt-actions').insertAdjacentHTML('beforeend', teamRate);
     list.appendChild(card);
   }
   function renderSyncedClaimedTask(claim){
@@ -5242,12 +5264,15 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       ? '<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-primary btn-sm" onclick="submitClaimedTask(\'' + task.id + '\')">提交完成</button></div>' : '';
     var typeLabel = type === 'team' ? '组队搭子' : type === 'help' ? '蛋蛋求助' : type === 'reward' ? '奖励任务' : '拜师学艺';
     var reward = Number(task.reward || 0);
+    var teamHint = type === 'team' ? renderTeamTaskHint(Object.assign({}, task, {_viewerClaimStatus: claim.status}), 'claimer') : '';
+    var teamRate = type === 'team' && task.teamRating && task.teamRating.canRate ? '<button class="btn btn-primary btn-sm" onclick="openTeamRatingFromCard(this,\'claimer\')">评价队友</button>' : '';
     card.innerHTML = '<div class="mt-row"><div class="mt-status mt-status--' + claimStatusGroup + '"><span class="mt-dot"></span><span>' + claimLabel + '</span></div><span class="mt-date">发布于 ' + formatDateYmd(task.createdAt) + '</span></div>' +
       '<div class="mt-title-row"><div class="mt-title">' + escapeHtml(task.title || '任务') + '</div>' + (reward > 0 ? '<div class="mt-coin">悬赏 ' + reward + ' 蛋蛋币</div>' : '') + '</div>' +
-      '<div class="mt-desc">' + escapeHtml(task.description || '暂无简介') + '</div>' +
+      '<div class="mt-desc">' + escapeHtml(task.description || '暂无简介') + '</div>' + teamHint +
       cancellationActions + '<div class="mt-meta"><span>' + typeLabel + '</span><span>' + (task.claimMode === 'multiple' ? '多人认领' : '单人认领') + '</span><span>' + claimLabel + '</span></div>' +
       '<div class="mt-actions"><button class="btn btn-ghost btn-sm" onclick="openSyncedTaskDetail(this,\'claimer\')">查看详情</button>' + controls + completedRatingAction + '</div>';
     list.appendChild(card);
+    if(teamRate) card.querySelector('.mt-actions').insertAdjacentHTML('beforeend', teamRate);
   }
   function openSyncedTaskDetail(button, role){
     var card = button && button.closest('.card');
@@ -5266,6 +5291,70 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     document.getElementById('myTaskDetailCard').innerHTML = '<button class="td-close" onclick="closeMyTaskDetail()">×</button><div class="td-title">' + escapeHtml(title) + '</div><div class="td-info"><div class="td-info-row"><span class="td-info-lbl">任务类型</span><span class="td-info-val">' + escapeHtml(typeLabels[type] || type) + '</span></div><div class="td-info-row"><span class="td-info-lbl">状态</span><span class="td-info-val">' + escapeHtml(status) + '</span></div><div class="td-info-row"><span class="td-info-lbl">蛋蛋币</span><span class="td-info-val">' + reward + '</span></div></div><div class="td-section-title">任务描述</div><div class="td-req">' + escapeHtml(description) + '</div><div class="td-section-title">联系方式</div>' + contactHtml + '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">' + action + '</div>';
     var modal = document.getElementById('myTaskDetailModal'); modal.style.display = 'flex'; requestAnimationFrame(function(){ modal.classList.add('show'); });
   }
+  function renderTeamTaskHint(task, role){
+    var rating = task.teamRating || {};
+    if(task.status === 'approved'){
+      if(role === 'publisher'){
+        var submitted = (task.claims || []).some(function(claim){ return claim.status === 'submitted'; });
+        var assigned = (task.claims || []).some(function(claim){ return claim.status === 'assigned'; });
+        var text = submitted ? '搭子已提交完成，请点击「确认完成」验收' : assigned ? '搭子完成任务后，你才能确认验收' : Number(task.activeClaimCount || 0) > 0 ? '有 ' + Number(task.activeClaimCount || 0) + ' 人报名，点击「认领管理」确认配对' : '暂时还没有人报名，任务上线后会在这里显示报名者';
+        return '<div class="mt-note" style="color:#7c3aed!important;background:#f5f3ff!important">' + text + '</div>';
+      }
+      var claimStatus = task._viewerClaimStatus || 'pending';
+      var claimerText = claimStatus === 'submitted' ? '已提交完成，等待发布者确认验收' : claimStatus === 'assigned' ? '搭子已配对，完成任务后提交成果' : '等待发布者确认配对，配对后即可开始任务';
+      return '<div class="mt-note" style="color:#2563eb!important;background:#eff6ff!important">' + claimerText + '</div>';
+    }
+    if(task.status !== 'completed') return '';
+    if(!rating.settled && rating.canRate) return '<div class="mt-note" style="color:#7c3aed!important;background:#f5f3ff!important">任务已完成，请评价每位队友，达标可退回80%报名费。点击「评价队友」</div>';
+    if(!rating.settled && rating.ratedByMe) return '<div class="mt-note" style="color:#2563eb!important;background:#eff6ff!important">你已完成互评，等待其他 ' + Number(rating.pendingRatings || 0) + ' 位队友完成评价后结算</div>';
+    if(rating.settled && rating.refunded) return '<div class="mt-note" style="color:#15803d!important;background:#f0fdf4!important">互评已完成，已退回80%报名费</div>';
+    if(rating.settled) return '<div class="mt-note" style="color:#6b7280!important;background:#f9fafb!important">互评已完成，未达标，未退回报名费</div>';
+    return '<div class="mt-note" style="color:#6b7280!important;background:#f9fafb!important">等待队友完成互评后结算</div>';
+  }
+  var currentTeamRatingCtx = null;
+  async function openTeamRatingFromCard(button, role){
+    var card = button && button.closest('.mytask-card'); if(!card) return;
+    var taskId = card.getAttribute('data-task-id');
+    if(!taskId) return;
+    try{
+      var result = await window.apiClient.taskClaims(taskId);
+      var claims = (result.claims || []).filter(function(item){ return ['assigned','submitted','completed','abandoned'].indexOf(item.status) >= 0; });
+      var members = [{ userId: card.getAttribute('data-owner-id'), name: card.getAttribute('data-owner-name') || '发布者', role: 'publisher' }];
+      claims.forEach(function(item){ if(String(item.claimerId) !== String(USER.id)) members.push({userId:String(item.claimerId),name:item.claimer && item.claimer.nickname || '队友',role:'claimer',status:item.status}); });
+      members = members.filter(function(item){ return String(item.userId) !== String(USER.id); });
+      openTeamRating(taskId, card.querySelector('.mt-title') ? card.querySelector('.mt-title').textContent : '任务', members);
+    }catch(error){ toast(error.message || '互评成员加载失败'); }
+  }
+  function openTeamRating(taskId, taskTitle, teammates){
+    currentTeamRatingCtx = {taskId:String(taskId), teammates:teammates || []};
+    document.getElementById('teamRatingTaskInfo').textContent = '任务：' + taskTitle;
+    document.getElementById('teamRatingComment').value = '';
+    document.getElementById('teamRatingMembers').innerHTML = currentTeamRatingCtx.teammates.map(function(member, index){
+      var stars = [1,2,3,4,5].map(function(value){ return '<span class="star team-rating-star" data-member="' + index + '" data-val="' + value + '" onclick="setTeamRatingStar(' + index + ',' + value + ')">★</span>'; }).join('');
+      var dropout = member.role === 'claimer' ? '<label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><input type="checkbox" id="teamDropout' + index + '" onchange="toggleTeamDropout(' + index + ',this.checked)"> 该队友中途退出/失联（未完成任务）</label>' : '<label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><input type="checkbox" id="teamRunaway' + index + '"> 发布者跑路/失联</label>';
+      return '<div style="padding:12px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-weight:600">' + escapeHtml(member.name) + '</span><span class="star-row" id="teamStars' + index + '">' + stars + '</span></div>' + dropout + '</div>';
+    }).join('');
+    document.getElementById('teamRatingModal').style.display = 'flex';
+  }
+  function setTeamRatingStar(index, value){
+    if(!currentTeamRatingCtx) return;
+    currentTeamRatingCtx.teammates[index].score = value;
+    document.querySelectorAll('#teamStars' + index + ' .star').forEach(function(star){ star.classList.toggle('on', Number(star.getAttribute('data-val')) <= value); });
+  }
+  function toggleTeamDropout(index, checked){ if(checked && (!currentTeamRatingCtx.teammates[index].score)) setTeamRatingStar(index,1); }
+  async function submitTeamRating(){
+    if(!currentTeamRatingCtx) return;
+    var comment = document.getElementById('teamRatingComment').value.trim();
+    if(window.apiClient && window.apiClient.validateUserText(comment)){ toast(window.apiClient.validateUserText(comment)); return; }
+    var ratings = currentTeamRatingCtx.teammates.map(function(member,index){
+      var score = Number(member.score || 0); if(!score) return null;
+      return {toUserId:member.userId, score:score, isDropoutVote:member.role === 'claimer' && Boolean(document.getElementById('teamDropout' + index) && document.getElementById('teamDropout' + index).checked), isPublisherRunawayVote:member.role === 'publisher' && Boolean(document.getElementById('teamRunaway' + index) && document.getElementById('teamRunaway' + index).checked), comment:comment || null};
+    });
+    if(ratings.some(function(item){ return !item; })){ toast('请为每位成员选择星级'); return; }
+    try{ await window.apiClient.rateTask(currentTeamRatingCtx.taskId,{ratings:ratings}); closeTeamRating(); await syncMyTasks(); toast('评价已提交'); }
+    catch(error){ toast(error.message || '评价提交失败'); }
+  }
+  function closeTeamRating(){ document.getElementById('teamRatingModal').style.display='none'; currentTeamRatingCtx=null; }
   function ensureMyTaskEmptyState(list, kind){
     if(!list || list.querySelector('[data-task-id]')) return;
     // 兼容旧契约：没有已认领的任务时使用下方引导文案。
@@ -5283,6 +5372,14 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   async function submitClaimedTask(taskId){
     try{ await window.apiClient.submitTask(taskId); await syncMyTasks(); toast('任务已提交，等待发布者确认'); }
     catch(error){ toast(error.message || '任务提交失败'); }
+  }
+  async function endTeamTask(button){
+    var card = button && button.closest('.mytask-card'); if(!card) return;
+    var taskId = card.getAttribute('data-task-id');
+    if(!taskId || !window.apiClient || !window.apiClient.completeTask) return;
+    if(!window.confirm('结束任务后，未完成的已配对队友会被标记为未完成并进入互评，确定继续吗？')) return;
+    try{ await window.apiClient.completeTask(taskId, null, true); await syncMyTasks(); toast('任务已结束，可以开始互评'); }
+    catch(error){ toast(error.message || '结束任务失败'); }
   }
   async function respondSyncedTaskCancellationRequest(taskId, requestId, status){
     try{

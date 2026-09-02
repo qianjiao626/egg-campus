@@ -125,7 +125,7 @@
     submitTask: function (id) { return request('/api/tasks/' + encodeURIComponent(id) + '/submit', { method: 'POST' }); },
     taskClaims: function (id) { return request('/api/tasks/' + encodeURIComponent(id) + '/claims'); },
     assignTaskClaims: function (id, claimIds) { return request('/api/tasks/' + encodeURIComponent(id) + '/claims/assign', { method: 'PATCH', body: JSON.stringify({ claimIds: claimIds || [] }) }); },
-    completeTask: function (id, claimId) { return request('/api/tasks/' + encodeURIComponent(id) + '/complete', { method: 'POST', body: JSON.stringify({ claimId: claimId || null }) }); },
+    completeTask: function (id, claimId, forceClose) { return request('/api/tasks/' + encodeURIComponent(id) + '/complete', { method: 'POST', body: JSON.stringify({ claimId: claimId || null, forceClose: !!forceClose }) }); },
     cancelTask: function (id) { return request('/api/tasks/' + encodeURIComponent(id) + '/cancel', { method: 'POST' }); },
     myTaskCancellationRequests: function () { return request('/api/tasks/cancellation-requests/mine'); },
     createTaskCancellationRequest: function (id, reason) { return request('/api/tasks/' + encodeURIComponent(id) + '/cancellation-requests', { method: 'POST', body: JSON.stringify({ reason: reason }) }); },

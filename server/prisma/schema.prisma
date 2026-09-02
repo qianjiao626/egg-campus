@@ -498,6 +498,7 @@ model Task {
   updatedAt    DateTime    @updatedAt @map("updated_at")
   reviewedAt   DateTime?   @map("reviewed_at")
   completedAt  DateTime?   @map("completed_at")
+  teamSettledAt DateTime?  @map("team_settled_at")
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
    claims       TaskClaim[]
    cancellationRequests TaskCancellationRequest[]
@@ -556,6 +557,8 @@ model Rating {
   toUserId   BigInt   @map("to_user_id")
   score      Int
   comment    String?  @db.Text
+  isDropoutVote Boolean @default(false) @map("is_dropout_vote")
+  isPublisherRunawayVote Boolean @default(false) @map("is_publisher_runaway_vote")
   createdAt  DateTime @default(now()) @map("created_at")
   task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   fromUser   User     @relation("RatingFromUser", fields: [fromUserId], references: [id], onDelete: Cascade)
