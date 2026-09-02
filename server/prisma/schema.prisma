@@ -55,6 +55,8 @@ model User {
   nicknameChangedAt DateTime? @map("nickname_changed_at")
   mustChangePassword Boolean  @default(false) @map("must_change_password")
   protectedAdminKey String?   @unique @map("protected_admin_key") @db.VarChar(40)
+  certifiedAt      DateTime?  @map("certified_at")
+  certifiedBy      BigInt?    @map("certified_by")
   interests        Json?
   skills           Json?
 

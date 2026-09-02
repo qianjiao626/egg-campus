@@ -29,6 +29,19 @@ export const profileUpdateSchema = z.object({
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 
+export const PROFILE_UPDATE_DAILY_LIMIT = 10;
+
+export function profileUpdateDayStart(now = new Date()): Date {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return new Date(`${values.year}-${values.month}-${values.day}T00:00:00+08:00`);
+}
+
 export interface CurrentProfileIdentity {
   nickname: string;
   email: string | null;

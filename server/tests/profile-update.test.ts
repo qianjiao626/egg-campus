@@ -115,6 +115,7 @@ describe('profile update rules', () => {
       },
       buddyPreference: { upsert: upsertBuddy },
     }) as never);
+    vi.spyOn(prisma.auditLog, 'count').mockResolvedValue(0 as never);
     vi.spyOn(prisma.auditLog, 'create').mockResolvedValue({ id: 1n } as never);
 
     const token = await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
@@ -129,6 +130,35 @@ describe('profile update rules', () => {
     expect(response.json().user).toMatchObject({ nickname: '新昵称', mbtiType: 'INTJ', interests: ['摄影'], skills: ['设计'] });
     expect(updateUser).toHaveBeenCalledOnce();
     expect(upsertBuddy).toHaveBeenCalledOnce();
+  });
+
+  it('blocks the eleventh profile update in the same day', async () => {
+    process.env.DATABASE_URL = 'mysql://user:password@localhost:3306/dandan_world';
+    process.env.JWT_SECRET = 'a-test-secret-that-is-longer-than-32-characters';
+    process.env.VERIFICATION_PROVIDER = 'mock';
+    app = buildApp();
+    await app.ready();
+
+    vi.spyOn(prisma.authSession, 'findUnique').mockResolvedValue({
+      id: 'session', userId: 1n, revokedAt: null, expiresAt: new Date(Date.now() + 60_000),
+    } as never);
+    const auditCount = vi.spyOn(prisma.auditLog, 'count').mockResolvedValue(10 as never);
+    const transaction = vi.spyOn(prisma, '$transaction');
+
+    const token = await app.jwt.sign({ sub: '1', sessionId: 'session', role: 'student' });
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/users/me',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { bio: '第十一次修改' },
+    });
+
+    expect(response.statusCode).toBe(429);
+    expect(response.json()).toMatchObject({ error: 'PROFILE_UPDATE_LIMIT', limit: 10, used: 10 });
+    expect(auditCount).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ actorId: 1n, action: 'user.profile.update', createdAt: expect.any(Object) }),
+    }));
+    expect(transaction).not.toHaveBeenCalled();
   });
 
   it('returns received ratings with server-calculated aggregate data', async () => {

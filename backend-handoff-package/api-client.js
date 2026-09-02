@@ -193,6 +193,7 @@
     createAdminRole: function (payload) { return request('/api/admin/roles', { method: 'POST', body: JSON.stringify(payload) }); },
     updateAdminRole: function (id, payload) { return request('/api/admin/roles/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(payload) }); },
     adminUsers: function (query) { return request('/api/admin/users' + (query ? '?q=' + encodeURIComponent(query) : '')); },
+    adminCertifyUser: function (userId, certified) { return request('/api/admin/users/' + encodeURIComponent(userId) + '/certify', { method: 'POST', body: JSON.stringify({ certified: Boolean(certified) }) }); },
     userRoleGrants: function (id) { return request('/api/admin/users/' + encodeURIComponent(id) + '/roles'); },
     createRoleGrant: function (payload) { return request('/api/admin/role-grants', { method: 'POST', body: JSON.stringify(payload) }); },
     revokeRoleGrant: function (id, reason) { return request('/api/admin/role-grants/' + encodeURIComponent(id) + '/revoke', { method: 'POST', body: JSON.stringify({ reason: reason }) }); },

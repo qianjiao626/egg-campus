@@ -40,7 +40,7 @@ import { InMemoryRateLimiter } from './rate-limit.js';
 import { assertSafeJsonText, assertSafeSkillTags, assertSafeText, CONTENT_BLOCKED_MESSAGE } from './content-filter.js';
 import { DAILY_TASK_PUBLISH_LIMIT, isSameUtcDay, publishRewardForAttempt } from './task-rules.js';
 import { taskVisibilityWhere } from './task-visibility.js';
-import { mbtiGroupFor, prepareProfileUpdate, profileMbtiTypeSchema, ProfileRuleError, profileUpdateSchema } from './profile.js';
+import { mbtiGroupFor, prepareProfileUpdate, profileMbtiTypeSchema, PROFILE_UPDATE_DAILY_LIMIT, profileUpdateDayStart, ProfileRuleError, profileUpdateSchema } from './profile.js';
 import {
   assertFeedbackCanReopen,
   assertFeedbackTransition,
@@ -886,6 +886,7 @@ export function buildApp(): FastifyInstance {
         major: true,
         grade: true,
         protectedAdminKey: true,
+        certifiedAt: true,
         createdAt: true,
         account: { select: { availableBalance: true } },
         stats: { select: { completedTasks: true, experience: true } },
@@ -893,7 +894,7 @@ export function buildApp(): FastifyInstance {
       },
     });
     return {
-      users: users.map(({ account, stats, _count, protectedAdminKey, ...user }) => ({
+      users: users.map(({ account, stats, _count, protectedAdminKey, certifiedAt, ...user }) => ({
         ...user,
         id: user.id.toString(),
         completedTasks: stats?.completedTasks ?? 0,
@@ -901,8 +902,23 @@ export function buildApp(): FastifyInstance {
         points: account?.availableBalance ?? 0,
         experience: stats?.experience ?? 0,
         protected: Boolean(protectedAdminKey),
+        certified: Boolean(certifiedAt),
       })),
     };
+  });
+
+  app.post('/api/admin/users/:id/certify', { preHandler: app.authenticate }, async (request, reply) => {
+    if (!await requireRequestPermission(request, reply, PERMISSION_KEYS.userCertify)) return;
+    const authorization = await authorizationFor(request);
+    if (!authorization.isProtectedAdmin) return reply.code(403).send({ error: 'FORBIDDEN', message: '仅超级管理员可执行蛋总认定' });
+    const params = z.object({ id: z.coerce.bigint() }).parse(request.params);
+    const body = z.object({ certified: z.boolean() }).parse(request.body);
+    const target = await prisma.user.findUnique({ where: { id: params.id }, select: { id: true } });
+    if (!target) return reply.code(404).send({ error: 'USER_NOT_FOUND', message: '用户不存在' });
+    const operatorId = currentUserId(request);
+    await prisma.user.update({ where: { id: params.id }, data: body.certified ? { certifiedAt: new Date(), certifiedBy: operatorId } : { certifiedAt: null, certifiedBy: null } });
+    await recordAudit({ actorId: operatorId, action: body.certified ? 'user.certify' : 'user.decertify', targetType: 'user', targetId: params.id.toString(), ip: request.ip, afterData: { certified: body.certified } });
+    return { ok: true, certified: body.certified };
   });
 
   app.get('/api/admin/users/:id/roles', { preHandler: app.authenticate }, async (request, reply) => {
@@ -3225,6 +3241,21 @@ export function buildApp(): FastifyInstance {
     assertSafeText(input.nickname, input.bio, input.school, input.major, input.city, input.grade, input.email, ...(input.interests ?? []));
     assertSafeSkillTags(...(input.skills ?? []));
     const userId = currentUserId(request);
+    const updatesToday = await prisma.auditLog.count({
+      where: {
+        actorId: userId,
+        action: 'user.profile.update',
+        createdAt: { gte: profileUpdateDayStart() },
+      },
+    });
+    if (updatesToday >= PROFILE_UPDATE_DAILY_LIMIT) {
+      return reply.code(429).send({
+        error: 'PROFILE_UPDATE_LIMIT',
+        message: '今天的资料修改次数已用完，请明天再试',
+        limit: PROFILE_UPDATE_DAILY_LIMIT,
+        used: updatesToday,
+      });
+    }
     try {
       const { user, changedFields } = await prisma.$transaction(async (tx) => {
         const current = await tx.user.findUnique({

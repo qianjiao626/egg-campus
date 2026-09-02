@@ -106,6 +106,7 @@ export function publicUserShape(user: {
   interests?: unknown;
   skills?: unknown;
   mustChangePassword?: boolean;
+  certifiedAt?: Date | null;
 }) {
   return {
     id: typeof user.id === 'bigint' ? user.id.toString() : user.id,
@@ -129,6 +130,9 @@ export function publicUserShape(user: {
     lastLoginAt: user.lastLoginAt ?? null,
     interests: Array.isArray(user.interests) ? user.interests : [],
     skills: Array.isArray(user.skills) ? user.skills : [],
+    isCertified: Boolean(user.certifiedAt),
+    certified: Boolean(user.certifiedAt),
+    certifiedAt: user.certifiedAt ?? null,
   };
 }
 

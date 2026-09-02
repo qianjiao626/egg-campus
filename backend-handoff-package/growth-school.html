@@ -2722,7 +2722,7 @@
               <div class="invite-row-btn">去邀请 →</div>
             </div>
           </div>
-          <div class="sec-head"><h3>个人资料</h3><button class="btn btn-ghost btn-sm" onclick="openProfileEditor()">编辑资料</button></div>
+          <div class="sec-head"><h3>个人资料</h3><button class="btn btn-ghost btn-sm" onclick="openProfileEditor()">编辑资料</button><span style="font-size:11px;color:var(--muted);margin-left:8px">每天最多修改 10 次</span></div>
           <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:12px">
             <div style="display:flex"><span style="width:90px;color:var(--muted);font-size:13px">邮箱</span><span style="font-size:13px" id="infoEmail">未填写</span></div>
             <div style="display:flex"><span style="width:90px;color:var(--muted);font-size:13px">学校</span><span style="font-size:13px" id="infoSchool">未填写</span></div>
@@ -2901,7 +2901,7 @@
       <button class="rank-modal-close" onclick="closeProfileEditor()" aria-label="关闭">×</button>
       <div style="padding:24px">
         <h3 style="font-size:18px;margin-bottom:4px">编辑个人资料</h3>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:18px">登录用户可随时修改自己的资料。邮箱为选填，修改后需重新验证才能用于安全功能。</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:18px">登录用户可随时修改自己的资料，每天最多修改 10 次。邮箱为选填，修改后需重新验证才能用于安全功能。</p>
         <div class="profile-edit-grid">
           <div><div class="field-lbl">昵称</div><input class="input" id="profileEditNickname" maxlength="30"></div>
           <div><div class="field-lbl">邮箱（选填）</div><input class="input" id="profileEditEmail" type="email"></div>
@@ -4428,6 +4428,7 @@
         ? '<span class="status" style="color:var(--red)">已封禁</span>'
         : '<span class="status" style="color:var(--green)">正常</span>';
       var opBtn = '<button class="op" style="color:var(--primary)" onclick="showUserDetail(\'' + escapeInlineString(u.id) + '\')">查看</button>';
+      if(USER.isProtectedAdmin){ opBtn += '<button class="op" style="color:var(--gold)" onclick="toggleCertify(\'' + escapeInlineString(u.id) + '\',' + (u.certified ? 'false' : 'true') + ')">' + (u.certified ? '撤销认定' : '蛋总认定') + '</button>'; }
       return '<div class="trow" data-user-status="' + u.status + '">'
         + '<div class="cell c-stu"><span class="stu">' + escapeHtml(u.nick) + (u.status === 'suspended' ? ' <span style="font-size:10px;color:var(--red)">[封]</span>' : '') + '</span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(u.email || '未填写邮箱') + '</span></div>'
         + '<div class="cell c-school"><span style="font-size:12px">' + escapeHtml(u.school || '未填写学校') + '</span><span style="font-size:11px;color:var(--muted)">' + escapeHtml(u.major || '未填写专业') + ' · ' + escapeHtml(u.grade || '未填写年级') + '</span></div>'
@@ -4438,6 +4439,13 @@
         + '<div class="cell c-op">' + opBtn + '</div>'
         + '</div>';
     }).join('');
+  }
+
+  async function toggleCertify(userId, certified){
+    if(!USER.isProtectedAdmin || !window.apiClient || typeof window.apiClient.adminCertifyUser !== 'function') return;
+    if(!window.confirm(certified ? '确认认定该用户为蛋总认证用户吗？' : '确认撤销该用户的蛋总认定吗？')) return;
+    try{ await window.apiClient.adminCertifyUser(userId, certified); toast(certified ? '已完成蛋总认定' : '已撤销蛋总认定'); await syncAdminUsers(); }
+    catch(error){ toast(error.message || '认定操作失败，请稍后重试'); }
   }
 
   async function syncAdminUsers(){
@@ -4800,6 +4808,12 @@
     try{
       var result = await apiClient.login(identifier, pwd);
       var user = result.user;
+      if(window.apiClient && typeof window.apiClient.me === 'function'){
+        try{
+          var canonical = await window.apiClient.me();
+          if(canonical && canonical.user) user = canonical.user;
+        }catch(_error){}
+      }
       USER = Object.assign({}, USER, user, { registered:true });
       if(typeof hydrateUserState === 'function') await hydrateUserState();
       USER.isAdmin = Boolean(USER.isAdministrator);
