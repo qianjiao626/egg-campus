@@ -1935,6 +1935,29 @@
   .dash-chart-type-filter .dash-type-chip{padding:4px 8px;font-size:11px}
   @media(max-width:900px){.dash-chart-row{grid-template-columns:minmax(0,1fr)}.dash-chart-card-wide{grid-column:auto}.dash-analytics-head{flex-direction:column}.dash-time-filter .input-date{flex:1;min-width:120px}}
   @media(max-width:620px){.dash-chart-card{padding:12px;min-height:270px}.dash-chart{height:216px;min-height:216px}.dash-chart-card-head{align-items:flex-start;flex-direction:column}.dash-chart-type-filter{justify-content:flex-start}.dash-time-filter{padding:9px}.dash-time-filter .dash-filter-label{width:100%}.dash-time-filter .input-date{width:calc(50% - 5px);min-width:0}}
+  /* ===== Responsive shell overrides ===== */
+  @media (max-width:1100px){
+    html,body{height:auto;min-height:100%;overflow-x:hidden!important;overflow-y:auto!important}
+    #stage{width:100%!important;height:auto!important;min-height:100vh!important;position:relative!important;transform:none!important;left:auto!important;top:auto!important;overflow-x:hidden!important}
+    .app{width:100%!important;height:auto!important;min-width:0!important;overflow-x:hidden!important;overflow-y:visible!important}
+    .app,.main,.page,.app > *, .main > *, .page > *{min-width:0!important}
+    .main{width:100%!important;height:100dvh!important;overflow-x:hidden!important;overflow-y:hidden!important;padding:20px!important}
+    .page{width:100%!important;height:calc(100dvh - 84px)!important;min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important;padding:20px 16px 32px!important}
+    .topbar{min-width:0!important;display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:10px!important;padding:calc(12px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left))!important}
+    .sidebar{width:184px!important;min-width:184px!important}
+  }
+  @media (max-width:620px){
+    .app,.main,.page{min-width:0!important}
+    .main{padding:12px!important}
+    .page{height:calc(100dvh - 76px)!important;max-height:calc(100dvh - 76px)!important;padding:16px 12px 24px!important}
+    .topbar{padding:calc(10px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left))!important}
+    .sidebar{width:72px!important;min-width:72px!important;padding:14px 8px!important}
+    .sidebar .brand-text,.sidebar .nav-item span,.sidebar .user-card .info,.sidebar .logout{display:none!important}
+    .sidebar .nav-item{justify-content:center!important;padding:11px 4px!important}
+    .sidebar .nav-item svg{margin:0!important}
+    .right{gap:6px!important}
+    .search{display:none!important}
+  }
 </style>
 </head>
 <body>
