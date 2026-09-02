@@ -27,7 +27,9 @@
   html,body{height:100%}
   html[data-shop-enabled="false"] [data-shop-ui]{display:none!important}
   html:not([data-buddybox-enabled="true"]) [data-page="buddybox"],html:not([data-buddybox-enabled="true"]) #page-buddybox{display:none!important}
-  body{font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;background:linear-gradient(180deg,#F5F1E8 0%,#F0EBE0 35%,#F8F5EE 70%,#FBF3D9 100%);color:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden}
+   body{font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;background:linear-gradient(180deg,#F5F1E8 0%,#F0EBE0 35%,#F8F5EE 70%,#FBF3D9 100%);color:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden}
+   body.guest-readonly .page button:not(.guest-action){pointer-events:none!important;cursor:not-allowed!important;opacity:.55!important}
+   body.guest-readonly .page input:not([type="search"]),body.guest-readonly .page textarea,body.guest-readonly .page select{cursor:not-allowed!important;opacity:.65!important}
   #stage{width:1440px;height:1024px;transform-origin:top left;position:absolute;top:0;left:0;visibility:visible}
   @media (max-width: 900px){
     html,body{height:auto;min-height:100%;overflow:auto}
@@ -4902,6 +4904,10 @@
   }
 
   /* ===== Login / Logout ===== */
+  var GUEST_PUBLIC_PAGES = ['plaza','helpplaza','teamplaza','rankhall','gossip','blacklist'];
+  function applyGuestReadOnlyState(){
+    document.body.classList.toggle('guest-readonly', !USER.registered);
+  }
   var sessionAdminMode = false;
   function applyRole(role){
     var adminNav = document.getElementById('adminNav');
@@ -4951,6 +4957,7 @@
     document.querySelectorAll('.user-only').forEach(function(el){
       el.style.display = '';
     });
+    applyGuestReadOnlyState();
     USER.isAdmin = Boolean(USER.isAdministrator);
     applyRole(USER.isAdmin && role !== 'student' ? 'admin' : 'student');
     loadAdminAvatarSetting();
@@ -5052,7 +5059,7 @@
     notifications = [];
     updateNotifBadge();
     renderNotifPanel();
-    /* 退出后跳转到拜师学艺广场，隐藏个人中心和我的任务入口 */
+    /* 退出后跳转到公共广场，只读浏览公开内容 */
     hideAllPages();
     showPage('plaza');
     /* 设置为学生导航模式（访客也能看广场） */
@@ -5064,9 +5071,7 @@
     /* 隐藏需要登录的导航项 */
     document.querySelectorAll('.student-item').forEach(function(item){
       var page = item.getAttribute('data-page');
-      if(page === 'mytasks' || page === 'myfeedback' || page === 'myinquiries' || page === 'profile'){
-        item.style.display = 'none';
-      }
+      item.style.display = GUEST_PUBLIC_PAGES.indexOf(page) >= 0 ? 'flex' : 'none';
     });
     /* 隐藏广场banner上的用户数据和发布按钮，替换为登录引导 */
     document.querySelectorAll('.badges').forEach(function(badge){
@@ -5080,6 +5085,11 @@
     document.querySelectorAll('.admin-only').forEach(function(el){
       el.style.display = 'none';
     });
+    applyGuestReadOnlyState();
+    syncPublicTaskPlazas();
+    syncGossipInquiries(true);
+    syncRanking('all');
+    if(window.DandanBlacklist) window.DandanBlacklist.load();
     /* 隐藏蛋总超级卡片 */
     if(!silent) toast('已退出登录');
     /* 重新注入任务卡蛋仔头像（访客也需显示） */
@@ -5620,7 +5630,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     var kind = type === 'help' ? '求助型' : type === 'team' ? '组队型' : type === 'reward' ? '奖励型' : '教学型';
     var taskTags = [task.skillCategory, task.skillSubcategory, kind, mode].filter(Boolean);
     var prizeRibbon = type === 'reward' ? '<span class="task-card-prize-ribbon">💰 有奖</span>' : '';
-    var claimButton = isClaimed ? '<button class="btn btn-disabled btn-sm claim-btn" aria-disabled="true">查看详情</button>' : '<button class="btn btn-primary btn-sm claim-btn">查看详情</button>';
+    var claimButton = isClaimed || !USER.registered ? '<button class="btn btn-disabled btn-sm claim-btn" aria-disabled="true"' + (!USER.registered ? ' title="登录后可操作"' : '') + '>查看详情</button>' : '<button class="btn btn-primary btn-sm claim-btn">查看详情</button>';
     card.innerHTML = (isClaimed ? '<span class="claimed-badge">✓ 已认领</span>' : '') + prizeRibbon + '<div class="head task-card-title-row"><span class="nm">' + escapeHtml(task.title || '未命名任务') + '</span><div class="gap6 task-card-tags">' + taskTags.slice(0, 4).map(function(tag){ return '<span class="claim-mode">' + escapeHtml(tag) + '</span>'; }).join('') + '<span class="tag tag-green">' + status + '</span></div></div>' +
       '<div class="publisher task-card-publisher"><span class="task-card-avatar" style="background:' + publisherColor + '"' + (publisher && publisher.isAdministrator ? ' data-admin-avatar data-avatar-size="30"' : '') + publisherClick + '>' + publisherAvatar + '</span><span class="pname"' + publisherClick + '>发布者 ' + escapeHtml(publisherName) + '</span>' + publisherAdminBadge + '<span class="tag tag-lilac">' + escapeHtml(publisherCategoryLabel) + ' · ' + escapeHtml(publisherRarityLabel) + '</span><span class="tag tag-gold">' + (type === 'reward' ? '完成奖励 ' : '蛋蛋币 ') + Number(task.reward || 0) + '</span><span class="tag tag-blue">经验值 ' + publishExpReward + '</span></div>' +
       '<div class="desc">' + escapeHtml(task.description || '') + '</div>' +
@@ -5628,7 +5638,7 @@ async function createPublisherProduct(){var type=document.getElementById('publis
     return card;
   }
   async function syncPublicTaskPlazas(){
-    if(!USER.registered || !window.apiClient || typeof window.apiClient.publicTasks !== 'function') return;
+    if(!window.apiClient || typeof window.apiClient.publicTasks !== 'function') return;
     if(publicTaskPlazaSyncPromise) return publicTaskPlazaSyncPromise;
     publicTaskPlazaSyncPromise = (async function(){
     try {
@@ -8176,11 +8186,11 @@ async function createPublisherProduct(){var type=document.getElementById('publis
   }
   var gossipInquirySyncPromise = null;
   async function syncGossipInquiries(silent){
-    if(!USER.registered || !window.apiClient || !window.apiClient.inquiries) return;
+    if(!window.apiClient || !window.apiClient.inquiries) return;
     if(gossipInquirySyncPromise) return gossipInquirySyncPromise;
     gossipInquirySyncPromise = (async function(){ try {
       var response = await window.apiClient.inquiries();
-      var mineResponse = typeof window.apiClient.myInquiries === 'function' ? await window.apiClient.myInquiries() : { inquiries: [] };
+      var mineResponse = USER.registered && typeof window.apiClient.myInquiries === 'function' ? await window.apiClient.myInquiries() : { inquiries: [] };
       var records = response.inquiries || [];
       var mapped = records.map(function(inquiry){
         var mappedPost = mapInquiryToGossip(inquiry, []);
@@ -9014,10 +9024,14 @@ async function createPublisherProduct(){var type=document.getElementById('publis
       document.getElementById('adminNav').style.display = 'none';
       var guestStudentNav = document.getElementById('studentNav');
       guestStudentNav.style.display = 'flex';
-      guestStudentNav.querySelectorAll('.nav-item').forEach(function (item) { item.style.display = item.getAttribute('data-page') === 'blacklist' ? 'flex' : 'none'; });
+      guestStudentNav.querySelectorAll('.nav-item').forEach(function (item) { item.style.display = GUEST_PUBLIC_PAGES.indexOf(item.getAttribute('data-page')) >= 0 ? 'flex' : 'none'; });
       if (typeof hideAllPages === 'function') hideAllPages();
-      if (typeof showPage === 'function') showPage('blacklist');
-      if (typeof setActiveNav === 'function') setActiveNav('studentNav', 'blacklist');
+      if (typeof showPage === 'function') showPage('plaza');
+      if (typeof setActiveNav === 'function') setActiveNav('studentNav', 'plaza');
+      applyGuestReadOnlyState();
+      syncPublicTaskPlazas();
+      syncGossipInquiries(true);
+      syncRanking('all');
       if (window.DandanBlacklist) window.DandanBlacklist.load();
       revealStage();
       return;

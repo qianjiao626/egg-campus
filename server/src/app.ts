@@ -479,6 +479,17 @@ export function buildApp(): FastifyInstance {
     }
   });
 
+  async function optionalUserId(request: FastifyRequest): Promise<bigint | undefined> {
+    try {
+      await request.jwtVerify();
+      const session = await prisma.authSession.findUnique({ where: { id: request.user.sessionId } });
+      if (!session || session.revokedAt || session.expiresAt <= new Date()) return undefined;
+      return currentUserId(request);
+    } catch {
+      return undefined;
+    }
+  }
+
   app.register(async function realtimeRoutes(instance) {
     instance.get('/api/realtime', {
       websocket: true,
@@ -750,7 +761,7 @@ export function buildApp(): FastifyInstance {
   });
 
   const activeTaskClaimStatuses = ['pending', 'assigned', 'submitted'] as const;
-  function taskListInclude(userId: bigint) {
+  function taskListInclude(_userId?: bigint) {
     return {
       _count: { select: { claims: { where: { status: { in: [...activeTaskClaimStatuses] } } } } },
       claims: { select: { status: true, claimerId: true } },
@@ -801,7 +812,8 @@ export function buildApp(): FastifyInstance {
       teamRating: teamRatingSnapshot({ ...task, claims, ratings, _teamRefunded }, viewerId),
     };
   }
-  async function hydrateTeamSettlements<T extends { id: bigint; taskType?: string; status?: string; teamSettledAt?: Date | null }>(items: T[], viewerId: bigint) {
+  async function hydrateTeamSettlements<T extends { id: bigint; taskType?: string; status?: string; teamSettledAt?: Date | null }>(items: T[], viewerId?: bigint) {
+    if (viewerId == null) return items;
     if (process.env.NODE_ENV === 'test' || !process.env.DATABASE_URL) return items;
     for (const item of items) {
       if (item.taskType === 'team' && item.status === 'completed' && !item.teamSettledAt) {
@@ -1834,10 +1846,10 @@ export function buildApp(): FastifyInstance {
     }
   });
 
-  app.get('/api/tasks', { preHandler: app.authenticate }, async (request) => {
-    const userId = currentUserId(request);
+  app.get('/api/tasks', async (request) => {
+    const userId = await optionalUserId(request);
     const tasks = await prisma.task.findMany({
-      where: taskVisibilityWhere({ userId, canReview: false, view: 'public' }),
+      where: taskVisibilityWhere({ userId: userId ?? 0n, canReview: false, view: 'public' }),
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: taskListInclude(userId),
@@ -2494,11 +2506,11 @@ export function buildApp(): FastifyInstance {
     return { feedback: serializeFeedback(feedback) };
   });
 
-  app.get('/api/inquiries', { preHandler: app.authenticate }, async (request) => {
+  app.get('/api/inquiries', async (request) => {
     const query = z.object({ limit: z.coerce.number().int().min(1).max(100).default(50) }).parse(request.query);
-    const userId = currentUserId(request);
+    const userId = await optionalUserId(request);
     const inquiries = await prisma.inquiry.findMany({ orderBy: { createdAt: 'desc' }, take: query.limit, include: { user: { select: { id: true, nickname: true } } } });
-    const likes = inquiries.length
+    const likes = userId != null && inquiries.length
       ? await prisma.inquiryLike.findMany({ where: { userId, inquiryId: { in: inquiries.map((inquiry) => inquiry.id) } }, select: { inquiryId: true } })
       : [];
     const likedIds = new Set(likes.map((item) => item.inquiryId.toString()));

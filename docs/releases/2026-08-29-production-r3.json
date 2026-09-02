@@ -19,7 +19,7 @@
     "sha256": "ac700a2cab770309fead735c057678a3c0be0bd1ee40a9250d92e0611373c5ae"
   },
   "files": [
-    {"path":"backend-handoff-package/growth-school.html","component":"frontend","target":"growth-school.html","sha256":"ba7b06aa0bb802cf995c15fcc64b36a1bc9e174110367ec2aef2b6f0edbf93a3"},
+    {"path":"backend-handoff-package/growth-school.html","component":"frontend","target":"growth-school.html","sha256":"916d073c5a374561258b961e2addce119a164f7d5d732771b4fc3f2e1e41d249"},
     {"path":"backend-handoff-package/assets/theme-bg.jpg","component":"frontend","target":"assets/theme-bg.jpg","sha256":"7494f1069e73273b7b454e6132780ed44f131f9a92a5c467dd6e8b7a69597e7e"},
     {"path":"backend-handoff-package/api-client.js","component":"frontend","target":"api-client.js","sha256":"7d4668abffde638e3e9ab6f4eae109b6914690f5991049cc783436df4adb911e"},
     {"path":"backend-handoff-package/identity-view.js","component":"frontend","target":"identity-view.js","sha256":"ab7be7e8ebd0a4aa9221e69ada17c21c067aa282c35677eadc9dfe4433e1c617"},
@@ -38,7 +38,7 @@
     {"path":"backend-handoff-package/blind-box/region-data.json","component":"frontend","target":"blind-box/region-data.json","sha256":"c20bfab8c4e871efe7021c2be7bfe0444c0d480bc89c8d856a96d11837531153"},
     {"path":"backend-handoff-package/blind-box/app.js","component":"frontend","target":"blind-box/app.js","sha256":"e3f2d4930dd01d2b405ef286203918127f47728963f351feec0ce691ebf66196"},
     {"path":"backend-handoff-package/blind-box/buddy-box-api.js","component":"frontend","target":"blind-box/buddy-box-api.js","sha256":"112305f0c1dc26ccedd31a7456e279ec4b4731b65d5c8f4da5f7b7e1c32d5fad"},
-    {"path":"server/src/app.ts","component":"backend","sha256":"afe8fbc6b41a32e1c5915cf54de62763015b77c96e996fbebfa099b488e2017f"},
+    {"path":"server/src/app.ts","component":"backend","sha256":"2657851633946d910f9f5a71c73d0d16d52f67dce44b1928b4ca909807b7cdc2"},
     {"path":"backend-handoff-package/blacklist.js","component":"frontend","target":"blacklist.js","sha256":"68ae57883449e1a1a1efd100f3c90ba55b44471cf89bd08afdebff9893423801"}
   ],
   "forbiddenInRelease": [".env", "node_modules", "*.rollback-*", "*.screenshot.*", "output/playwright", "server/.vitest-full-result.json"],
