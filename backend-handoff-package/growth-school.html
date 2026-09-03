@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:,">
 <title>蛋蛋世界 · 真人组队·实操互助·职场加速</title>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <style>
   :root{
     --plaza-berry:#F2387A;
@@ -4481,10 +4480,24 @@
     var revBadge = document.getElementById('pendingBadge');
     if(window.DandanIdentityView && window.DandanIdentityView.renderUnreadBadge) window.DandanIdentityView.renderUnreadBadge(revBadge, pending.length);
     else if(revBadge){ revBadge.textContent = pending.length ? String(pending.length) : ''; revBadge.hidden = pending.length === 0; }
-    if(window.echarts && document.getElementById('dashAnalytics')) loadDashboardStats();
+    if(document.getElementById('dashAnalytics') && USER.isAdmin) ensureEcharts().then(function(){ loadDashboardStats(); }, function(){});
   }
 
   /* ===== Admin analytics dashboard ===== */
+  var ECHARTS_SRC = 'https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js';
+  var echartsLoadPromise = null;
+  function ensureEcharts(){
+    if(window.echarts) return Promise.resolve(window.echarts);
+    if(echartsLoadPromise) return echartsLoadPromise;
+    echartsLoadPromise = new Promise(function(resolve, reject){
+      var s = document.createElement('script');
+      s.src = ECHARTS_SRC; s.async = true;
+      s.onload = function(){ window.echarts ? resolve(window.echarts) : reject(new Error('echarts missing after load')); };
+      s.onerror = function(){ echartsLoadPromise = null; reject(new Error('echarts load failed')); };
+      document.head.appendChild(s);
+    });
+    return echartsLoadPromise;
+  }
   var dashCharts = { registration:null, exposure:null, dau:null, navClicks:null, publish:null, claim:null };
   var dashStatsData = null;
   var dashStatsLoading = false;
@@ -4560,7 +4573,8 @@
     renderPublishChart(); renderClaimChart();
   }
   function loadDashboardStats(force, customRange){
-    if(!window.echarts || !window.apiClient || typeof window.apiClient.adminDashboardStats !== 'function' || !USER.isAdmin || dashStatsLoading) return;
+    if(!window.apiClient || typeof window.apiClient.adminDashboardStats !== 'function' || !USER.isAdmin || dashStatsLoading) return;
+    if(!window.echarts){ ensureEcharts().then(function(){ loadDashboardStats(force, customRange); }, function(){}); return; }
     var range = customRange || getDashDateRange();
     if(!force && dashStatsData && dashStatsData.__range && dashStatsData.__range.startDate === range.startDate && dashStatsData.__range.endDate === range.endDate) return;
     dashStatsLoading = true; setDashRangeInputs(range);

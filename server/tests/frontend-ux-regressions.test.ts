@@ -106,4 +106,12 @@ describe('frontend UX regressions', () => {
       expect(page).not.toMatch(/\b(?:taskName|name|publisher|s\.name|c\.name)\.replace\(\/'\/g/);
     }
   });
+
+  it('loads echarts on demand instead of blocking the document head', () => {
+    const head = html.slice(0, html.indexOf('</head>'));
+    expect(head).not.toContain('echarts.min.js');
+    expect(html).toContain('function ensureEcharts()');
+    expect(html).toContain("var ECHARTS_SRC = 'https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js'");
+    expect(html).toContain('ensureEcharts().then(function(){ loadDashboardStats(force, customRange); }');
+  });
 });
