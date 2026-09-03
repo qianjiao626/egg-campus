@@ -1813,6 +1813,29 @@
     .right{gap:6px!important}
     .search{display:none!important}
   }
+  /* ===== Campus v2 mobile optimization (SPEC-T8) ===== */
+  @media(max-width:620px){
+    .plaza-banner,.team-hero,.gossip-hero{height:120px;padding:16px!important;min-height:120px;background-size:cover;background-position:center}
+    .plaza-banner .banner-text h2,.team-hero-title,.gossip-hero .banner-text h2{font-size:16px;line-height:1.3}
+    .plaza-banner .banner-text p,.team-hero-sub,.gossip-hero .banner-text p{font-size:12px;line-height:1.3}
+    .filter-eggs,.filter-row,.cat-filter-row,.banner-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+    .filter-egg{min-height:36px;padding:8px 14px;font-size:13px;white-space:nowrap}
+    .plaza-card,.gossip-card,.team-card{padding:16px!important;margin-bottom:12px!important}
+    #page-dashboard .kpi-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px}
+    #page-dashboard .kpi{min-width:0;padding:16px}
+    .plaza-card .tag,.gossip-card .tag,.claimed-badge{font-size:11px;padding:2px 8px}
+    #page-mytasks .task-published-block > .card,#page-mytasks .task-claimed-block > .card{padding:16px!important;margin-bottom:16px!important}
+    #page-mytasks .mt-status{font-size:11px;padding:3px 10px}
+    #page-mytasks .mt-date{font-size:11px}
+    #page-mytasks .mt-coin{font-size:12px}
+    #page-mytasks .mt-title{font-size:14px;line-height:1.4}
+    #page-mytasks .mt-desc{font-size:12px;line-height:1.5}
+    #page-mytasks .mt-actions .btn{min-height:44px;padding:0 14px;font-size:13px}
+    #page-mytasks .mt-note{font-size:11px;padding:8px 12px}
+    h3,h4,[class*="label"],[class*="tag"]{font-size:12px}
+    p,span,[class*="desc"],[class*="text"]{font-size:13px;line-height:1.5}
+    .btn,button,[role="button"]{min-height:44px;padding:0 14px}
+  }
 </style>
 </head>
 <body>
