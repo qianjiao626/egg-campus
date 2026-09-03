@@ -195,6 +195,13 @@ describe('production frontend data contract', () => {
     expect(notificationSyncBody![1]).not.toContain('localOnly');
   });
 
+  it('passes task invitation payload fields into the notification renderer', () => {
+    const notificationSyncBody = html.match(/async function syncNotifications\(\)\{([\s\S]*?)\n  \}\n  function addNotif/);
+    expect(notificationSyncBody).not.toBeNull();
+    expect(notificationSyncBody![1]).toContain('from:payload.from');
+    expect(notificationSyncBody![1]).toContain('skills:Array.isArray(payload.skills) ? payload.skills : []');
+  });
+
   it('uses the server response as the blind-box draw result', () => {
     const drawBody = blindBoxApp.match(/function runDraw\(\)\s*\{([\s\S]*?)\n\}\n\nfunction openCompose/);
     expect(drawBody).not.toBeNull();

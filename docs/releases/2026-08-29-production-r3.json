@@ -19,7 +19,7 @@
     "sha256": "ac700a2cab770309fead735c057678a3c0be0bd1ee40a9250d92e0611373c5ae"
   },
   "files": [
-    {"path":"backend-handoff-package/growth-school.html","component":"frontend","target":"growth-school.html","sha256":"691382f148e5ff895d933e8af9f0022fbf6246c2a36be7916f32446bd80745ff"},
+    {"path":"backend-handoff-package/growth-school.html","component":"frontend","target":"growth-school.html","sha256":"65ae81d7bd8084f0e51f5604a2ad28c75aaea016ab2ed7dfda342d542f09af36"},
     {"path":"backend-handoff-package/assets/theme-bg.jpg","component":"frontend","target":"assets/theme-bg.jpg","sha256":"7494f1069e73273b7b454e6132780ed44f131f9a92a5c467dd6e8b7a69597e7e"},
     {"path":"backend-handoff-package/api-client.js","component":"frontend","target":"api-client.js","sha256":"7d4668abffde638e3e9ab6f4eae109b6914690f5991049cc783436df4adb911e"},
     {"path":"backend-handoff-package/identity-view.js","component":"frontend","target":"identity-view.js","sha256":"ab7be7e8ebd0a4aa9221e69ada17c21c067aa282c35677eadc9dfe4433e1c617"},

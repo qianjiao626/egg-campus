@@ -3898,7 +3898,10 @@
     if(!USER.registered || !window.apiClient || !window.apiClient.unreadNotifications) return;
     try {
       var result = await window.apiClient.unreadNotifications();
-      var serverNotifications = (result.notifications || []).map(function(item){ return {id:Number(item.id), text:notificationText({type:item.type, payload:item.payload}), time:formatFbTime(new Date(item.createdAt).getTime()), unread:!item.readAt, type:item.type, serverId:String(item.id), refId:item.refId, serverPayload:item.payload || {}}; });
+      var serverNotifications = (result.notifications || []).map(function(item){
+        var payload = item.payload && typeof item.payload === 'object' ? item.payload : {};
+        return {id:Number(item.id), text:notificationText({type:item.type, payload:payload}), time:formatFbTime(new Date(item.createdAt).getTime()), unread:!item.readAt, type:item.type, serverId:String(item.id), refId:item.refId, from:payload.from, skills:Array.isArray(payload.skills) ? payload.skills : [], serverPayload:payload};
+      });
       notifications = serverNotifications;
       updateNotifBadge(); renderNotifPanel();
     } catch(error){ /* 保留本地即时通知，不把接口失败伪装成已读 */ }
