@@ -372,6 +372,11 @@ describe('production frontend data contract', () => {
     expect(html).not.toContain('answer.liked = Boolean(result.liked);');
   });
 
+  it('keeps an adopted inquiry from displaying zero answers before details load', () => {
+    expect(html).toContain('answerCount:Number(inquiry.answerCount || inquiry.replyCount || (inquiry.adoptedReplyId != null ? 1 : 0))');
+    expect(html).toContain('var answerCount = p.answers && p.answers.length ? p.answers.length : (p.answerCount || 0);');
+  });
+
   it('connects every visible feedback control to the persisted feedback APIs', () => {
     for (const handler of [
       'openFeedbackModal',
