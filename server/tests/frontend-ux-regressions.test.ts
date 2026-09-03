@@ -69,19 +69,20 @@ describe('frontend UX regressions', () => {
   });
 
   it('keeps task hub tabs readable and refreshes stats after task completion', () => {
-    const lightTheme = html.slice(html.indexOf('Light neutral theme'));
-    expect(lightTheme).toContain('.task-hub-tab{background:#FFFFFF!important;color:#6C757D!important');
-    expect(lightTheme).toContain('.task-hub-tab.active{background:#165DFF!important;background-clip:border-box!important');
-    expect(lightTheme).toContain('background-clip:border-box!important');
-    expect(lightTheme).toContain('-webkit-text-fill-color:#FFFFFF!important');
+    expect(html).toContain('.task-hub-tab{border:0;background:transparent;color:var(--muted)');
+    expect(html).toContain('.task-hub-tab.active{background:var(--primary);color:#fff}');
     expect(html).toContain("if(type === 'task.completed' && typeof hydrateUserState === 'function')");
     expect(html).toContain('await hydrateUserState();\n      refreshProfile();');
   });
 
-  it('keeps gossip points and task type guidance readable in the light theme', () => {
-    const lightTheme = html.slice(html.indexOf('Light neutral theme'));
-    expect(lightTheme).toContain('.banner-text .tag,.banner-text .tag b{color:#212529!important');
-    expect(lightTheme).toContain('.page [style*="color:var(--muted)"]{color:#6C757D!important');
+  it('restores the base campus theme without the glass or light overlays', () => {
+    expect(html).not.toContain('Cinematic glass theme');
+    expect(html).not.toContain('Light neutral theme');
+    expect(html).not.toContain('知乎问题卡风格');
+    expect(html).toContain('/* ===== Campus v2 · restored base theme (SPEC-0002) ===== */');
+    expect(html).toContain('.sidebar{width:208px;height:100%;flex:none;background:linear-gradient(165deg,#3A2D5C 0%,#2B4A7A 28%,#1E5F8C 55%,#1B4A6E 100%)');
+    expect(html).not.toContain('.sidebar-egg-deco{display:none!important}');
+    expect(html).not.toContain("font-family:'Inter',system-ui,sans-serif!important");
   });
 
   it('renders profile stats even when no current character is selected', () => {
